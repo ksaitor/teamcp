@@ -1,0 +1,30 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: teammcp
+      POSTGRES_PASSWORD: teammcp
+      POSTGRES_DB: teammcp
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    environment:
+      DATABASE_URL: "postgresql://teammcp:teammcp@postgres:5432/teammcp?schema=public"
+      ENCRYPTION_KEY: "${ENCRYPTION_KEY}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
+      MCP_BASE_URL: "${MCP_BASE_URL:-http://localhost:3001}"
+      APP_URL: "${APP_URL:-http://localhost:3000}"
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:
