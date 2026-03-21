@@ -1,0 +1,291 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── NextAuth standard tables ───────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+
+  accounts    Account[]
+  sessions    Session[]
+  memberships OrgMembership[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── App models ─────────────────────────────────────────────────────
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships OrgMembership[]
+  connectors  Connector[]
+  settings    OrgSettings?
+}
+
+model OrgSettings {
+  id             String       @id @default(cuid())
+  organizationId String       @unique
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Notification preferences
+  notifyEmail           Boolean @default(true)
+  notifyWebhookUrl      String?
+  notifySlackWebhookUrl String?
+
+  // Log retention
+  logRetentionDays Int @default(90)
+
+  // Member auth settings
+  defaultSessionDurationHours Int     @default(720) // 30 days
+  allowedAuthProviders        Json    @default("[\"EMAIL\",\"GOOGLE\",\"GITHUB\"]")
+  require2FA                  Boolean @default(false)
+
+  // AI settings
+  aiFilterEnabled     Boolean @default(true)
+  aiModel             String  @default("claude-sonnet-4-20250514")
+  approvalTimeoutSecs Int     @default(300) // 5 minutes
+}
+
+// Replaces both Admin and Member models
+model OrgMembership {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role           OrgRole      @default(MEMBER)
+  status         MemberStatus @default(INVITED)
+
+  // Kill switch — when set, all MCP access is blocked instantly.
+  suspendedAt DateTime?
+
+  // Auth session config — overrides org default if set
+  sessionDurationHours Int?
+
+  // Global natural-language permission instructions (only for MEMBER role)
+  permissionInstructions String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  connectorAccess  MemberConnectorAccess[]
+  toolAccess       MemberToolAccess[]
+  auditLogs        AuditLog[]
+  approvalRequests ApprovalRequest[]
+  mcpTokens        McpToken[]
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+}
+
+enum OrgRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum MemberStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+// MCP access tokens issued after NextAuth login
+model McpToken {
+  id           String        @id @default(cuid())
+  membershipId String
+  membership   OrgMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  accessToken  String        @unique
+  expiresAt    DateTime
+  createdAt    DateTime      @default(now())
+  lastUsedAt   DateTime      @default(now())
+
+  @@index([accessToken])
+  @@index([membershipId])
+}
+
+model Connector {
+  id             String          @id @default(cuid())
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  type           ConnectorType
+  credentialsEncrypted String    @db.Text
+  config         Json            @default("{}")
+  skipAiFilter   Boolean         @default(false)
+  status         ConnectorStatus @default(ACTIVE)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  memberAccess MemberConnectorAccess[]
+  tools        ConnectorTool[]
+  auditLogs    AuditLog[]
+}
+
+enum ConnectorType {
+  POSTGRES
+  MONGODB
+  STRIPE
+  EXTERNAL_MCP
+  CUSTOM
+}
+
+enum ConnectorStatus {
+  ACTIVE
+  DISABLED
+  ERROR
+}
+
+model ConnectorTool {
+  id          String    @id @default(cuid())
+  connectorId String
+  connector   Connector @relation(fields: [connectorId], references: [id], onDelete: Cascade)
+  toolName    String
+  description String?   @db.Text
+  inputSchema Json?
+  enabled     Boolean   @default(true)
+
+  memberAccess MemberToolAccess[]
+
+  @@unique([connectorId, toolName])
+}
+
+model MemberConnectorAccess {
+  id           String        @id @default(cuid())
+  membershipId String
+  membership   OrgMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  connectorId  String
+  connector    Connector     @relation(fields: [connectorId], references: [id], onDelete: Cascade)
+
+  readAccess        Boolean @default(true)
+  writeAccess       Boolean @default(false)
+  nativePermissions Json?
+  customScript      String? @db.Text
+  aiInstructions    String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([membershipId, connectorId])
+}
+
+model MemberToolAccess {
+  id              String        @id @default(cuid())
+  membershipId    String
+  membership      OrgMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  connectorToolId String
+  connectorTool   ConnectorTool @relation(fields: [connectorToolId], references: [id], onDelete: Cascade)
+
+  allowed               Boolean @default(true)
+  aiInstructionOverride String? @db.Text
+
+  @@unique([membershipId, connectorToolId])
+}
+
+model AuditLog {
+  id           String        @id @default(cuid())
+  membershipId String
+  membership   OrgMembership @relation(fields: [membershipId], references: [id])
+  connectorId    String?
+  connector      Connector?  @relation(fields: [connectorId], references: [id])
+  organizationId String
+
+  toolName        String
+  requestParams   Json?
+  responseSummary String?    @db.Text
+  aiDecision      AiDecision?
+  aiReasoning     String?    @db.Text
+  scriptResult    Json?
+  durationMs      Int?
+  timestamp       DateTime   @default(now())
+
+  @@index([organizationId, timestamp])
+  @@index([membershipId, timestamp])
+  @@index([connectorId, timestamp])
+}
+
+enum AiDecision {
+  PASSED
+  FILTERED
+  BLOCKED
+  QUEUED
+  SKIPPED
+}
+
+model ApprovalRequest {
+  id           String        @id @default(cuid())
+  membershipId String
+  membership   OrgMembership @relation(fields: [membershipId], references: [id])
+  organizationId String
+
+  connectorName  String
+  toolName       String
+  requestContext Json
+  aiReasoning    String         @db.Text
+  status         ApprovalStatus @default(PENDING)
+  adminResponse  String?        @db.Text
+  respondedAt    DateTime?
+  ruleUpdate     String?        @db.Text
+  expiresAt      DateTime
+  createdAt      DateTime       @default(now())
+
+  @@index([organizationId, status])
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  DENIED
+  EXPIRED
+}
