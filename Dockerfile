@@ -23,9 +23,12 @@ WORKDIR /app
 COPY --from=base /app/.next/standalone ./
 COPY --from=base /app/.next/static ./.next/static
 COPY --from=base /app/prisma ./prisma
-COPY --from=base /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=base /app/node_modules ./node_modules
+COPY --from=base /app/src ./src
+COPY --from=base /app/tsconfig.json ./tsconfig.json
+COPY --from=base /app/bin ./bin
 
 ENV NODE_ENV=production
 EXPOSE 3000 3001
 
-CMD ["bun", "run", "server.js"]
+CMD ["sh", "bin/start.sh"]
