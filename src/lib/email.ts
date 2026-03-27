@@ -10,16 +10,41 @@ function getTransporter() {
   return transporter;
 }
 
-export async function sendVerificationCode(email: string, code: string) {
+function getFrom(): string {
+  return process.env.SMTP_FROM || "TeamMCP <noreply@teammcp.com>";
+}
+
+interface SendEmailOptions {
+  to: string | string[];
+  subject: string;
+  text: string;
+  html: string;
+}
+
+/**
+ * Send an email via SMTP. Falls back to console.log in dev when SMTP_URL is not set.
+ */
+export async function sendEmail(opts: SendEmailOptions): Promise<void> {
   const transport = getTransporter();
 
   if (!transport) {
-    console.log(`[DEV] Verification code for ${email}: ${code}`);
+    const recipients = Array.isArray(opts.to) ? opts.to.join(", ") : opts.to;
+    console.log(`[DEV] Email to ${recipients}: ${opts.subject}`);
+    console.log(`[DEV] ${opts.text}`);
     return;
   }
 
   await transport.sendMail({
-    from: process.env.SMTP_FROM || "TeamMCP <noreply@teammcp.com>",
+    from: getFrom(),
+    to: Array.isArray(opts.to) ? opts.to.join(", ") : opts.to,
+    subject: opts.subject,
+    text: opts.text,
+    html: opts.html,
+  });
+}
+
+export async function sendVerificationCode(email: string, code: string) {
+  await sendEmail({
     to: email,
     subject: `Your TeamMCP verification code: ${code}`,
     text: `Your verification code is: ${code}\n\nThis code expires in 10 minutes.\n\nIf you didn't request this, you can safely ignore this email.`,
