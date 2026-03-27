@@ -1,0 +1,44 @@
+spec:
+  name: teammcp
+  region: nyc
+  databases:
+    - engine: PG
+      name: teammcp-db
+      num_nodes: 1
+      size: db-s-dev-database
+      version: "16"
+  services:
+    - name: web
+      dockerfile_path: Dockerfile
+      github:
+        branch: main
+        deploy_on_push: true
+        repo: # Set to your GitHub repo, e.g. your-org/teamcp
+      http_port: 3000
+      instance_count: 1
+      instance_size_slug: basic-xxs
+      routes:
+        - path: /
+      envs:
+        - key: DATABASE_URL
+          scope: RUN_TIME
+          value: ${teammcp-db.DATABASE_URL}
+        - key: ENCRYPTION_KEY
+          scope: RUN_TIME
+          type: SECRET
+          value: REPLACE_WITH_OPENSSL_RAND_HEX_32
+        - key: AUTH_SECRET
+          scope: RUN_TIME
+          type: SECRET
+          value: REPLACE_WITH_OPENSSL_RAND_BASE64_32
+        - key: ANTHROPIC_API_KEY
+          scope: RUN_TIME
+          type: SECRET
+          value: REPLACE_WITH_YOUR_KEY
+        - key: MCP_PORT
+          scope: RUN_TIME
+          value: "3001"
+        - key: NODE_ENV
+          scope: RUN_TIME
+          value: production
+      run_command: bin/start.sh
