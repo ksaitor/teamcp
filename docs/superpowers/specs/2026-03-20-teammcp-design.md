@@ -1,8 +1,8 @@
-# TeamMCP — Design Specification
+# TeamRouter (formerly TeamMCP) — Design Specification
 
 ## Overview
 
-TeamMCP is an open-source, self-hostable MCP (Model Context Protocol) gateway that gives organizations fine-grained, per-member control over AI tool access. Each team member gets a unique, personalized MCP endpoint URL. Admins configure which data sources, tools, and permissions each member has — enforced by a layered permission engine that combines hard-coded rules with AI-powered filtering.
+TeamRouter is an open-source, self-hostable MCP (Model Context Protocol) gateway that gives organizations fine-grained, per-member control over AI tool access. Each team member gets a unique, personalized MCP endpoint URL. Admins configure which data sources, tools, and permissions each member has — enforced by a layered permission engine that combines hard-coded rules with AI-powered filtering.
 
 **License:** BSL (Business Source License) — source-available, open-core model similar to Supabase.
 

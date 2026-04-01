@@ -31,7 +31,7 @@ export class ExternalMcpConnector implements ConnectorInstance {
   async discoverTools(config: ConnectorConfig, credentials: DecryptedCredentials): Promise<Tool[]> {
     const serverUrl = config.serverUrl || credentials.raw;
     const transport = new SSEClientTransport(new URL(serverUrl));
-    const client = new Client({ name: "teammcp-discovery", version: "1.0.0" });
+    const client = new Client({ name: "teamrouter-discovery", version: "1.0.0" });
 
     try {
       await client.connect(transport);
@@ -50,7 +50,7 @@ export class ExternalMcpConnector implements ConnectorInstance {
   ): Promise<ToolResult> {
     const serverUrl = config.serverUrl || credentials.raw;
     const transport = new SSEClientTransport(new URL(serverUrl));
-    const client = new Client({ name: "teammcp-proxy", version: "1.0.0" });
+    const client = new Client({ name: "teamrouter-proxy", version: "1.0.0" });
 
     try {
       await client.connect(transport);

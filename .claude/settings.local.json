@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /Users/ksaitor/www/ksaitor/teamrouter/src -type f \\\\\\(-name *.ts -o -name *.tsx \\\\\\))",
+      "Bash(npx prisma:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pg_isready)",
+      "Bash(brew services:*)",
+      "Bash(/opt/homebrew/opt/postgresql@16/bin/createdb teamrouter:*)",
+      "Bash(openssl rand:*)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/login)",
+      "Bash(open:*)",
+      "Bash(git remote:*)"
+    ]
+  }
+}

@@ -1,4 +1,4 @@
-# TeamMCP
+# TeamRouter
 
 Self-hostable MCP gateway with per-member AI tool access control. Give your team fine-grained access to databases, APIs, and AI tools — enforced through a layered permission engine with optional AI-powered filtering.
 
@@ -16,7 +16,7 @@ Deploys using the container stack with a managed PostgreSQL database. After depl
 
 ### DigitalOcean
 
-[![Deploy to DO](https://www.deploytodo.com/do-btn-blue.svg)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/ksaitor/teamcp/tree/main)
+[![Deploy to DO](https://www.deploytodo.com/do-btn-blue.svg)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/ksaitor/teamrouter/tree/main)
 
 Deploys to DigitalOcean App Platform with a managed PostgreSQL database. After deploy, update the `ENCRYPTION_KEY`, `AUTH_SECRET`, and `ANTHROPIC_API_KEY` environment variables in the App Platform dashboard.
 
@@ -24,8 +24,8 @@ Deploys to DigitalOcean App Platform with a managed PostgreSQL database. After d
 
 ```bash
 # Clone the repo
-git clone https://github.com/ksaitor/teamcp.git
-cd teamcp
+git clone https://github.com/ksaitor/teamrouter.git
+cd teamrouter
 
 # Copy env file and set your secrets
 cp .env.example .env
@@ -56,7 +56,7 @@ The admin dashboard is available at `http://localhost:3000` and the MCP server a
 
 ## Architecture
 
-TeamMCP runs two servers in a single process:
+TeamRouter runs two servers in a single process:
 
 - **Port 3000** — Admin dashboard (Next.js) for managing members, connectors, and permissions
 - **Port 3001** — MCP SSE server that team members connect their AI tools to
