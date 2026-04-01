@@ -75,7 +75,7 @@ export async function startMcpServer() {
 
 function createMcpServerForMember(member: AuthenticatedMember) {
   const server = new Server(
-    { name: `teammcp-${member.orgSlug}`, version: "1.0.0" },
+    { name: `teamrouter-${member.orgSlug}`, version: "1.0.0" },
     { capabilities: { tools: {} } }
   );
 

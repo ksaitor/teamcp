@@ -1,5 +1,5 @@
 {
-  "name": "TeamMCP",
+  "name": "TeamRouter",
   "description": "Self-hostable MCP gateway with per-member AI tool access control",
   "keywords": ["mcp", "ai", "gateway", "team", "permissions"],
   "stack": "container",
