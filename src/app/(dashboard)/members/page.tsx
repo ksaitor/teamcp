@@ -17,11 +17,10 @@ export default async function MembersPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center gap-4">
         <h1 className="text-2xl font-bold">Members</h1>
+        <AddMemberForm />
       </div>
-
-      <AddMemberForm />
 
       <div className="mt-6">
         <table className="w-full text-left text-sm">

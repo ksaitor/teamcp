@@ -1,7 +1,6 @@
 import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
 import Link from "next/link";
-import { AddConnectorForm } from "./add-connector-form";
 
 export default async function ConnectorsPage() {
   const session = await requireAdmin();
@@ -16,11 +15,15 @@ export default async function ConnectorsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center gap-4">
         <h1 className="text-2xl font-bold">Connectors</h1>
+        <Link
+          href="/connectors/new"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          Add connector
+        </Link>
       </div>
-
-      <AddConnectorForm />
 
       <div className="mt-6">
         <table className="w-full text-left text-sm">
@@ -76,7 +79,7 @@ export default async function ConnectorsPage() {
             {connectors.length === 0 && (
               <tr>
                 <td colSpan={5} className="py-8 text-center text-muted-foreground">
-                  No connectors yet. Add one above.
+                  No connectors yet. Add one to get started.
                 </td>
               </tr>
             )}

@@ -93,7 +93,7 @@ export function AddMemberForm() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
       >
         Add member
       </button>
@@ -103,7 +103,7 @@ export function AddMemberForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="mt-4 flex max-w-xl flex-col gap-4 rounded-md border border-border bg-card p-4"
+      className="mt-2 flex w-full basis-full max-w-xl flex-col gap-4 rounded-md border border-border bg-card p-4"
     >
       {error && <p className="text-sm text-destructive">{error}</p>}
 
