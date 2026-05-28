@@ -3,12 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const DESCRIPTION_PLACEHOLDER =
-  "e.g. Senior data analyst on the Growth team.\n" +
-  "Responsibilities: builds dashboards and owns weekly reporting.\n" +
-  "Should have: read-only access to the analytics Postgres connector.\n" +
-  "Should NOT have: access to Stripe, customer PII, or admin settings.";
-
 // Downscale the chosen image to a small square avatar and return a data URI,
 // so it fits comfortably in the User.image text column (no blob storage needed).
 async function fileToAvatarDataUrl(file: File, size = 256): Promise<string> {
@@ -73,7 +67,7 @@ export function AddMemberForm() {
       body: JSON.stringify({
         email: formData.get("email"),
         name: formData.get("name"),
-        description: formData.get("description"),
+        jobTitle: formData.get("jobTitle"),
         image,
       }),
     });
@@ -162,13 +156,13 @@ export function AddMemberForm() {
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-600">Description</label>
-        <textarea
-          name="description"
+        <label className="block text-xs font-medium text-gray-600">Job title</label>
+        <input
+          name="jobTitle"
+          type="text"
           required
-          rows={5}
-          placeholder={DESCRIPTION_PLACEHOLDER}
-          className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+          placeholder="e.g. Marketing Manager"
+          className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
         />
       </div>
 
