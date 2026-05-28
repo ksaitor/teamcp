@@ -29,6 +29,7 @@ export default async function MembersPage() {
             <tr>
               <th className="pb-2 font-medium">Name</th>
               <th className="pb-2 font-medium">Email</th>
+              <th className="pb-2 font-medium">Title</th>
               <th className="pb-2 font-medium">Role</th>
               <th className="pb-2 font-medium">Status</th>
               <th className="pb-2 font-medium">Connectors</th>
@@ -48,6 +49,13 @@ export default async function MembersPage() {
                   </Link>
                 </td>
                 <td className="py-3 text-gray-600">{m.user.email}</td>
+                <td className="py-3 text-gray-600" title={m.jobTitle || undefined}>
+                  {m.jobTitle
+                    ? m.jobTitle.length > 120
+                      ? `${m.jobTitle.slice(0, 120)}…`
+                      : m.jobTitle
+                    : "—"}
+                </td>
                 <td className="py-3">
                   <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
                     {m.role}
@@ -71,7 +79,7 @@ export default async function MembersPage() {
             ))}
             {memberships.length === 0 && (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-gray-500">
+                <td colSpan={7} className="py-8 text-center text-gray-500">
                   No members yet. Add one above.
                 </td>
               </tr>
