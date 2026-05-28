@@ -51,8 +51,8 @@ export function ConnectorControls({ connector }: { connector: Connector }) {
         disabled={loading}
         className={`rounded-md px-3 py-1.5 text-sm font-medium ${
           connector.skipAiFilter
-            ? "bg-yellow-100 text-yellow-700"
-            : "bg-blue-100 text-blue-700"
+            ? "bg-warning/10 text-warning"
+            : "bg-info/10 text-info"
         } disabled:opacity-50`}
       >
         {connector.skipAiFilter ? "AI Filter: OFF" : "AI Filter: ON"}
@@ -62,8 +62,8 @@ export function ConnectorControls({ connector }: { connector: Connector }) {
         disabled={loading}
         className={`rounded-md px-3 py-1.5 text-sm font-medium ${
           connector.status === "ACTIVE"
-            ? "bg-yellow-100 text-yellow-700"
-            : "bg-green-100 text-green-700"
+            ? "bg-warning/10 text-warning"
+            : "bg-success/10 text-success"
         } disabled:opacity-50`}
       >
         {connector.status === "ACTIVE" ? "Disable" : "Enable"}
@@ -71,7 +71,7 @@ export function ConnectorControls({ connector }: { connector: Connector }) {
       <button
         onClick={deleteConnector}
         disabled={loading}
-        className="rounded-md bg-red-100 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-200 disabled:opacity-50"
+        className="rounded-md bg-destructive/10 px-3 py-1.5 text-sm font-medium text-destructive hover:bg-destructive/20 disabled:opacity-50"
       >
         Delete
       </button>

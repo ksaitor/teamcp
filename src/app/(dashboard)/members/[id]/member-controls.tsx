@@ -42,8 +42,8 @@ export function MemberControls({ member }: { member: Member }) {
         disabled={loading}
         className={`rounded-md px-3 py-1.5 text-sm font-medium ${
           isSuspended
-            ? "bg-green-100 text-green-700 hover:bg-green-200"
-            : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+            ? "bg-success/10 text-success hover:bg-success/20"
+            : "bg-warning/10 text-warning hover:bg-warning/20"
         } disabled:opacity-50`}
       >
         {isSuspended ? "Reactivate" : "Suspend"}
@@ -51,7 +51,7 @@ export function MemberControls({ member }: { member: Member }) {
       <button
         onClick={deleteMember}
         disabled={loading}
-        className="rounded-md bg-red-100 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-200 disabled:opacity-50"
+        className="rounded-md bg-destructive/10 px-3 py-1.5 text-sm font-medium text-destructive hover:bg-destructive/20 disabled:opacity-50"
       >
         Remove
       </button>

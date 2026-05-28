@@ -74,7 +74,7 @@ export function ConnectorAccessManager({
           <select
             value={addingConnector}
             onChange={(e) => setAddingConnector(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            className="rounded-md border border-input px-3 py-1.5 text-sm"
           >
             <option value="">Add connector access...</option>
             {availableConnectors.map((c) => (
@@ -86,7 +86,7 @@ export function ConnectorAccessManager({
           {addingConnector && (
             <button
               onClick={() => addAccess(addingConnector)}
-              className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
+              className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               Add
             </button>
@@ -95,7 +95,7 @@ export function ConnectorAccessManager({
       )}
 
       {connectorAccess.length === 0 && availableConnectors.length === 0 && (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           No connectors configured. Add connectors first.
         </p>
       )}
@@ -117,18 +117,18 @@ function ConnectorAccessCard({
   const [customScript, setCustomScript] = useState(access.customScript || "");
 
   return (
-    <div className="rounded-md border border-gray-200 bg-white">
+    <div className="rounded-md border border-border bg-card">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setExpanded(!expanded)}
-            className="text-sm text-gray-400 hover:text-gray-600"
+            className="text-sm text-muted-foreground hover:text-foreground"
           >
             {expanded ? "▼" : "▶"}
           </button>
           <div>
             <span className="font-medium text-sm">{access.connectorName}</span>
-            <span className="ml-2 text-xs text-gray-400">{access.connectorType}</span>
+            <span className="ml-2 text-xs text-muted-foreground">{access.connectorType}</span>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -152,7 +152,7 @@ function ConnectorAccessCard({
           </label>
           <button
             onClick={onRemove}
-            className="text-xs text-red-500 hover:text-red-700"
+            className="text-xs text-destructive hover:text-destructive/80"
           >
             Remove
           </button>
@@ -160,9 +160,9 @@ function ConnectorAccessCard({
       </div>
 
       {expanded && (
-        <div className="border-t border-gray-100 px-4 py-3 space-y-4">
+        <div className="border-t border-border px-4 py-3 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-gray-600">
+            <label className="block text-xs font-medium text-muted-foreground">
               AI Instructions (natural language permissions for this connector)
             </label>
             <textarea
@@ -170,11 +170,11 @@ function ConnectorAccessCard({
               onChange={(e) => setAiInstructions(e.target.value)}
               placeholder="e.g., Only show marketing-related data. Never expose customer emails."
               rows={2}
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600">
+            <label className="block text-xs font-medium text-muted-foreground">
               Custom Permission Script (JS/TS)
             </label>
             <textarea
@@ -184,12 +184,12 @@ function ConnectorAccessCard({
 // Context: { member, connector, toolName, params, operation }
 return { allow: true };`}
               rows={4}
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-xs"
+              className="mt-1 w-full rounded-md border border-input px-3 py-2 font-mono text-xs"
             />
           </div>
           <button
             onClick={() => onUpdate({ aiInstructions, customScript })}
-            className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
+            className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             Save
           </button>

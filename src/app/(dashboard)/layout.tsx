@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { LogoutButton } from "./logout-button";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard" },
@@ -24,7 +25,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen">
-      <aside className="w-56 border-r border-gray-200 bg-white">
+      <aside className="flex w-56 flex-col border-r border-border bg-card">
         <div className="p-4">
           <Link href="/dashboard" className="text-lg font-bold">
             TeamMCP
@@ -35,15 +36,20 @@ export default async function DashboardLayout({
             <Link
               key={item.href}
               href={item.href}
-              className="block rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              className="block rounded-md px-3 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground"
             >
               {item.label}
             </Link>
           ))}
         </nav>
-        <div className="mt-auto border-t border-gray-200 p-4">
-          <p className="mb-2 text-xs text-gray-500 truncate">{user.email}</p>
-          <LogoutButton />
+        <div className="mt-auto border-t border-border p-4">
+          <p className="mb-2 truncate text-xs text-muted-foreground">
+            {user.email}
+          </p>
+          <div className="flex items-center justify-between">
+            <LogoutButton />
+            <ThemeToggle />
+          </div>
         </div>
       </aside>
       <main className="flex-1 p-8">{children}</main>

@@ -24,7 +24,7 @@ export default async function ConnectorsPage() {
 
       <div className="mt-6">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-gray-200 text-gray-500">
+          <thead className="border-b border-border text-muted-foreground">
             <tr>
               <th className="pb-2 font-medium">Name</th>
               <th className="pb-2 font-medium">Type</th>
@@ -33,7 +33,7 @@ export default async function ConnectorsPage() {
               <th className="pb-2 font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-border">
             {connectors.map((c) => (
               <tr key={c.id}>
                 <td className="py-3">
@@ -45,7 +45,7 @@ export default async function ConnectorsPage() {
                   </Link>
                 </td>
                 <td className="py-3">
-                  <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-mono">
+                  <span className="rounded bg-muted px-2 py-0.5 text-xs font-mono">
                     {c.type}
                   </span>
                 </td>
@@ -53,20 +53,20 @@ export default async function ConnectorsPage() {
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                       c.status === "ACTIVE"
-                        ? "bg-green-100 text-green-700"
+                        ? "bg-success/10 text-success"
                         : c.status === "ERROR"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-gray-100 text-gray-700"
+                          ? "bg-destructive/10 text-destructive"
+                          : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {c.status}
                   </span>
                 </td>
-                <td className="py-3 text-gray-600">{c._count.memberAccess}</td>
+                <td className="py-3 text-muted-foreground">{c._count.memberAccess}</td>
                 <td className="py-3">
                   <Link
                     href={`/connectors/${c.id}`}
-                    className="text-gray-500 hover:text-gray-900"
+                    className="text-muted-foreground hover:text-foreground"
                   >
                     Configure
                   </Link>
@@ -75,7 +75,7 @@ export default async function ConnectorsPage() {
             ))}
             {connectors.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-8 text-center text-gray-500">
+                <td colSpan={5} className="py-8 text-center text-muted-foreground">
                   No connectors yet. Add one above.
                 </td>
               </tr>

@@ -93,7 +93,7 @@ export function AddMemberForm() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="mt-4 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+        className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
       >
         Add member
       </button>
@@ -103,66 +103,66 @@ export function AddMemberForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="mt-4 flex max-w-xl flex-col gap-4 rounded-md border border-gray-200 bg-white p-4"
+      className="mt-4 flex max-w-xl flex-col gap-4 rounded-md border border-border bg-card p-4"
     >
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       <div className="flex items-center gap-4">
-        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border border-gray-200 bg-gray-50">
+        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border border-border bg-muted">
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={image} alt="" className="h-full w-full object-cover" />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">
+            <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
               No photo
             </div>
           )}
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600">
-            Profile picture <span className="text-gray-400">(optional)</span>
+          <label className="block text-xs font-medium text-muted-foreground">
+            Profile picture <span className="text-muted-foreground">(optional)</span>
           </label>
           <input
             name="image"
             type="file"
             accept="image/*"
             onChange={handleImageChange}
-            className="mt-1 text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-sm file:font-medium hover:file:bg-gray-200"
+            className="mt-1 text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm file:font-medium hover:file:bg-accent"
           />
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className="block text-xs font-medium text-gray-600">Name</label>
+          <label className="block text-xs font-medium text-muted-foreground">Name</label>
           <input
             name="name"
             type="text"
             required
             placeholder="Jane Doe"
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-input px-3 py-1.5 text-sm focus:border-ring focus:outline-none"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600">Email</label>
+          <label className="block text-xs font-medium text-muted-foreground">Email</label>
           <input
             name="email"
             type="email"
             required
             placeholder="member@example.com"
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-input px-3 py-1.5 text-sm focus:border-ring focus:outline-none"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-600">Job title</label>
+        <label className="block text-xs font-medium text-muted-foreground">Job title</label>
         <input
           name="jobTitle"
           type="text"
           required
           placeholder="e.g. Marketing Manager"
-          className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+          className="mt-1 w-full rounded-md border border-input px-3 py-1.5 text-sm focus:border-ring focus:outline-none"
         />
       </div>
 
@@ -170,14 +170,14 @@ export function AddMemberForm() {
         <button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-gray-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+          className="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           {loading ? "Inviting..." : "Invite"}
         </button>
         <button
           type="button"
           onClick={reset}
-          className="text-sm text-gray-500 hover:text-gray-700"
+          className="text-sm text-muted-foreground hover:text-foreground"
         >
           Cancel
         </button>

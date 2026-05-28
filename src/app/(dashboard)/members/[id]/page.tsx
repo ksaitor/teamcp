@@ -43,17 +43,17 @@ export default async function MemberDetailPage({
               className="h-14 w-14 shrink-0 rounded-full object-cover"
             />
           ) : (
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gray-100 text-lg font-medium text-gray-500">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-muted text-lg font-medium text-muted-foreground">
               {(membership.user.name || membership.user.email).charAt(0).toUpperCase()}
             </span>
           )}
           <div>
             <h1 className="text-2xl font-bold">{membership.user.name || membership.user.email}</h1>
             {membership.jobTitle && (
-              <p className="mt-1 text-sm font-medium text-gray-600">{membership.jobTitle}</p>
+              <p className="mt-1 text-sm font-medium text-muted-foreground">{membership.jobTitle}</p>
             )}
-            <p className="mt-1 text-sm text-gray-500">{membership.user.email}</p>
-            <p className="mt-1 text-xs text-gray-400">Role: {membership.role}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{membership.user.email}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Role: {membership.role}</p>
           </div>
         </div>
         <MemberControls member={{
@@ -66,17 +66,17 @@ export default async function MemberDetailPage({
         }} />
       </div>
 
-      <div className="mt-6 rounded-md border border-gray-200 bg-white p-4">
-        <h2 className="text-sm font-medium text-gray-500">MCP Endpoint</h2>
+      <div className="mt-6 rounded-md border border-border bg-card p-4">
+        <h2 className="text-sm font-medium text-muted-foreground">MCP Endpoint</h2>
         <code className="mt-1 block text-sm">{mcpEndpoint}</code>
-        <p className="mt-2 text-xs text-gray-400">
+        <p className="mt-2 text-xs text-muted-foreground">
           Member must authenticate to use this endpoint.
         </p>
       </div>
 
       <div className="mt-6">
         <h2 className="text-lg font-semibold">Permission Instructions</h2>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           Natural language instructions for AI filtering (applies to all connectors).
         </p>
         <PermissionInstructionsForm
@@ -135,11 +135,11 @@ function PermissionInstructionsForm({
         defaultValue={instructions || ""}
         placeholder="e.g., Marketing team member. No access to financial data, API keys, or employee salaries."
         rows={3}
-        className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+        className="mt-2 w-full rounded-md border border-input px-3 py-2 text-sm focus:border-ring focus:outline-none"
       />
       <button
         type="submit"
-        className="mt-2 rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
+        className="mt-2 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
       >
         Save
       </button>

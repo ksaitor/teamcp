@@ -45,13 +45,13 @@ export default async function DashboardPage() {
       <div className="mt-8">
         <h2 className="text-lg font-semibold">Recent Activity</h2>
         {recentLogs.length === 0 ? (
-          <p className="mt-2 text-sm text-gray-500">No activity yet.</p>
+          <p className="mt-2 text-sm text-muted-foreground">No activity yet.</p>
         ) : (
           <div className="mt-2 space-y-2">
             {recentLogs.map((log) => (
               <div
                 key={log.id}
-                className="flex items-center justify-between rounded-md border border-gray-200 bg-white px-4 py-3 text-sm"
+                className="flex items-center justify-between rounded-md border border-border bg-card px-4 py-3 text-sm"
               >
                 <div>
                   <span className="font-medium">{log.membership.user.name || log.membership.user.email}</span>{" "}
@@ -62,16 +62,16 @@ export default async function DashboardPage() {
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                         log.aiDecision === "PASSED"
-                          ? "bg-green-100 text-green-700"
+                          ? "bg-success/10 text-success"
                           : log.aiDecision === "BLOCKED"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-yellow-100 text-yellow-700"
+                            ? "bg-destructive/10 text-destructive"
+                            : "bg-warning/10 text-warning"
                       }`}
                     >
                       {log.aiDecision}
                     </span>
                   )}
-                  <span className="text-gray-400">
+                  <span className="text-muted-foreground">
                     {log.timestamp.toLocaleString()}
                   </span>
                 </div>
@@ -96,9 +96,9 @@ function StatCard({
   return (
     <Link
       href={href}
-      className="rounded-lg border border-gray-200 bg-white p-4 hover:border-gray-300"
+      className="rounded-lg border border-border bg-card p-4 hover:border-ring"
     >
-      <p className="text-sm text-gray-500">{label}</p>
+      <p className="text-sm text-muted-foreground">{label}</p>
       <p className="mt-1 text-3xl font-bold">{value}</p>
     </Link>
   );

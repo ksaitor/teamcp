@@ -32,19 +32,19 @@ export default async function ConnectorDetailPage({
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold">{connector.name}</h1>
-          <span className="mt-1 inline-block rounded bg-gray-100 px-2 py-0.5 text-xs font-mono">
+          <span className="mt-1 inline-block rounded bg-muted px-2 py-0.5 text-xs font-mono">
             {connector.type}
           </span>
         </div>
         <ConnectorControls connector={connector} />
       </div>
 
-      <div className="mt-6 rounded-md border border-gray-200 bg-white p-4">
-        <h2 className="text-sm font-medium text-gray-500">Configuration</h2>
-        <pre className="mt-2 text-xs text-gray-600">
+      <div className="mt-6 rounded-md border border-border bg-card p-4">
+        <h2 className="text-sm font-medium text-muted-foreground">Configuration</h2>
+        <pre className="mt-2 text-xs text-muted-foreground">
           {JSON.stringify(connector.config, null, 2)}
         </pre>
-        <p className="mt-2 text-xs text-gray-400">
+        <p className="mt-2 text-xs text-muted-foreground">
           Credentials are encrypted and not displayed.
         </p>
       </div>
@@ -55,7 +55,7 @@ export default async function ConnectorDetailPage({
             Discovered Tools ({connector.tools.length})
           </h2>
           {connector.tools.length === 0 ? (
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-muted-foreground">
               No tools discovered yet. Tools are discovered when the MCP server connects.
             </p>
           ) : (
@@ -63,18 +63,18 @@ export default async function ConnectorDetailPage({
               {connector.tools.map((tool) => (
                 <div
                   key={tool.id}
-                  className="flex items-center justify-between rounded-md border border-gray-200 bg-white px-4 py-3"
+                  className="flex items-center justify-between rounded-md border border-border bg-card px-4 py-3"
                 >
                   <div>
                     <code className="text-sm font-medium">{tool.toolName}</code>
                     {tool.description && (
-                      <p className="mt-0.5 text-xs text-gray-500">
+                      <p className="mt-0.5 text-xs text-muted-foreground">
                         {tool.description}
                       </p>
                     )}
                   </div>
                   <span
-                    className={`text-xs ${tool.enabled ? "text-green-600" : "text-gray-400"}`}
+                    className={`text-xs ${tool.enabled ? "text-success" : "text-muted-foreground"}`}
                   >
                     {tool.enabled ? "Enabled" : "Disabled"}
                   </span>
@@ -90,7 +90,7 @@ export default async function ConnectorDetailPage({
           Members with Access ({connector.memberAccess.length})
         </h2>
         {connector.memberAccess.length === 0 ? (
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-muted-foreground">
             No members have access to this connector.
           </p>
         ) : (
@@ -98,12 +98,12 @@ export default async function ConnectorDetailPage({
             {connector.memberAccess.map((ma) => (
               <div
                 key={ma.id}
-                className="flex items-center justify-between rounded-md border border-gray-100 bg-white px-4 py-2 text-sm"
+                className="flex items-center justify-between rounded-md border border-border bg-card px-4 py-2 text-sm"
               >
                 <span>{ma.membership.user.name || ma.membership.user.email}</span>
-                <div className="flex gap-2 text-xs text-gray-500">
-                  {ma.readAccess && <span className="text-green-600">Read</span>}
-                  {ma.writeAccess && <span className="text-blue-600">Write</span>}
+                <div className="flex gap-2 text-xs text-muted-foreground">
+                  {ma.readAccess && <span className="text-success">Read</span>}
+                  {ma.writeAccess && <span className="text-info">Write</span>}
                 </div>
               </div>
             ))}

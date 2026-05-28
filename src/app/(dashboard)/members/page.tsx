@@ -25,7 +25,7 @@ export default async function MembersPage() {
 
       <div className="mt-6">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-gray-200 text-gray-500">
+          <thead className="border-b border-border text-muted-foreground">
             <tr>
               <th className="pb-2 font-medium">Name</th>
               <th className="pb-2 font-medium">Email</th>
@@ -35,7 +35,7 @@ export default async function MembersPage() {
               <th className="pb-2 font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-border">
             {memberships.map((m) => (
               <tr key={m.id}>
                 <td className="py-3">
@@ -47,22 +47,22 @@ export default async function MembersPage() {
                     {m.user.name || "—"}
                   </Link>
                 </td>
-                <td className="py-3 text-gray-600">{m.user.email}</td>
+                <td className="py-3 text-muted-foreground">{m.user.email}</td>
                 <td className="py-3">
-                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                     {m.role}
                   </span>
                 </td>
                 <td className="py-3">
                   <StatusBadge status={m.status} suspendedAt={m.suspendedAt} />
                 </td>
-                <td className="py-3 text-gray-600">
+                <td className="py-3 text-muted-foreground">
                   {m._count.connectorAccess}
                 </td>
                 <td className="py-3">
                   <Link
                     href={`/members/${m.id}`}
-                    className="text-gray-500 hover:text-gray-900"
+                    className="text-muted-foreground hover:text-foreground"
                   >
                     Configure
                   </Link>
@@ -71,7 +71,7 @@ export default async function MembersPage() {
             ))}
             {memberships.length === 0 && (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-gray-500">
+                <td colSpan={6} className="py-8 text-center text-muted-foreground">
                   No members yet. Add one above.
                 </td>
               </tr>
@@ -104,7 +104,7 @@ function Avatar({
   }
   const initial = (name || email).charAt(0).toUpperCase();
   return (
-    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-medium text-gray-500">
+    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
       {initial}
     </span>
   );
@@ -112,10 +112,10 @@ function Avatar({
 
 function StatusBadge({ status, suspendedAt }: { status: string; suspendedAt: Date | null }) {
   const styles: Record<string, string> = {
-    ACTIVE: "bg-green-100 text-green-700",
-    INVITED: "bg-blue-100 text-blue-700",
-    SUSPENDED: "bg-red-100 text-red-700",
-    REVOKED: "bg-gray-100 text-gray-700",
+    ACTIVE: "bg-success/10 text-success",
+    INVITED: "bg-info/10 text-info",
+    SUSPENDED: "bg-destructive/10 text-destructive",
+    REVOKED: "bg-muted text-muted-foreground",
   };
 
   return (

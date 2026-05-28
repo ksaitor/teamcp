@@ -56,7 +56,7 @@ export function AddConnectorForm() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="mt-4 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+        className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
       >
         Add connector
       </button>
@@ -66,26 +66,26 @@ export function AddConnectorForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="mt-4 space-y-3 rounded-md border border-gray-200 bg-white p-4"
+      className="mt-4 space-y-3 rounded-md border border-border bg-card p-4"
     >
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       <div className="flex gap-3">
         <div className="flex-1">
-          <label className="block text-xs font-medium text-gray-600">Name</label>
+          <label className="block text-xs font-medium text-muted-foreground">Name</label>
           <input
             name="name"
             required
             placeholder="e.g., Production DB"
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            className="mt-1 w-full rounded-md border border-input px-3 py-1.5 text-sm"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600">Type</label>
+          <label className="block text-xs font-medium text-muted-foreground">Type</label>
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
-            className="mt-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            className="mt-1 rounded-md border border-input px-3 py-1.5 text-sm"
           >
             {connectorTypes.map((t) => (
               <option key={t.value} value={t.value}>
@@ -97,7 +97,7 @@ export function AddConnectorForm() {
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-600">
+        <label className="block text-xs font-medium text-muted-foreground">
           {type === "EXTERNAL_MCP" ? "Server URL" : "Credentials"}
         </label>
         <input
@@ -105,7 +105,7 @@ export function AddConnectorForm() {
           type={type === "EXTERNAL_MCP" ? "url" : "password"}
           required
           placeholder={selectedType?.placeholder}
-          className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+          className="mt-1 w-full rounded-md border border-input px-3 py-1.5 text-sm"
         />
       </div>
 
@@ -113,14 +113,14 @@ export function AddConnectorForm() {
         <button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-gray-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+          className="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           {loading ? "Adding..." : "Add connector"}
         </button>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="text-sm text-gray-500 hover:text-gray-700"
+          className="text-sm text-muted-foreground hover:text-foreground"
         >
           Cancel
         </button>
