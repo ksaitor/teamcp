@@ -6,7 +6,7 @@ import { requireAdmin } from "@/lib/auth";
 const createMemberSchema = z.object({
   email: z.string().email(),
   name: z.string().trim().min(1, "Name is required"),
-  description: z.string().trim().min(1, "Description is required"),
+  jobTitle: z.string().trim().min(1, "Job title is required"),
   image: z
     .string()
     .startsWith("data:image/", "Invalid image")
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         organizationId: session.organizationId,
         role: "MEMBER",
         status: "INVITED",
-        description: data.description,
+        jobTitle: data.jobTitle,
         permissionInstructions: data.permissionInstructions,
       },
       include: {

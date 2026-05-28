@@ -49,6 +49,9 @@ export default async function MemberDetailPage({
           )}
           <div>
             <h1 className="text-2xl font-bold">{membership.user.name || membership.user.email}</h1>
+            {membership.jobTitle && (
+              <p className="mt-1 text-sm font-medium text-gray-600">{membership.jobTitle}</p>
+            )}
             <p className="mt-1 text-sm text-gray-500">{membership.user.email}</p>
             <p className="mt-1 text-xs text-gray-400">Role: {membership.role}</p>
           </div>
@@ -62,15 +65,6 @@ export default async function MemberDetailPage({
           role: membership.role,
         }} />
       </div>
-
-      {membership.description && (
-        <div className="mt-6 rounded-md border border-gray-200 bg-white p-4">
-          <h2 className="text-sm font-medium text-gray-500">Description</h2>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">
-            {membership.description}
-          </p>
-        </div>
-      )}
 
       <div className="mt-6 rounded-md border border-gray-200 bg-white p-4">
         <h2 className="text-sm font-medium text-gray-500">MCP Endpoint</h2>
