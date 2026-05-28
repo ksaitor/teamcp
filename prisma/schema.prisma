@@ -112,6 +112,10 @@ model OrgMembership {
   // Auth session config — overrides org default if set
   sessionDurationHours Int?
 
+  // Admin-authored note describing the person: their role, responsibilities,
+  // and what they should or should not have access to.
+  description String? @db.Text
+
   // Global natural-language permission instructions (only for MEMBER role)
   permissionInstructions String? @db.Text
 
