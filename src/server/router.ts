@@ -38,7 +38,10 @@ export async function routeToolCall(
   }
 
   const connectorImpl = getConnector(connector.type);
-  const config = connector.config as Record<string, any>;
+  const config = {
+    ...(connector.config as Record<string, any>),
+    _connectorId: connector.id,
+  };
   const credentials = { raw: decrypt(connector.credentialsEncrypted) };
   const operationType = connectorImpl.getOperationType(toolName);
 

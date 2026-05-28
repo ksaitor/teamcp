@@ -49,29 +49,29 @@ export function ConnectorControls({ connector }: { connector: Connector }) {
       <button
         onClick={toggleAiFilter}
         disabled={loading}
-        className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+        className={`cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium ${
           connector.skipAiFilter
             ? "bg-warning/10 text-warning"
             : "bg-info/10 text-info"
-        } disabled:opacity-50`}
+        } disabled:cursor-default disabled:opacity-50`}
       >
         {connector.skipAiFilter ? "AI Filter: OFF" : "AI Filter: ON"}
       </button>
       <button
         onClick={toggleStatus}
         disabled={loading}
-        className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+        className={`cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium ${
           connector.status === "ACTIVE"
             ? "bg-warning/10 text-warning"
             : "bg-success/10 text-success"
-        } disabled:opacity-50`}
+        } disabled:cursor-default disabled:opacity-50`}
       >
         {connector.status === "ACTIVE" ? "Disable" : "Enable"}
       </button>
       <button
         onClick={deleteConnector}
         disabled={loading}
-        className="rounded-md bg-destructive/10 px-3 py-1.5 text-sm font-medium text-destructive hover:bg-destructive/20 disabled:opacity-50"
+        className="cursor-pointer rounded-md bg-destructive/10 px-3 py-1.5 text-sm font-medium text-destructive hover:bg-destructive/20 disabled:cursor-default disabled:opacity-50"
       >
         Delete
       </button>

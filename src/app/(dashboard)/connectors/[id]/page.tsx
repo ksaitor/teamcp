@@ -2,19 +2,25 @@ import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { ConnectorControls } from "./connector-controls";
+import { ToolList } from "./tool-list";
+import { ReauthBanner } from "./reauth-banner";
+import { AccessManager } from "@/components/access/access-manager";
 
 export default async function ConnectorDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const session = await requireAdmin();
   const { id } = await params;
+  const { error } = await searchParams;
 
   const connector = await prisma.connector.findFirst({
     where: { id, organizationId: session.organizationId },
     include: {
-      tools: true,
+      tools: { orderBy: { toolName: "asc" } },
       memberAccess: {
         include: {
           membership: {
@@ -26,6 +32,42 @@ export default async function ConnectorDetailPage({
   });
 
   if (!connector) notFound();
+
+  const members = await prisma.orgMembership.findMany({
+    where: { organizationId: session.organizationId, status: "ACTIVE" },
+    include: { user: { select: { name: true, email: true } } },
+  });
+
+  const isExternalMcp = connector.type === "EXTERNAL_MCP";
+  const config = (connector.config ?? {}) as Record<string, any>;
+
+  const tools = connector.tools.map((t) => ({
+    id: t.id,
+    toolName: t.toolName,
+    description: t.description,
+    enabled: t.enabled,
+  }));
+
+  const accessRecords = connector.memberAccess.map((ma) => ({
+    id: ma.membershipId,
+    label: ma.membership.user.name || ma.membership.user.email,
+    sublabel: ma.membership.jobTitle || ma.membership.role,
+    connectorType: connector.type,
+    readAccess: ma.readAccess,
+    writeAccess: ma.writeAccess,
+    aiInstructions: ma.aiInstructions,
+    customScript: ma.customScript,
+  }));
+
+  const grantedIds = new Set(connector.memberAccess.map((ma) => ma.membershipId));
+  const candidates = members
+    .filter((m) => !grantedIds.has(m.id))
+    .map((m) => ({
+      id: m.id,
+      label: m.user.name || m.user.email,
+      sublabel: m.jobTitle || m.role,
+      connectorType: connector.type,
+    }));
 
   return (
     <div>
@@ -39,6 +81,21 @@ export default async function ConnectorDetailPage({
         <ConnectorControls connector={connector} />
       </div>
 
+      {error && (
+        <div className="mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
+      {isExternalMcp &&
+        (connector.status === "PENDING" || connector.status === "ERROR") && (
+          <ReauthBanner
+            connectorId={connector.id}
+            status={connector.status}
+            authMode={config.authMode}
+          />
+        )}
+
       <div className="mt-6 rounded-md border border-border bg-card p-4">
         <h2 className="text-sm font-medium text-muted-foreground">Configuration</h2>
         <pre className="mt-2 text-xs text-muted-foreground">
@@ -49,66 +106,23 @@ export default async function ConnectorDetailPage({
         </p>
       </div>
 
-      {connector.type === "EXTERNAL_MCP" && (
-        <div className="mt-6">
-          <h2 className="text-lg font-semibold">
-            Discovered Tools ({connector.tools.length})
-          </h2>
-          {connector.tools.length === 0 ? (
-            <p className="mt-2 text-sm text-muted-foreground">
-              No tools discovered yet. Tools are discovered when the MCP server connects.
-            </p>
-          ) : (
-            <div className="mt-2 space-y-2">
-              {connector.tools.map((tool) => (
-                <div
-                  key={tool.id}
-                  className="flex items-center justify-between rounded-md border border-border bg-card px-4 py-3"
-                >
-                  <div>
-                    <code className="text-sm font-medium">{tool.toolName}</code>
-                    {tool.description && (
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {tool.description}
-                      </p>
-                    )}
-                  </div>
-                  <span
-                    className={`text-xs ${tool.enabled ? "text-success" : "text-muted-foreground"}`}
-                  >
-                    {tool.enabled ? "Enabled" : "Disabled"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      {isExternalMcp && <ToolList connectorId={connector.id} tools={tools} />}
 
       <div className="mt-6">
         <h2 className="text-lg font-semibold">
-          Members with Access ({connector.memberAccess.length})
+          Member access ({accessRecords.length})
         </h2>
-        {connector.memberAccess.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">
-            No members have access to this connector.
-          </p>
-        ) : (
-          <div className="mt-2 space-y-1">
-            {connector.memberAccess.map((ma) => (
-              <div
-                key={ma.id}
-                className="flex items-center justify-between rounded-md border border-border bg-card px-4 py-2 text-sm"
-              >
-                <span>{ma.membership.user.name || ma.membership.user.email}</span>
-                <div className="flex gap-2 text-xs text-muted-foreground">
-                  {ma.readAccess && <span className="text-success">Read</span>}
-                  {ma.writeAccess && <span className="text-info">Write</span>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <p className="mt-1 text-sm text-muted-foreground">
+          Grant team members access to this connector and tune what they can do.
+        </p>
+        <div className="mt-3">
+          <AccessManager
+            axis="members"
+            fixedConnectorId={connector.id}
+            records={accessRecords}
+            candidates={candidates}
+          />
+        </div>
       </div>
     </div>
   );

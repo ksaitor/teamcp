@@ -67,9 +67,10 @@ model Organization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  memberships OrgMembership[]
-  connectors  Connector[]
-  settings    OrgSettings?
+  memberships  OrgMembership[]
+  connectors   Connector[]
+  llmProviders LlmProvider[]
+  settings     OrgSettings?
 }
 
 model OrgSettings {
@@ -92,7 +93,8 @@ model OrgSettings {
 
   // AI settings
   aiFilterEnabled     Boolean @default(true)
-  aiModel             String  @default("claude-sonnet-4-20250514")
+  aiModel             String  @default("claude-sonnet-4-20250514") // env-fallback model when no LlmProvider is configured
+  defaultLlmProviderId String? // selected LlmProvider used by the AI filter (and chat later)
   approvalTimeoutSecs Int     @default(300) // 5 minutes
 }
 
@@ -174,6 +176,7 @@ model Connector {
   memberAccess MemberConnectorAccess[]
   tools        ConnectorTool[]
   auditLogs    AuditLog[]
+  oauth        ConnectorOAuth?
 }
 
 enum ConnectorType {
@@ -184,10 +187,61 @@ enum ConnectorType {
   CUSTOM
 }
 
+// A per-org LLM provider connection. Powers the AI filter today; chat/agent surfaces later.
+model LlmProvider {
+  id              String            @id @default(cuid())
+  organizationId  String
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name            String
+  type            LlmProviderType
+  apiKeyEncrypted String?           @db.Text // AES-256-GCM; optional for keyless custom endpoints
+  baseUrl         String? // required for CUSTOM_OPENAI; optional override for others
+  defaultModel    String // free-text model id (presets suggested in UI)
+  config          Json              @default("{}") // optional extraHeaders, etc.
+  status          LlmProviderStatus @default(ACTIVE)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([organizationId])
+}
+
+enum LlmProviderType {
+  OPENAI
+  ANTHROPIC
+  XAI
+  KIMI
+  OPENROUTER
+  CUSTOM_OPENAI
+}
+
+enum LlmProviderStatus {
+  ACTIVE
+  DISABLED
+  ERROR
+}
+
 enum ConnectorStatus {
   ACTIVE
   DISABLED
   ERROR
+  PENDING
+}
+
+// OAuth 2.1 state for an EXTERNAL_MCP connector (1:1). Secret blobs are
+// AES-256-GCM encrypted; the SDK refreshes tokens in place via this row.
+model ConnectorOAuth {
+  id             String    @id @default(cuid())
+  connectorId    String    @unique
+  connector      Connector @relation(fields: [connectorId], references: [id], onDelete: Cascade)
+  serverUrl      String
+  scope          String?
+  clientInfoEnc  String?   @db.Text // encrypt(JSON OAuthClientInformationFull) — DCR or manual
+  tokensEnc      String?   @db.Text // encrypt(JSON OAuthTokens)
+  discoveryState Json? // OAuthDiscoveryState (non-secret; avoids re-discovery)
+  codeVerifier   String?   @db.Text // transient PKCE verifier, cleared after callback
+  state          String?   @unique // transient CSRF state param, cleared after callback
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 model ConnectorTool {

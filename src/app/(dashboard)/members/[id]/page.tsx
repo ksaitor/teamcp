@@ -3,7 +3,7 @@ import { requireAdmin } from "@/lib/auth";
 import { getConfig } from "@/lib/config";
 import { notFound } from "next/navigation";
 import { MemberControls } from "./member-controls";
-import { ConnectorAccessManager } from "./connector-access";
+import { AccessManager } from "@/components/access/access-manager";
 
 export default async function MemberDetailPage({
   params,
@@ -87,22 +87,33 @@ export default async function MemberDetailPage({
 
       <div className="mt-8">
         <h2 className="text-lg font-semibold">Connector Access</h2>
-        <ConnectorAccessManager
-          membershipId={membership.id}
-          connectorAccess={membership.connectorAccess.map((ca) => ({
-            id: ca.id,
-            connectorId: ca.connectorId,
-            connectorName: ca.connector.name,
-            connectorType: ca.connector.type,
-            readAccess: ca.readAccess,
-            writeAccess: ca.writeAccess,
-            aiInstructions: ca.aiInstructions,
-            customScript: ca.customScript,
-          }))}
-          availableConnectors={allConnectors
-            .filter((c) => !membership.connectorAccess.some((ca) => ca.connectorId === c.id))
-            .map((c) => ({ id: c.id, name: c.name, type: c.type }))}
-        />
+        <p className="mt-1 text-sm text-muted-foreground">
+          Grant this member access to connectors and tune what they can do.
+        </p>
+        <div className="mt-3">
+          <AccessManager
+            axis="connectors"
+            fixedMembershipId={membership.id}
+            records={membership.connectorAccess.map((ca) => ({
+              id: ca.connectorId,
+              label: ca.connector.name,
+              connectorType: ca.connector.type,
+              readAccess: ca.readAccess,
+              writeAccess: ca.writeAccess,
+              aiInstructions: ca.aiInstructions,
+              customScript: ca.customScript,
+            }))}
+            candidates={allConnectors
+              .filter(
+                (c) => !membership.connectorAccess.some((ca) => ca.connectorId === c.id)
+              )
+              .map((c) => ({
+                id: c.id,
+                label: c.name,
+                connectorType: c.type,
+              }))}
+          />
+        </div>
       </div>
     </div>
   );

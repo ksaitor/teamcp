@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { FiArrowLeft } from "react-icons/fi";
 import { requireAdmin } from "@/lib/auth";
 import { getCatalogEntry } from "@/lib/connectors-catalog";
 import { ConnectorConfigForm } from "./connector-config-form";
+import { CustomMcpWizard } from "./custom-mcp-wizard";
 
 export default async function NewConnectorConfigPage({
   params,
@@ -26,7 +27,7 @@ export default async function NewConnectorConfigPage({
         href="/connectors/new"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="size-4" />
+        <FiArrowLeft className="size-4" />
         Back to gallery
       </Link>
 
@@ -40,11 +41,15 @@ export default async function NewConnectorConfigPage({
         </div>
       </div>
 
-      <ConnectorConfigForm
-        type={entry.type}
-        label={entry.label}
-        credentialField={entry.credentialField}
-      />
+      {entry.type === "EXTERNAL_MCP" ? (
+        <CustomMcpWizard />
+      ) : (
+        <ConnectorConfigForm
+          type={entry.type}
+          label={entry.label}
+          credentialField={entry.credentialField}
+        />
+      )}
     </div>
   );
 }

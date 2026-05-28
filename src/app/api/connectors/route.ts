@@ -10,6 +10,7 @@ const createConnectorSchema = z.object({
   credentials: z.string().min(1),
   config: z.record(z.any()).optional(),
   skipAiFilter: z.boolean().optional(),
+  status: z.enum(["ACTIVE", "PENDING"]).optional(),
 });
 
 export async function GET() {
@@ -50,6 +51,7 @@ export async function POST(req: NextRequest) {
         credentialsEncrypted: encrypt(data.credentials),
         config: data.config || {},
         skipAiFilter: data.skipAiFilter || false,
+        status: data.status || "ACTIVE",
         organizationId: session.organizationId,
       },
     });
