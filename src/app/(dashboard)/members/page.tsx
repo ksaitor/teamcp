@@ -41,8 +41,9 @@ export default async function MembersPage() {
                 <td className="py-3">
                   <Link
                     href={`/members/${m.id}`}
-                    className="font-medium hover:underline"
+                    className="flex items-center gap-2 font-medium hover:underline"
                   >
+                    <Avatar name={m.user.name} email={m.user.email} image={m.user.image} />
                     {m.user.name || "—"}
                   </Link>
                 </td>
@@ -79,6 +80,33 @@ export default async function MembersPage() {
         </table>
       </div>
     </div>
+  );
+}
+
+function Avatar({
+  name,
+  email,
+  image,
+}: {
+  name: string | null;
+  email: string;
+  image: string | null;
+}) {
+  if (image) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return (
+      <img
+        src={image}
+        alt=""
+        className="h-7 w-7 shrink-0 rounded-full object-cover"
+      />
+    );
+  }
+  const initial = (name || email).charAt(0).toUpperCase();
+  return (
+    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-medium text-gray-500">
+      {initial}
+    </span>
   );
 }
 
