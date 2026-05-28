@@ -2,23 +2,14 @@
 
 Self-hostable MCP gateway with per-member AI tool access control. Give your team fine-grained access to databases, APIs, and AI tools — enforced through a layered permission engine with optional AI-powered filtering.
 
-## One-Click Deploy
+## Deploy
 
-### Heroku
+TeamRouter ships as a standard container and also builds cleanly with [Nixpacks](https://nixpacks.com), so it runs on any platform that supports either (Railway, Render, Coolify, Fly, a plain VM, etc.).
 
-[![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
+- **Docker / Docker Compose** — see [Quick Start](#quick-start-docker) below.
+- **Nixpacks** — point your platform at this repo; the build is auto-detected and the app starts via `bin/start.sh`.
 
-Deploys using the container stack with a managed PostgreSQL database. After deploy:
-
-1. Open the app URL to create your admin account
-2. Set `APP_URL` and `MCP_BASE_URL` in your Heroku config vars to match your app URL
-3. Optionally add `ANTHROPIC_API_KEY` for AI-powered permission filtering
-
-### DigitalOcean
-
-[![Deploy to DO](https://www.deploytodo.com/do-btn-blue.svg)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/ksaitor/teamrouter/tree/main)
-
-Deploys to DigitalOcean App Platform with a managed PostgreSQL database. After deploy, update the `ENCRYPTION_KEY`, `AUTH_SECRET`, and `ANTHROPIC_API_KEY` environment variables in the App Platform dashboard.
+In all cases provide a `DATABASE_URL` plus the required secrets (see [Environment Variables](#environment-variables)). The schema is synced automatically on startup, then open the app URL to create your admin account.
 
 ## Quick Start (Docker)
 
