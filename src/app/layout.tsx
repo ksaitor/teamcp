@@ -7,7 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
-  title: "TeamMCP",
+  title: "TeamRouter",
   description: "Team MCP Access Gateway",
 };
 

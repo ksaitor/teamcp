@@ -31,7 +31,7 @@ export default async function Home() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center">
-      <h1 className="text-4xl font-bold">TeamMCP</h1>
+      <h1 className="text-4xl font-bold">TeamRouter</h1>
       <p className="mt-2 text-muted-foreground">Team MCP Access Gateway</p>
       <div className="mt-8 flex gap-4">
         <Link
