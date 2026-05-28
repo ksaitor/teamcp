@@ -13,6 +13,7 @@ const updateSettingsSchema = z.object({
   require2FA: z.boolean().optional(),
   aiFilterEnabled: z.boolean().optional(),
   aiModel: z.string().min(1).optional(),
+  defaultLlmProviderId: z.string().nullable().optional(),
   approvalTimeoutSecs: z.number().int().min(30).max(3600).optional(),
 });
 
@@ -21,6 +22,19 @@ export async function PATCH(req: NextRequest) {
     const session = await requireAdmin();
     const body = await req.json();
     const data = updateSettingsSchema.parse(body);
+
+    if (data.defaultLlmProviderId) {
+      const provider = await prisma.llmProvider.findFirst({
+        where: { id: data.defaultLlmProviderId, organizationId: session.organizationId },
+        select: { id: true },
+      });
+      if (!provider) {
+        return NextResponse.json(
+          { error: "LLM provider not found" },
+          { status: 400 }
+        );
+      }
+    }
 
     const settings = await prisma.orgSettings.update({
       where: { organizationId: session.organizationId },

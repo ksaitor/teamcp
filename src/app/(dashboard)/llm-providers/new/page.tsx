@@ -1,27 +1,27 @@
 import Link from "next/link";
 import { FiArrowLeft } from "react-icons/fi";
 import { requireAdmin } from "@/lib/auth";
-import { ConnectorGallery } from "./connector-gallery";
+import { ProviderGallery } from "./provider-gallery";
 
-export default async function NewConnectorPage() {
+export default async function NewLlmProviderPage() {
   await requireAdmin();
 
   return (
     <div>
       <Link
-        href="/connectors"
+        href="/llm-providers"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         <FiArrowLeft className="size-4" />
-        Back to connectors
+        Back to AI models
       </Link>
 
-      <h1 className="mt-3 text-2xl font-bold">Add a connector</h1>
+      <h1 className="mt-3 text-2xl font-bold">Add an AI model provider</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Choose a data source to connect to your organization.
+        Connect an LLM provider your team can use. You can add several and pick a default.
       </p>
 
-      <ConnectorGallery />
+      <ProviderGallery />
     </div>
   );
 }
