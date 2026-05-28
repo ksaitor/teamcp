@@ -5,6 +5,13 @@ import { requireAdmin } from "@/lib/auth";
 
 const createMemberSchema = z.object({
   email: z.string().email(),
+  name: z.string().trim().min(1, "Name is required"),
+  jobTitle: z.string().trim().min(1, "Job title is required"),
+  image: z
+    .string()
+    .startsWith("data:image/", "Invalid image")
+    .max(1_500_000, "Image is too large")
+    .optional(),
   permissionInstructions: z.string().optional(),
 });
 
@@ -35,11 +42,20 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const data = createMemberSchema.parse(body);
 
-    // Find or create user by email
+    // Find or create user by email. For an existing user, fill in name/image
+    // only when they're not already set, so we don't clobber their own profile.
     let user = await prisma.user.findUnique({ where: { email: data.email } });
     if (!user) {
       user = await prisma.user.create({
-        data: { email: data.email },
+        data: { email: data.email, name: data.name, image: data.image },
+      });
+    } else if (!user.name || (!user.image && data.image)) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          name: user.name ?? data.name,
+          image: user.image ?? data.image,
+        },
       });
     }
 
@@ -49,6 +65,7 @@ export async function POST(req: NextRequest) {
         organizationId: session.organizationId,
         role: "MEMBER",
         status: "INVITED",
+        jobTitle: data.jobTitle,
         permissionInstructions: data.permissionInstructions,
       },
       include: {

@@ -112,6 +112,9 @@ model OrgMembership {
   // Auth session config — overrides org default if set
   sessionDurationHours Int?
 
+  // The team member's job title within the organization (e.g. "Marketing Manager").
+  jobTitle String?
+
   // Global natural-language permission instructions (only for MEMBER role)
   permissionInstructions String? @db.Text
 
