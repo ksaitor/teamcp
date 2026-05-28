@@ -13,6 +13,15 @@ echo "Starting TeamMCP..."
 echo "  Admin UI:   port ${PORT:-3000}"
 echo "  MCP Server: port ${MCP_PORT:-3001}"
 
+# Sync the database schema before starting (non-fatal: if it fails the app
+# still boots and serves a friendly DB connection error instead of crashing).
+if [ -n "$DATABASE_URL" ]; then
+  echo "Syncing database schema..."
+  bunx prisma db push || echo "WARNING: schema sync failed — app will show a DB connection error"
+else
+  echo "WARNING: DATABASE_URL is not set — skipping schema sync"
+fi
+
 # Start both servers
 exec bun run server.js &
 NEXT_PID=$!
