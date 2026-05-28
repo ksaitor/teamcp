@@ -6,39 +6,62 @@ import type {
   ToolResult,
 } from "../interface";
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
+import { connectMcp, type ConnectOptions } from "./client";
+import { DbOAuthClientProvider } from "./oauth-provider";
+
+type AuthMode = "none" | "token" | "oauth";
 
 export class ExternalMcpConnector implements ConnectorInstance {
   type = "EXTERNAL_MCP";
 
-  listTools(config: ConnectorConfig): Tool[] {
-    // Tools are discovered dynamically and stored in ConnectorTool table
-    // This returns empty — the MCP server uses the DB records instead
+  listTools(_config: ConnectorConfig): Tool[] {
+    // Tools are discovered dynamically and stored in the ConnectorTool table;
+    // the gateway reads those records instead of calling this.
     return [];
   }
 
   getNativePermissions(): NativePermissionDef[] {
-    // External MCP permissions are handled via tool cherry-picking
     return [];
   }
 
   getOperationType(_toolName: string): "read" | "write" {
-    // Default to read — admin can override via custom scripts
     return "read";
   }
 
-  async discoverTools(config: ConnectorConfig, credentials: DecryptedCredentials): Promise<Tool[]> {
-    const serverUrl = config.serverUrl || credentials.raw;
-    const transport = new SSEClientTransport(new URL(serverUrl));
-    const client = new Client({ name: "teamrouter-discovery", version: "1.0.0" });
+  private connectOptions(
+    config: ConnectorConfig,
+    credentials: DecryptedCredentials
+  ): ConnectOptions {
+    const serverUrl: string = config.serverUrl || credentials.raw;
+    const authMode: AuthMode = config.authMode ?? "none";
 
+    const opts: ConnectOptions = {
+      serverUrl,
+      transport: config.transport,
+      clientName: "teamrouter-proxy",
+    };
+    if (authMode === "token") opts.token = credentials.raw;
+    if (authMode === "oauth") {
+      if (!config._connectorId) {
+        throw new Error("OAuth connector is missing _connectorId in config");
+      }
+      opts.authProvider = new DbOAuthClientProvider(config._connectorId);
+    }
+    return opts;
+  }
+
+  async discoverTools(
+    config: ConnectorConfig,
+    credentials: DecryptedCredentials
+  ): Promise<Tool[]> {
+    const { client, close } = await connectMcp(
+      this.connectOptions(config, credentials)
+    );
     try {
-      await client.connect(transport);
       const result = await client.listTools();
       return result.tools;
     } finally {
-      await client.close();
+      await close();
     }
   }
 
@@ -48,14 +71,11 @@ export class ExternalMcpConnector implements ConnectorInstance {
     config: ConnectorConfig,
     credentials: DecryptedCredentials
   ): Promise<ToolResult> {
-    const serverUrl = config.serverUrl || credentials.raw;
-    const transport = new SSEClientTransport(new URL(serverUrl));
-    const client = new Client({ name: "teamrouter-proxy", version: "1.0.0" });
-
+    const { client, close } = await connectMcp(
+      this.connectOptions(config, credentials)
+    );
     try {
-      await client.connect(transport);
       const result = await client.callTool({ name: toolName, arguments: params });
-
       return {
         content: (result.content as any[]) || [
           { type: "text", text: JSON.stringify(result, null, 2) },
@@ -63,7 +83,7 @@ export class ExternalMcpConnector implements ConnectorInstance {
         isError: result.isError as boolean | undefined,
       };
     } finally {
-      await client.close();
+      await close();
     }
   }
 
@@ -72,8 +92,8 @@ export class ExternalMcpConnector implements ConnectorInstance {
     credentials: DecryptedCredentials
   ): Promise<boolean> {
     try {
-      const tools = await this.discoverTools(config, credentials);
-      return tools.length >= 0; // Even 0 tools is a valid connection
+      await this.discoverTools(config, credentials);
+      return true;
     } catch {
       return false;
     }
