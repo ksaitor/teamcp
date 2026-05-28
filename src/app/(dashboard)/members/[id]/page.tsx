@@ -16,7 +16,7 @@ export default async function MemberDetailPage({
   const membership = await prisma.orgMembership.findFirst({
     where: { id, organizationId: session.organizationId },
     include: {
-      user: { select: { name: true, email: true } },
+      user: { select: { name: true, email: true, image: true } },
       connectorAccess: { include: { connector: true } },
       organization: true,
     },
@@ -34,10 +34,24 @@ export default async function MemberDetailPage({
   return (
     <div>
       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{membership.user.name || membership.user.email}</h1>
-          <p className="mt-1 text-sm text-gray-500">{membership.user.email}</p>
-          <p className="mt-1 text-xs text-gray-400">Role: {membership.role}</p>
+        <div className="flex items-start gap-4">
+          {membership.user.image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={membership.user.image}
+              alt=""
+              className="h-14 w-14 shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gray-100 text-lg font-medium text-gray-500">
+              {(membership.user.name || membership.user.email).charAt(0).toUpperCase()}
+            </span>
+          )}
+          <div>
+            <h1 className="text-2xl font-bold">{membership.user.name || membership.user.email}</h1>
+            <p className="mt-1 text-sm text-gray-500">{membership.user.email}</p>
+            <p className="mt-1 text-xs text-gray-400">Role: {membership.role}</p>
+          </div>
         </div>
         <MemberControls member={{
           id: membership.id,
@@ -48,6 +62,15 @@ export default async function MemberDetailPage({
           role: membership.role,
         }} />
       </div>
+
+      {membership.description && (
+        <div className="mt-6 rounded-md border border-gray-200 bg-white p-4">
+          <h2 className="text-sm font-medium text-gray-500">Description</h2>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">
+            {membership.description}
+          </p>
+        </div>
+      )}
 
       <div className="mt-6 rounded-md border border-gray-200 bg-white p-4">
         <h2 className="text-sm font-medium text-gray-500">MCP Endpoint</h2>
