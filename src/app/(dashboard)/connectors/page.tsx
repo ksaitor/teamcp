@@ -30,7 +30,6 @@ export default async function ConnectorsPage() {
           <thead className="border-b border-border text-muted-foreground">
             <tr>
               <th className="pb-2 font-medium">Name</th>
-              <th className="pb-2 font-medium">Type</th>
               <th className="pb-2 font-medium">Status</th>
               <th className="pb-2 font-medium">Members</th>
               <th className="pb-2 font-medium">Actions</th>
@@ -46,11 +45,6 @@ export default async function ConnectorsPage() {
                   >
                     {c.name}
                   </Link>
-                </td>
-                <td className="py-3">
-                  <span className="rounded bg-muted px-2 py-0.5 text-xs font-mono">
-                    {c.type}
-                  </span>
                 </td>
                 <td className="py-3">
                   <span
@@ -78,7 +72,7 @@ export default async function ConnectorsPage() {
             ))}
             {connectors.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-8 text-center text-muted-foreground">
+                <td colSpan={4} className="py-8 text-center text-muted-foreground">
                   No connectors yet. Add one to get started.
                 </td>
               </tr>

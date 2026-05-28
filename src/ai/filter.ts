@@ -1,5 +1,5 @@
 import { prisma } from "@/db";
-import { getAnthropicClient } from "./client";
+import { getOrgLlmClient } from "./providers/resolve";
 import { buildFilterPrompt } from "./prompts";
 import { getCacheKey, getCachedDecision, setCachedDecision } from "./cache";
 import type { AuthenticatedMember } from "@/server/auth";
@@ -78,9 +78,18 @@ export async function aiFilter(input: AiFilterInput): Promise<AiFilterResult> {
     return { decision: "pass", reasoning: "Cached: " + cached.reasoning, result: input.result };
   }
 
-  // Call Claude
+  // Resolve which LLM to use (configured provider, else env fallback)
+  const resolved = await getOrgLlmClient(input.member.organizationId);
+  if (!resolved) {
+    return {
+      decision: "pass",
+      reasoning: "No LLM provider configured",
+      result: input.result,
+    };
+  }
+
+  // Call the LLM
   try {
-    const client = getAnthropicClient();
     const prompt = buildFilterPrompt({
       memberName: input.member.name,
       memberEmail: input.member.email,
@@ -94,19 +103,14 @@ export async function aiFilter(input: AiFilterInput): Promise<AiFilterResult> {
       isWriteOperation: input.operationType === "write",
     });
 
-    const response = await client.messages.create({
-      model: settings.aiModel || "claude-sonnet-4-20250514",
-      max_tokens: 2048,
+    const { text } = await resolved.client.complete({
+      model: resolved.model,
+      maxTokens: 2048,
       messages: [{ role: "user", content: prompt }],
     });
 
-    const responseContent = response.content[0];
-    if (responseContent.type !== "text") {
-      return { decision: "pass", reasoning: "AI returned non-text response", result: input.result };
-    }
-
     // Parse AI response
-    const aiResponse = parseAiResponse(responseContent.text);
+    const aiResponse = parseAiResponse(text);
 
     // Cache the decision
     setCachedDecision(cacheKey, {
