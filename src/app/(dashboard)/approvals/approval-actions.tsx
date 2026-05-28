@@ -23,14 +23,14 @@ export function ApprovalActions({ approvalId }: { approvalId: string }) {
       <button
         onClick={() => handleAction("APPROVED")}
         disabled={loading}
-        className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+        className="rounded-md bg-success px-3 py-1.5 text-sm font-medium text-white hover:bg-success/90 disabled:opacity-50"
       >
         Approve
       </button>
       <button
         onClick={() => handleAction("DENIED")}
         disabled={loading}
-        className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+        className="rounded-md bg-destructive px-3 py-1.5 text-sm font-medium text-white hover:bg-destructive/90 disabled:opacity-50"
       >
         Deny
       </button>

@@ -32,7 +32,7 @@ export default async function ApprovalsPage() {
             {pending.map((approval) => (
               <div
                 key={approval.id}
-                className="rounded-md border border-yellow-200 bg-yellow-50 p-4"
+                className="rounded-md border border-warning/30 bg-warning/10 p-4"
               >
                 <div className="flex items-start justify-between">
                   <div>
@@ -40,10 +40,10 @@ export default async function ApprovalsPage() {
                       {approval.membership.user.name || approval.membership.user.email} → {approval.connectorName} /{" "}
                       <code className="text-sm">{approval.toolName}</code>
                     </p>
-                    <p className="mt-1 text-sm text-gray-600">
+                    <p className="mt-1 text-sm text-muted-foreground">
                       AI reasoning: {approval.aiReasoning}
                     </p>
-                    <p className="mt-1 text-xs text-gray-400">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       Expires: {approval.expiresAt.toLocaleString()}
                     </p>
                   </div>
@@ -56,7 +56,7 @@ export default async function ApprovalsPage() {
       )}
 
       {pending.length === 0 && (
-        <p className="mt-6 text-sm text-gray-500">No pending approvals.</p>
+        <p className="mt-6 text-sm text-muted-foreground">No pending approvals.</p>
       )}
 
       {resolved.length > 0 && (
@@ -66,7 +66,7 @@ export default async function ApprovalsPage() {
             {resolved.map((approval) => (
               <div
                 key={approval.id}
-                className="flex items-center justify-between rounded-md border border-gray-200 bg-white px-4 py-3 text-sm"
+                className="flex items-center justify-between rounded-md border border-border bg-card px-4 py-3 text-sm"
               >
                 <div>
                   <span className="font-medium">{approval.membership.user.name || approval.membership.user.email}</span>
@@ -76,10 +76,10 @@ export default async function ApprovalsPage() {
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                     approval.status === "APPROVED"
-                      ? "bg-green-100 text-green-700"
+                      ? "bg-success/10 text-success"
                       : approval.status === "DENIED"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-gray-100 text-gray-700"
+                        ? "bg-destructive/10 text-destructive"
+                        : "bg-muted text-muted-foreground"
                   }`}
                 >
                   {approval.status}

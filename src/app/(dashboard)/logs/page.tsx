@@ -22,7 +22,7 @@ export default async function LogsPage() {
 
       <div className="mt-6 overflow-x-auto">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-gray-200 text-gray-500">
+          <thead className="border-b border-border text-muted-foreground">
             <tr>
               <th className="pb-2 font-medium">Time</th>
               <th className="pb-2 font-medium">Member</th>
@@ -32,10 +32,10 @@ export default async function LogsPage() {
               <th className="pb-2 font-medium">Duration</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-border">
             {logs.map((log) => (
               <tr key={log.id}>
-                <td className="py-3 text-gray-600">
+                <td className="py-3 text-muted-foreground">
                   {log.timestamp.toLocaleString()}
                 </td>
                 <td className="py-3">{log.membership.user.name || log.membership.user.email}</td>
@@ -48,26 +48,26 @@ export default async function LogsPage() {
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                         log.aiDecision === "PASSED"
-                          ? "bg-green-100 text-green-700"
+                          ? "bg-success/10 text-success"
                           : log.aiDecision === "BLOCKED"
-                            ? "bg-red-100 text-red-700"
+                            ? "bg-destructive/10 text-destructive"
                             : log.aiDecision === "FILTERED"
-                              ? "bg-yellow-100 text-yellow-700"
-                              : "bg-gray-100 text-gray-700"
+                              ? "bg-warning/10 text-warning"
+                              : "bg-muted text-muted-foreground"
                       }`}
                     >
                       {log.aiDecision}
                     </span>
                   )}
                 </td>
-                <td className="py-3 text-gray-500">
+                <td className="py-3 text-muted-foreground">
                   {log.durationMs ? `${log.durationMs}ms` : "-"}
                 </td>
               </tr>
             ))}
             {logs.length === 0 && (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-gray-500">
+                <td colSpan={6} className="py-8 text-center text-muted-foreground">
                   No audit logs yet.
                 </td>
               </tr>

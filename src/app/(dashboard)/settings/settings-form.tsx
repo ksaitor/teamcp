@@ -49,7 +49,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="rounded-md border border-gray-200 bg-white p-4 space-y-4">
+      <div className="rounded-md border border-border bg-card p-4 space-y-4">
         <h2 className="font-semibold">AI Filtering</h2>
 
         <label className="flex items-center gap-2 text-sm">
@@ -62,47 +62,47 @@ export function SettingsForm({ settings }: { settings: Settings }) {
         </label>
 
         <div>
-          <label className="block text-xs font-medium text-gray-600">AI Model</label>
+          <label className="block text-xs font-medium text-muted-foreground">AI Model</label>
           <input
             name="aiModel"
             defaultValue={settings.aiModel}
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            className="mt-1 w-full rounded-md border border-input px-3 py-1.5 text-sm"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-600">
+          <label className="block text-xs font-medium text-muted-foreground">
             Approval Timeout (seconds)
           </label>
           <input
             name="approvalTimeoutSecs"
             type="number"
             defaultValue={settings.approvalTimeoutSecs}
-            className="mt-1 w-32 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            className="mt-1 w-32 rounded-md border border-input px-3 py-1.5 text-sm"
           />
         </div>
       </div>
 
-      <div className="rounded-md border border-gray-200 bg-white p-4 space-y-4">
+      <div className="rounded-md border border-border bg-card p-4 space-y-4">
         <h2 className="font-semibold">Member Authentication</h2>
 
         <div>
-          <label className="block text-xs font-medium text-gray-600">
+          <label className="block text-xs font-medium text-muted-foreground">
             Default Session Duration (hours)
           </label>
           <input
             name="defaultSessionDurationHours"
             type="number"
             defaultValue={settings.defaultSessionDurationHours}
-            className="mt-1 w-32 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            className="mt-1 w-32 rounded-md border border-input px-3 py-1.5 text-sm"
           />
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 text-xs text-muted-foreground">
             720 = 30 days, 24 = daily re-auth
           </p>
         </div>
       </div>
 
-      <div className="rounded-md border border-gray-200 bg-white p-4 space-y-4">
+      <div className="rounded-md border border-border bg-card p-4 space-y-4">
         <h2 className="font-semibold">Notifications</h2>
 
         <label className="flex items-center gap-2 text-sm">
@@ -115,7 +115,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
         </label>
 
         <div>
-          <label className="block text-xs font-medium text-gray-600">
+          <label className="block text-xs font-medium text-muted-foreground">
             Webhook URL
           </label>
           <input
@@ -123,12 +123,12 @@ export function SettingsForm({ settings }: { settings: Settings }) {
             type="url"
             defaultValue={settings.notifyWebhookUrl || ""}
             placeholder="https://..."
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            className="mt-1 w-full rounded-md border border-input px-3 py-1.5 text-sm"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-600">
+          <label className="block text-xs font-medium text-muted-foreground">
             Slack Webhook URL
           </label>
           <input
@@ -136,22 +136,22 @@ export function SettingsForm({ settings }: { settings: Settings }) {
             type="url"
             defaultValue={settings.notifySlackWebhookUrl || ""}
             placeholder="https://hooks.slack.com/..."
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            className="mt-1 w-full rounded-md border border-input px-3 py-1.5 text-sm"
           />
         </div>
       </div>
 
-      <div className="rounded-md border border-gray-200 bg-white p-4 space-y-4">
+      <div className="rounded-md border border-border bg-card p-4 space-y-4">
         <h2 className="font-semibold">Log Retention</h2>
         <div>
-          <label className="block text-xs font-medium text-gray-600">
+          <label className="block text-xs font-medium text-muted-foreground">
             Retention (days)
           </label>
           <input
             name="logRetentionDays"
             type="number"
             defaultValue={settings.logRetentionDays}
-            className="mt-1 w-32 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            className="mt-1 w-32 rounded-md border border-input px-3 py-1.5 text-sm"
           />
         </div>
       </div>
@@ -160,11 +160,11 @@ export function SettingsForm({ settings }: { settings: Settings }) {
         <button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           {loading ? "Saving..." : "Save settings"}
         </button>
-        {saved && <span className="text-sm text-green-600">Saved!</span>}
+        {saved && <span className="text-sm text-success">Saved!</span>}
       </div>
     </form>
   );
