@@ -161,7 +161,7 @@ export default function SignupPage() {
       <div className="flex min-h-screen items-center justify-center">
         <div className="w-full max-w-sm space-y-6">
           <div className="text-center">
-            <h1 className="text-2xl font-bold">Create your TeamMCP account</h1>
+            <h1 className="text-2xl font-bold">Create your TeamRouter account</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Sign up to get started
             </p>

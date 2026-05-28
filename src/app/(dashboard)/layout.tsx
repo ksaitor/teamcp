@@ -28,7 +28,7 @@ export default async function DashboardLayout({
       <aside className="flex w-56 flex-col border-r border-border bg-card">
         <div className="p-4">
           <Link href="/dashboard" className="text-lg font-bold">
-            TeamMCP
+            TeamRouter
           </Link>
         </div>
         <nav className="mt-4 space-y-1 px-2">
