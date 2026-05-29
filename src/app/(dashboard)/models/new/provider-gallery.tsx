@@ -36,7 +36,7 @@ export function ProviderGallery() {
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {results.map((entry) => (
-          <Link key={entry.slug} href={`/llm-providers/new/${entry.slug}`}>
+          <Link key={entry.slug} href={`/models/new/${entry.slug}`}>
             <Card className="h-full cursor-pointer transition-colors hover:border-ring hover:bg-muted/50">
               <CardHeader>
                 <div className="flex size-10 items-center justify-center rounded-md border border-border bg-muted">

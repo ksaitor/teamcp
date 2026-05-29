@@ -53,7 +53,7 @@ export function ProvidersList({ items }: { items: ProviderItem[] }) {
     setBusyId(id);
     setError("");
     setTestResult((r) => ({ ...r, [id]: "" }));
-    const res = await fetch(`/api/llm-providers/${id}/test`, { method: "POST" });
+    const res = await fetch(`/api/models/${id}/test`, { method: "POST" });
     const data = await res.json().catch(() => ({}));
     setBusyId(null);
     setTestResult((r) => ({
@@ -66,7 +66,7 @@ export function ProvidersList({ items }: { items: ProviderItem[] }) {
   async function remove(id: string) {
     setBusyId(id);
     setError("");
-    const res = await fetch(`/api/llm-providers/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/models/${id}`, { method: "DELETE" });
     setBusyId(null);
     if (!res.ok) {
       setError("Failed to delete provider.");

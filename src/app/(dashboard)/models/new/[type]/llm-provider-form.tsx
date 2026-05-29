@@ -43,7 +43,7 @@ export function LlmProviderForm({
     if (apiKey) body.apiKey = apiKey;
     if (baseUrl) body.baseUrl = baseUrl;
 
-    const res = await fetch("/api/llm-providers", {
+    const res = await fetch("/api/models", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -58,7 +58,7 @@ export function LlmProviderForm({
       return;
     }
 
-    router.push("/llm-providers");
+    router.push("/models");
     router.refresh();
   }
 
