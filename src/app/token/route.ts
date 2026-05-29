@@ -1,11 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/db";
 import { sha256 } from "@/lib/crypto";
 import { verifyPkceS256 } from "@/lib/oauth/pkce";
 import { issueTokens } from "@/lib/oauth/issue";
+import { corsJson, corsPreflight } from "@/lib/oauth/cors";
+
+export async function OPTIONS() {
+  return corsPreflight();
+}
 
 function err(error: string, description?: string, status = 400) {
-  return NextResponse.json(
+  return corsJson(
     { error, ...(description ? { error_description: description } : {}) },
     { status }
   );
@@ -17,7 +22,7 @@ function tokenResponse(t: {
   expiresIn: number;
   scope: string | null;
 }) {
-  return NextResponse.json(
+  return corsJson(
     {
       access_token: t.accessToken,
       token_type: "Bearer",

@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { issuer } from "@/lib/oauth/urls";
+import { corsJson, corsPreflight } from "@/lib/oauth/cors";
 
 // RFC 9728 Protected Resource Metadata. The path mirrors the MCP resource, e.g.
 // /.well-known/oauth-protected-resource/mcp/<slug> describes the resource
@@ -11,9 +11,13 @@ export async function GET(
   const { path } = await params;
   const resource = `${issuer()}/${path.join("/")}`;
 
-  return NextResponse.json({
+  return corsJson({
     resource,
     authorization_servers: [issuer()],
     bearer_methods_supported: ["header"],
   });
+}
+
+export async function OPTIONS() {
+  return corsPreflight();
 }

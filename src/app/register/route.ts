@@ -1,7 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/db";
 import { generateToken, sha256 } from "@/lib/crypto";
 import { isValidRedirectUri } from "@/lib/oauth/redirect";
+import { corsJson, corsPreflight } from "@/lib/oauth/cors";
+
+export async function OPTIONS() {
+  return corsPreflight();
+}
 
 // RFC 7591 Dynamic Client Registration. Clients self-register their redirect
 // URIs and receive a client_id (plus client_secret for confidential clients).
@@ -10,7 +15,7 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json(
+    return corsJson(
       { error: "invalid_client_metadata", error_description: "Invalid JSON" },
       { status: 400 }
     );
@@ -22,7 +27,7 @@ export async function POST(req: NextRequest) {
     redirectUris.length === 0 ||
     !redirectUris.every((u) => typeof u === "string" && isValidRedirectUri(u))
   ) {
-    return NextResponse.json(
+    return corsJson(
       {
         error: "invalid_redirect_uri",
         error_description: "redirect_uris must be a non-empty array of valid URIs",
@@ -60,7 +65,7 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return NextResponse.json(
+  return corsJson(
     {
       client_id: clientId,
       ...(clientSecret ? { client_secret: clientSecret } : {}),
