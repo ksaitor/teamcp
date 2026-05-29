@@ -5,6 +5,9 @@ import GitHub from "next-auth/providers/github";
 import { prisma } from "@/db";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // Self-hosted behind a custom Node server (server.ts), so trust the host
+  // header instead of relying on platform auto-detection (e.g. Vercel).
+  trustHost: true,
   adapter: PrismaAdapter(prisma),
   providers: [
     Google({
