@@ -9,7 +9,7 @@ export default async function NewLlmProviderPage() {
   return (
     <div>
       <Link
-        href="/llm-providers"
+        href="/models"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         <FiArrowLeft className="size-4" />
