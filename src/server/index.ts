@@ -96,9 +96,34 @@ async function handleStreamableHttp(
   res: ServerResponse,
   url: URL
 ) {
+  // Authenticate every request first. An unauthenticated request of ANY method
+  // gets the OAuth discovery challenge (RFC 9728) so clients can start login —
+  // not just POST. OAuth clients re-send the bearer token on every request.
+  const token = req.headers.authorization?.replace(/^Bearer\s+/i, "");
+  if (!token) {
+    send401(req, res, url);
+    return;
+  }
+  const member = await authenticateMcpToken(token);
+  if (!member) {
+    send401(req, res, url);
+    return;
+  }
+
+  // The path slug must match the token's org so a token can't be used against
+  // another org's endpoint. Path: /mcp/<orgSlug>.
+  const slug = slugFromPath(url.pathname);
+  if (slug !== member.orgSlug) {
+    res.writeHead(403, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({ error: "Token does not match this organization endpoint" })
+    );
+    return;
+  }
+
   const sessionId = req.headers["mcp-session-id"] as string | undefined;
 
-  // Existing session — route straight to its transport.
+  // Existing session — route straight to its transport (GET / POST / DELETE).
   if (sessionId) {
     const session = sessions.get(sessionId);
     if (!session) {
@@ -130,29 +155,6 @@ async function handleStreamableHttp(
   if (!isInitializeRequest(body)) {
     res.writeHead(400, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: "Expected initialize request" }));
-    return;
-  }
-
-  // Authenticate the bearer token before opening a session.
-  const token = req.headers.authorization?.replace(/^Bearer\s+/i, "");
-  if (!token) {
-    send401(req, res, url);
-    return;
-  }
-  const member = await authenticateMcpToken(token);
-  if (!member) {
-    send401(req, res, url);
-    return;
-  }
-
-  // The path slug must match the token's org so a token can't be used against
-  // another org's endpoint. Path: /mcp/<orgSlug>.
-  const slug = slugFromPath(url.pathname);
-  if (slug !== member.orgSlug) {
-    res.writeHead(403, { "Content-Type": "application/json" });
-    res.end(
-      JSON.stringify({ error: "Token does not match this organization endpoint" })
-    );
     return;
   }
 
