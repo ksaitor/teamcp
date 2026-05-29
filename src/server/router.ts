@@ -1,7 +1,6 @@
-import { prisma } from "@/db";
 import { getConnector } from "@/connectors/registry";
 import { decrypt } from "@/lib/crypto";
-import { parseToolName } from "./tool-builder";
+import { parseToolName, resolveConnectorBySlug } from "./tool-builder";
 import type { AuthenticatedMember } from "./auth";
 import type { ToolResult } from "@/connectors/interface";
 
@@ -22,12 +21,10 @@ export async function routeToolCall(
   params: Record<string, any>,
   member: AuthenticatedMember
 ): Promise<RouteResult> {
-  const { connectorId, toolName } = parseToolName(namespacedToolName);
+  const { connectorSlug, toolName } = parseToolName(namespacedToolName);
 
-  // Load connector and verify member access
-  const connector = await prisma.connector.findFirst({
-    where: { id: connectorId, organizationId: member.organizationId },
-  });
+  // Resolve the connector slug back to a connector within the member's org
+  const connector = await resolveConnectorBySlug(member.organizationId, connectorSlug);
 
   if (!connector) {
     throw new Error("Connector not found");

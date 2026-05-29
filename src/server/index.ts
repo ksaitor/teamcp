@@ -10,7 +10,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "http";
 import { URL } from "url";
 import { authenticateMcpToken, type AuthenticatedMember } from "./auth";
 import { issuer } from "@/lib/oauth/urls";
-import { buildToolListForMember, parseToolName } from "./tool-builder";
+import { buildToolListForMember, parseToolName, resolveConnectorBySlug } from "./tool-builder";
 import { routeToolCall } from "./router";
 import { checkPermissions } from "@/permissions/engine";
 import { aiFilter } from "@/ai/filter";
@@ -194,7 +194,7 @@ function createMcpServerForMember(member: AuthenticatedMember) {
 
   // Handle tools/list
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    const tools = await buildToolListForMember(member.id);
+    const tools = await buildToolListForMember(member.id, member.orgSlug, member.organizationId);
     return { tools };
   });
 
@@ -204,15 +204,14 @@ function createMcpServerForMember(member: AuthenticatedMember) {
     const startTime = Date.now();
 
     try {
-      const { connectorId, toolName } = parseToolName(name);
-      const connector = await prisma.connector.findFirst({
-        where: { id: connectorId, organizationId: member.organizationId },
-      });
+      const { connectorSlug, toolName } = parseToolName(name);
+      const connector = await resolveConnectorBySlug(member.organizationId, connectorSlug);
 
       if (!connector) {
         throw new Error("Connector not found");
       }
 
+      const connectorId = connector.id;
       const connectorImpl = getConnector(connector.type);
       const operationType = connectorImpl.getOperationType(toolName);
 
