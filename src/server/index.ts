@@ -1,12 +1,15 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
+  isInitializeRequest,
 } from "@modelcontextprotocol/sdk/types.js";
+import { randomUUID } from "crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "http";
 import { URL } from "url";
 import { authenticateMcpToken, type AuthenticatedMember } from "./auth";
+import { issuer } from "@/lib/oauth/urls";
 import { buildToolListForMember, parseToolName } from "./tool-builder";
 import { routeToolCall } from "./router";
 import { checkPermissions } from "@/permissions/engine";
@@ -16,9 +19,10 @@ import { createApprovalAndWait } from "@/approvals/queue";
 import { getConnector } from "@/connectors/registry";
 import { prisma } from "@/db";
 
+// Active Streamable HTTP sessions, keyed by Mcp-Session-Id.
 const sessions = new Map<
   string,
-  { transport: SSEServerTransport; membershipId: string }
+  { transport: StreamableHTTPServerTransport; membershipId: string }
 >();
 
 // Handles the MCP gateway routes. Mounted either by the standalone MCP server
@@ -30,10 +34,14 @@ export async function handleMcpRequest(
   const url = new URL(req.url || "/", "http://localhost");
   const path = url.pathname;
 
-  // CORS
+  // CORS — clients send the session id and read it back from responses.
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, Mcp-Session-Id, MCP-Protocol-Version"
+  );
+  res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id");
 
   if (req.method === "OPTIONS") {
     res.writeHead(204);
@@ -47,20 +55,121 @@ export async function handleMcpRequest(
     return;
   }
 
-  // Message endpoint: POST /mcp/messages?sessionId=xxx
-  if (req.method === "POST" && path === "/mcp/messages") {
-    await handleMessage(req, res, url);
-    return;
-  }
-
-  // SSE endpoint: GET /mcp/:orgSlug
-  if (req.method === "GET" && path.startsWith("/mcp/")) {
-    await handleSseConnect(req, res, url);
+  // Streamable HTTP transport: GET (SSE stream) / POST (JSON-RPC) / DELETE
+  // (teardown) on /mcp/<orgSlug>.
+  if (path.startsWith("/mcp/")) {
+    await handleStreamableHttp(req, res, url);
     return;
   }
 
   res.writeHead(404, { "Content-Type": "application/json" });
   res.end(JSON.stringify({ error: "Not found" }));
+}
+
+const slugFromPath = (path: string) =>
+  path.slice("/mcp/".length).split("/")[0];
+
+function readBody(req: IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let data = "";
+    req.on("data", (chunk) => (data += chunk));
+    req.on("end", () => resolve(data));
+    req.on("error", reject);
+  });
+}
+
+// RFC 9728 / RFC 6750: tell the client where to discover the auth server so it
+// can start the OAuth flow.
+function send401(req: IncomingMessage, res: ServerResponse, url: URL) {
+  const slug = slugFromPath(url.pathname);
+  const metadataUrl = `${issuer()}/.well-known/oauth-protected-resource/mcp/${slug}`;
+  res.setHeader(
+    "WWW-Authenticate",
+    `Bearer resource_metadata="${metadataUrl}"`
+  );
+  res.writeHead(401, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({ error: "Authorization required" }));
+}
+
+async function handleStreamableHttp(
+  req: IncomingMessage,
+  res: ServerResponse,
+  url: URL
+) {
+  const sessionId = req.headers["mcp-session-id"] as string | undefined;
+
+  // Existing session — route straight to its transport.
+  if (sessionId) {
+    const session = sessions.get(sessionId);
+    if (!session) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Session not found" }));
+      return;
+    }
+    await session.transport.handleRequest(req, res);
+    return;
+  }
+
+  // No session id: only a POST initialize request can open one.
+  if (req.method !== "POST") {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Missing Mcp-Session-Id" }));
+    return;
+  }
+
+  const raw = await readBody(req);
+  let body: unknown;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Invalid JSON body" }));
+    return;
+  }
+
+  if (!isInitializeRequest(body)) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Expected initialize request" }));
+    return;
+  }
+
+  // Authenticate the bearer token before opening a session.
+  const token = req.headers.authorization?.replace(/^Bearer\s+/i, "");
+  if (!token) {
+    send401(req, res, url);
+    return;
+  }
+  const member = await authenticateMcpToken(token);
+  if (!member) {
+    send401(req, res, url);
+    return;
+  }
+
+  // The path slug must match the token's org so a token can't be used against
+  // another org's endpoint. Path: /mcp/<orgSlug>.
+  const slug = slugFromPath(url.pathname);
+  if (slug !== member.orgSlug) {
+    res.writeHead(403, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({ error: "Token does not match this organization endpoint" })
+    );
+    return;
+  }
+
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: () => randomUUID(),
+    onsessioninitialized: (sid) => {
+      sessions.set(sid, { transport, membershipId: member.id });
+    },
+  });
+
+  transport.onclose = () => {
+    if (transport.sessionId) sessions.delete(transport.sessionId);
+  };
+
+  const mcpServer = createMcpServerForMember(member);
+  await mcpServer.connect(transport);
+  await transport.handleRequest(req, res, body);
 }
 
 export async function startMcpServer() {
@@ -238,65 +347,6 @@ function createMcpServerForMember(member: AuthenticatedMember) {
   });
 
   return server;
-}
-
-async function handleSseConnect(
-  req: IncomingMessage,
-  res: ServerResponse,
-  url: URL
-) {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-
-  if (!token) {
-    res.writeHead(401, { "Content-Type": "application/json" });
-    res.end(
-      JSON.stringify({
-        error:
-          "Access token required. Authenticate at the admin panel first.",
-      })
-    );
-    return;
-  }
-
-  const member = await authenticateMcpToken(token);
-  if (!member) {
-    res.writeHead(401, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ error: "Invalid or expired access token" }));
-    return;
-  }
-
-  const mcpServer = createMcpServerForMember(member);
-  const transport = new SSEServerTransport("/mcp/messages", res);
-  const sessionId = transport.sessionId;
-  sessions.set(sessionId, { transport, membershipId: member.id });
-
-  res.on("close", () => {
-    sessions.delete(sessionId);
-  });
-
-  await mcpServer.connect(transport);
-}
-
-async function handleMessage(
-  req: IncomingMessage,
-  res: ServerResponse,
-  url: URL
-) {
-  const sessionId = url.searchParams.get("sessionId");
-  if (!sessionId) {
-    res.writeHead(400, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ error: "sessionId required" }));
-    return;
-  }
-
-  const session = sessions.get(sessionId);
-  if (!session) {
-    res.writeHead(404, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ error: "Session not found" }));
-    return;
-  }
-
-  await session.transport.handlePostMessage(req, res);
 }
 
 // Start if running directly

@@ -1,23 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/db";
-import { requireSession } from "@/lib/auth";
+import { requireSession, requireUser } from "@/lib/auth";
 import { generateToken } from "@/lib/crypto";
 
 /**
- * POST /api/mcp-token — Generate an MCP access token for the current membership.
+ * POST /api/mcp-token — Generate an MCP access token for one of the user's
+ * memberships. Defaults to the active membership when membershipId is omitted.
  */
 export async function POST(req: NextRequest) {
   try {
-    const session = await requireSession();
+    const { userId } = await requireUser();
+
+    let membershipId: string | undefined;
+    try {
+      const body = await req.json();
+      membershipId = body?.membershipId;
+    } catch {
+      // No/invalid JSON body — fall back to the active membership.
+    }
+    if (!membershipId) {
+      const session = await requireSession();
+      membershipId = session.membershipId;
+    }
 
     const membership = await prisma.orgMembership.findUnique({
-      where: { id: session.membershipId },
+      where: { id: membershipId },
       include: {
         organization: { select: { settings: true } },
       },
     });
 
-    if (!membership) {
+    if (!membership || membership.userId !== userId) {
       return NextResponse.json({ error: "Membership not found" }, { status: 404 });
     }
 
@@ -59,7 +72,7 @@ export async function POST(req: NextRequest) {
  */
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await requireSession();
+    const { userId } = await requireUser();
     const { searchParams } = new URL(req.url);
     const tokenId = searchParams.get("id");
 
@@ -70,7 +83,7 @@ export async function DELETE(req: NextRequest) {
     await prisma.mcpToken.delete({
       where: {
         id: tokenId,
-        membership: { id: session.membershipId },
+        membership: { userId },
       },
     });
 
