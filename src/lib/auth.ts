@@ -31,6 +31,15 @@ export async function requireSession(): Promise<SessionData> {
   return session;
 }
 
+// User-scoped auth that does NOT require an active org. Use for surfaces that
+// span all of a user's memberships (e.g. the connection page), where getSession
+// would wrongly return null when no active org is selected.
+export async function requireUser(): Promise<{ userId: string }> {
+  const session = await auth();
+  if (!session?.user?.id) throw new AuthError("Not authenticated");
+  return { userId: session.user.id };
+}
+
 export async function requireAdmin(): Promise<SessionData> {
   const session = await requireSession();
   if (session.role !== "OWNER" && session.role !== "ADMIN") {

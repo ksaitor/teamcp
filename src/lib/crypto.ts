@@ -1,4 +1,9 @@
-import { randomBytes, createCipheriv, createDecipheriv } from "crypto";
+import {
+  randomBytes,
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+} from "crypto";
 
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 16;
@@ -47,6 +52,18 @@ export function decrypt(encoded: string): string {
 
 export function generateToken(): string {
   return randomBytes(32).toString("hex");
+}
+
+// Hex SHA-256 — used to hash opaque secrets (access/refresh tokens, auth codes)
+// before storing them at rest.
+export function sha256(input: string): string {
+  return createHash("sha256").update(input).digest("hex");
+}
+
+// Base64url SHA-256 — used to verify PKCE S256 challenges
+// (BASE64URL(SHA256(code_verifier)) === code_challenge).
+export function base64urlSha256(input: string): string {
+  return createHash("sha256").update(input).digest("base64url");
 }
 
 export function generateSlug(name: string): string {

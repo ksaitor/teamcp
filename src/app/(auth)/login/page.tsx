@@ -1,13 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 type AuthState = "idle" | "password" | "code-sent" | "code-verify";
 
+// Only allow same-origin relative paths (so the OAuth /authorize callback works
+// but an attacker can't redirect elsewhere). Protocol-relative "//host" and
+// absolute URLs are rejected.
+function safeCallback(raw: string | null): string {
+  if (raw && raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  return "/dashboard";
+}
+
 export default function LoginPage() {
-  const router = useRouter();
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
+  const searchParams = useSearchParams();
+  const callbackUrl = safeCallback(searchParams.get("callbackUrl"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
@@ -35,7 +52,9 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/dashboard");
+    // Full navigation so route-handler callbacks (e.g. /authorize) are hit as
+    // real GET requests rather than soft client navigations.
+    window.location.href = callbackUrl;
   }
 
   async function handleSendCode() {
@@ -79,12 +98,12 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/dashboard");
+    window.location.href = callbackUrl;
   }
 
   function handleOAuth(provider: string) {
     setLoading(provider);
-    window.location.href = `/api/auth/signin/${provider}?callbackUrl=/dashboard`;
+    window.location.href = `/api/auth/signin/${provider}?callbackUrl=${encodeURIComponent(callbackUrl)}`;
   }
 
   return (

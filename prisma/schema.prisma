@@ -146,7 +146,8 @@ enum MemberStatus {
   REVOKED
 }
 
-// MCP access tokens issued after NextAuth login
+// MCP access tokens. Minted either from the dashboard (personal access tokens,
+// null OAuth fields) or via the OAuth 2.1 flow (clientId/scope/resource set).
 model McpToken {
   id           String        @id @default(cuid())
   membershipId String
@@ -156,8 +157,45 @@ model McpToken {
   createdAt    DateTime      @default(now())
   lastUsedAt   DateTime      @default(now())
 
+  // OAuth-issued tokens only (null for dashboard-minted personal tokens)
+  clientId         String?
+  scope            String?
+  resource         String?
+  refreshTokenHash String?   @unique
+  refreshExpiresAt DateTime?
+
   @@index([accessToken])
   @@index([membershipId])
+}
+
+// ─── OAuth 2.1 authorization server (MCP Authorization spec) ─────────
+
+// Registered OAuth clients (via Dynamic Client Registration, RFC 7591).
+model OAuthClient {
+  id                      String   @id @default(cuid())
+  clientId                String   @unique
+  clientSecretHash        String? // null = public client (PKCE only)
+  redirectUris            String[]
+  clientName              String?
+  tokenEndpointAuthMethod String   @default("none") // "none" | "client_secret_post"
+  grantTypes              String[] @default(["authorization_code", "refresh_token"])
+  createdAt               DateTime @default(now())
+}
+
+// Short-lived single-use authorization codes (OAuth 2.1 + PKCE).
+model OAuthAuthorizationCode {
+  id                  String    @id @default(cuid())
+  codeHash            String    @unique
+  clientId            String
+  membershipId        String
+  redirectUri         String
+  codeChallenge       String
+  codeChallengeMethod String    @default("S256")
+  scope               String?
+  resource            String
+  expiresAt           DateTime
+  consumedAt          DateTime?
+  createdAt           DateTime  @default(now())
 }
 
 model Connector {
