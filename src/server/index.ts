@@ -21,50 +21,52 @@ const sessions = new Map<
   { transport: SSEServerTransport; membershipId: string }
 >();
 
+// Handles the MCP gateway routes. Mounted either by the standalone MCP server
+// (startMcpServer, for `mcp:dev`) or by the unified Next.js server (server.ts).
+export async function handleMcpRequest(
+  req: IncomingMessage,
+  res: ServerResponse
+) {
+  const url = new URL(req.url || "/", "http://localhost");
+  const path = url.pathname;
+
+  // CORS
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  if (req.method === "OPTIONS") {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  if (path === "/health") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ status: "ok" }));
+    return;
+  }
+
+  // Message endpoint: POST /mcp/messages?sessionId=xxx
+  if (req.method === "POST" && path === "/mcp/messages") {
+    await handleMessage(req, res, url);
+    return;
+  }
+
+  // SSE endpoint: GET /mcp/:orgSlug
+  if (req.method === "GET" && path.startsWith("/mcp/")) {
+    await handleSseConnect(req, res, url);
+    return;
+  }
+
+  res.writeHead(404, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({ error: "Not found" }));
+}
+
 export async function startMcpServer() {
   const port = Number(process.env.MCP_PORT || 3001);
 
-  const httpServer = createServer(
-    async (req: IncomingMessage, res: ServerResponse) => {
-      const url = new URL(req.url || "/", `http://localhost:${port}`);
-      const path = url.pathname;
-
-      // CORS
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-      res.setHeader(
-        "Access-Control-Allow-Headers",
-        "Content-Type, Authorization"
-      );
-
-      if (req.method === "OPTIONS") {
-        res.writeHead(204);
-        res.end();
-        return;
-      }
-
-      if (path === "/health") {
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ status: "ok" }));
-        return;
-      }
-
-      // SSE endpoint: GET /mcp/:orgSlug
-      if (req.method === "GET" && path.startsWith("/mcp/")) {
-        await handleSseConnect(req, res, url);
-        return;
-      }
-
-      // Message endpoint: POST /messages?sessionId=xxx
-      if (req.method === "POST" && path === "/messages") {
-        await handleMessage(req, res, url);
-        return;
-      }
-
-      res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Not found" }));
-    }
-  );
+  const httpServer = createServer(handleMcpRequest);
 
   httpServer.listen(port, () => {
     console.log(`MCP server listening on port ${port}`);
@@ -264,7 +266,7 @@ async function handleSseConnect(
   }
 
   const mcpServer = createMcpServerForMember(member);
-  const transport = new SSEServerTransport("/messages", res);
+  const transport = new SSEServerTransport("/mcp/messages", res);
   const sessionId = transport.sessionId;
   sessions.set(sessionId, { transport, membershipId: member.id });
 

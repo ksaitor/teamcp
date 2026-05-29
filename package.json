@@ -10,7 +10,8 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "mcp:dev": "bun run src/server/index.ts"
+    "mcp:dev": "bun run src/server/index.ts",
+    "dev:unified": "bun run server.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

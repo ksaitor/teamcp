@@ -20,15 +20,20 @@ RUN bun run build
 FROM oven/bun:1-slim AS production
 WORKDIR /app
 
-COPY --from=base /app/.next/standalone ./
-COPY --from=base /app/.next/static ./.next/static
+# The custom server (server.ts) doesn't use Next's standalone output, so ship
+# the full build plus everything the server needs at runtime.
+COPY --from=base /app/.next ./.next
+COPY --from=base /app/public ./public
 COPY --from=base /app/prisma ./prisma
 COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/src ./src
+COPY --from=base /app/next.config.ts ./next.config.ts
+COPY --from=base /app/server.ts ./server.ts
+COPY --from=base /app/package.json ./package.json
 COPY --from=base /app/tsconfig.json ./tsconfig.json
 COPY --from=base /app/bin ./bin
 
 ENV NODE_ENV=production
-EXPOSE 3000 3001
+EXPOSE 3000
 
 CMD ["sh", "bin/start.sh"]

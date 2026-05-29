@@ -2,16 +2,16 @@
 set -e
 
 # On PaaS platforms like Heroku, PORT is set automatically.
-# Next.js standalone server.js reads PORT env var.
-# MCP server reads MCP_PORT (defaults to 3001).
+# The unified server (server.ts) serves both the admin UI and the MCP gateway
+# on a single port (PORT, defaults to 3000).
 
-# Set APP_URL and MCP_BASE_URL from PORT if not already set
+# Set APP_URL from PORT if not already set. The MCP endpoint shares the app
+# origin, so MCP_BASE_URL defaults to APP_URL.
 export APP_URL="${APP_URL:-http://localhost:${PORT:-3000}}"
-export MCP_BASE_URL="${MCP_BASE_URL:-http://localhost:${MCP_PORT:-3001}}"
+export MCP_BASE_URL="${MCP_BASE_URL:-$APP_URL}"
 
-echo "Starting TeamMCP..."
-echo "  Admin UI:   port ${PORT:-3000}"
-echo "  MCP Server: port ${MCP_PORT:-3001}"
+echo "Starting TeamRouter..."
+echo "  Server: port ${PORT:-3000} (admin UI + MCP gateway)"
 
 # Sync the database schema before starting (non-fatal: if it fails the app
 # still boots and serves a friendly DB connection error instead of crashing).
@@ -22,12 +22,5 @@ else
   echo "WARNING: DATABASE_URL is not set — skipping schema sync"
 fi
 
-# Start both servers
-exec bun run server.js &
-NEXT_PID=$!
-
-bun run src/server/index.ts &
-MCP_PID=$!
-
-# Wait for either process to exit
-wait -n $NEXT_PID $MCP_PID 2>/dev/null || wait $NEXT_PID $MCP_PID
+# Start the unified server (admin UI + MCP gateway on one port)
+exec bun run server.ts
