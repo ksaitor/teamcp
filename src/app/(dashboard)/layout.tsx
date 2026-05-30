@@ -1,18 +1,28 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import {
+  FiHome,
+  FiLink,
+  FiUsers,
+  FiDatabase,
+  FiCpu,
+  FiFileText,
+  FiCheckSquare,
+  FiSettings,
+} from "react-icons/fi";
 import { auth } from "@/auth";
 import { LogoutButton } from "./logout-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/connection", label: "Connection" },
-  { href: "/members", label: "Members" },
-  { href: "/connectors", label: "Connectors" },
-  { href: "/models", label: "AI Models" },
-  { href: "/logs", label: "Audit Logs" },
-  { href: "/approvals", label: "Approvals" },
-  { href: "/settings", label: "Settings" },
+  { href: "/dashboard", label: "Dashboard", icon: FiHome },
+  { href: "/connection", label: "Connection", icon: FiLink },
+  { href: "/members", label: "Members", icon: FiUsers },
+  { href: "/connectors", label: "Connectors", icon: FiDatabase },
+  { href: "/models", label: "AI Models", icon: FiCpu },
+  { href: "/logs", label: "Audit Logs", icon: FiFileText },
+  { href: "/approvals", label: "Approvals", icon: FiCheckSquare },
+  { href: "/settings", label: "Settings", icon: FiSettings },
 ];
 
 export default async function DashboardLayout({
@@ -35,15 +45,19 @@ export default async function DashboardLayout({
           </Link>
         </div>
         <nav className="mt-4 space-y-1 px-2">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="block rounded-md px-3 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground"
-            >
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground"
+              >
+                <Icon className="h-4 w-4" />
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
         <div className="mt-auto border-t border-border p-4">
           <p className="mb-2 truncate text-xs text-muted-foreground">

@@ -1,6 +1,7 @@
 import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 export default async function ConnectorsPage() {
   const session = await requireAdmin();
@@ -12,6 +13,10 @@ export default async function ConnectorsPage() {
       _count: { select: { memberAccess: true, tools: true } },
     },
   });
+
+  if (connectors.length === 0) {
+    redirect("/connectors/new");
+  }
 
   return (
     <div>

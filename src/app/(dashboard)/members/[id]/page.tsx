@@ -49,14 +49,6 @@ export default async function MemberDetailPage({
         }}
       />
 
-      <div className="mt-6 rounded-md border border-border bg-card p-4">
-        <h2 className="text-sm font-medium text-muted-foreground">MCP Endpoint</h2>
-        <code className="mt-1 block text-sm">{mcpEndpoint}</code>
-        <p className="mt-2 text-xs text-muted-foreground">
-          Member must authenticate to use this endpoint.
-        </p>
-      </div>
-
       <div className="mt-8">
         <h2 className="text-lg font-semibold">Connector Access</h2>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -88,8 +80,16 @@ export default async function MemberDetailPage({
         </div>
       </div>
 
+      <div className="mt-8">
+        <h2 className="text-lg font-semibold">MCP Endpoint</h2>
+        <code className="mt-1 block text-sm">{mcpEndpoint}</code>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Member must authenticate to use this endpoint.
+        </p>
+      </div>
+
       <div className="mt-10 border-t border-border pt-6">
-        <h2 className="text-lg font-semibold">Danger zone</h2>
+        <h2 className="text-lg font-semibold text-destructive">Danger zone</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Suspend cuts off MCP access immediately. Remove deletes the member from this organization.
         </p>

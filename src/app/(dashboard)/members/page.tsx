@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
 import { AddMemberForm } from "./add-member-form";
@@ -14,6 +15,10 @@ export default async function MembersPage() {
       _count: { select: { connectorAccess: true, auditLogs: true } },
     },
   });
+
+  if (memberships.length === 0) {
+    redirect("/members/new");
+  }
 
   const members: MemberRow[] = memberships.map((m) => ({
     id: m.id,
