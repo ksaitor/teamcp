@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/db";
 import { requireSession } from "@/lib/auth";
-import { ChatUI, type InitialMessage, type SampleableMember } from "./chat-ui";
+import { ChatUI, type InitialMessage, type SampleableMember, type SelfMember } from "./chat-ui";
 
 export default async function ChatPage({
   searchParams,
@@ -94,15 +94,27 @@ export default async function ChatPage({
       },
       orderBy: { createdAt: "asc" },
       include: {
-        user: { select: { name: true, email: true } },
+        user: { select: { name: true, email: true, image: true } },
       },
     });
     sampleable = members.map((m) => ({
       id: m.id,
       name: m.user.name || m.user.email,
+      email: m.user.email,
+      image: m.user.image,
       jobTitle: m.jobTitle,
     }));
   }
+
+  const selfUser = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { name: true, email: true, image: true },
+  });
+  const self: SelfMember = {
+    name: selfUser?.name ?? null,
+    email: selfUser?.email ?? "",
+    image: selfUser?.image ?? null,
+  };
 
   return (
     <div className="-m-8 flex h-[calc(100vh-0px)] flex-col">
@@ -112,6 +124,7 @@ export default async function ChatPage({
         initialConversationId={conversation?.id}
         initialMessages={initialMessages}
         sampleableMembers={sampleable}
+        self={self}
       />
     </div>
   );
