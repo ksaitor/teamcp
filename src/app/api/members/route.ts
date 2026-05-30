@@ -12,6 +12,7 @@ const createMemberSchema = z.object({
     .startsWith("data:image/", "Invalid image")
     .max(1_500_000, "Image is too large")
     .optional(),
+  responsibilities: z.string().optional(),
   permissionInstructions: z.string().optional(),
 });
 
@@ -66,6 +67,7 @@ export async function POST(req: NextRequest) {
         role: "MEMBER",
         status: "INVITED",
         jobTitle: data.jobTitle,
+        responsibilities: data.responsibilities,
         permissionInstructions: data.permissionInstructions,
       },
       include: {
