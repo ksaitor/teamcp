@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
-  FiHome,
-  FiLink,
   FiUsers,
   FiDatabase,
   FiCpu,
@@ -13,20 +11,14 @@ import {
 } from "react-icons/fi";
 import { auth } from "@/auth";
 import { prisma } from "@/db";
-import { LogoutButton } from "./logout-button";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: FiHome },
-  { href: "/connection", label: "Connection", icon: FiLink },
-  { href: "/members", label: "Members", icon: FiUsers },
   { href: "/connectors", label: "Connectors", icon: FiDatabase },
-  { href: "/channels", label: "Channels", icon: FiMessageSquare },
-  { href: "/chat", label: "Chat", icon: FiMessageSquare },
   { href: "/models", label: "AI Models", icon: FiCpu },
+  { href: "/members", label: "Members", icon: FiUsers },
+  { href: "/channels", label: "Channels", icon: FiMessageSquare },
   { href: "/logs", label: "Audit Logs", icon: FiFileText },
   { href: "/approvals", label: "Approvals", icon: FiCheckSquare },
-  { href: "/settings", label: "Settings", icon: FiSettings },
 ];
 
 export default async function DashboardLayout({
@@ -40,12 +32,19 @@ export default async function DashboardLayout({
   const user = session.user as any;
   if (!user.activeOrgId || !user.activeMembershipId) redirect("/signup");
 
-  const pendingApprovals = await prisma.approvalRequest.count({
-    where: { organizationId: user.activeOrgId, status: "PENDING" },
+  const [pendingApprovals, auditLogCount] = await Promise.all([
+    prisma.approvalRequest.count({
+      where: { organizationId: user.activeOrgId, status: "PENDING" },
+    }),
+    prisma.auditLog.count({
+      where: { organizationId: user.activeOrgId },
+    }),
+  ]);
+  const visibleNavItems = navItems.filter((item) => {
+    if (item.href === "/approvals") return pendingApprovals > 0;
+    if (item.href === "/logs") return auditLogCount > 0;
+    return true;
   });
-  const visibleNavItems = navItems.filter(
-    (item) => item.href !== "/approvals" || pendingApprovals > 0,
-  );
 
   return (
     <div className="flex min-h-screen">
@@ -70,14 +69,28 @@ export default async function DashboardLayout({
             );
           })}
         </nav>
-        <div className="mt-auto border-t border-border p-4">
-          <p className="mb-2 truncate text-xs text-muted-foreground">
+        <div className="mt-auto px-2 pb-2">
+          <Link
+            href="/chat"
+            title="Internal chat (for testing)"
+            className="flex items-center justify-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <FiMessageSquare className="h-4 w-4" />
+            Chat
+          </Link>
+        </div>
+        <div className="flex items-center gap-2 border-t border-border px-4 py-3">
+          <p className="flex-1 truncate text-xs text-muted-foreground">
             {user.email}
           </p>
-          <div className="flex items-center justify-between">
-            <LogoutButton />
-            <ThemeToggle />
-          </div>
+          <Link
+            href="/settings"
+            aria-label="Settings"
+            title="Settings"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <FiSettings className="h-4 w-4" />
+          </Link>
         </div>
       </aside>
       <main className="flex-1 p-8">{children}</main>
