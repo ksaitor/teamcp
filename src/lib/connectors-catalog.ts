@@ -1,5 +1,5 @@
 import type { IconType } from "react-icons";
-import { FiDatabase, FiServer, FiBarChart2 } from "react-icons/fi";
+import { FiDatabase, FiServer, FiBarChart2, FiGlobe } from "react-icons/fi";
 import { SiMongodb, SiStripe, SiSnowflake } from "react-icons/si";
 
 export type ConnectorType =
@@ -7,6 +7,7 @@ export type ConnectorType =
   | "MONGODB"
   | "STRIPE"
   | "EXTERNAL_MCP"
+  | "WEB_REQUEST"
   | "CUSTOM";
 
 export interface CredentialField {
@@ -66,6 +67,15 @@ export const connectorCatalog: ConnectorCatalogEntry[] = [
       inputType: "password",
       placeholder: "sk_live_...",
     },
+  },
+  {
+    slug: "web-request",
+    type: "WEB_REQUEST",
+    label: "Web Request",
+    description:
+      "Call any HTTP endpoint — REST APIs, internal services, lookups.",
+    icon: FiGlobe,
+    available: true,
   },
   {
     slug: "custom-mcp",

@@ -213,7 +213,10 @@ function createMcpServerForMember(member: AuthenticatedMember) {
       const { connector, toolName } = resolved;
       const connectorId = connector.id;
       const connectorImpl = getConnector(connector.type);
-      const operationType = connectorImpl.getOperationType(toolName);
+      const operationType = connectorImpl.getOperationType(
+        toolName,
+        connector.config as Record<string, any>
+      );
 
       // Layers 1-3: Hard permission checks (before execution)
       const permResult = await checkPermissions({

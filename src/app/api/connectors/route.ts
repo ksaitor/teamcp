@@ -6,7 +6,14 @@ import { encrypt } from "@/lib/crypto";
 
 const createConnectorSchema = z.object({
   name: z.string().min(1),
-  type: z.enum(["POSTGRES", "MONGODB", "STRIPE", "EXTERNAL_MCP", "CUSTOM"]),
+  type: z.enum([
+    "POSTGRES",
+    "MONGODB",
+    "STRIPE",
+    "EXTERNAL_MCP",
+    "WEB_REQUEST",
+    "CUSTOM",
+  ]),
   credentials: z.string().min(1),
   config: z.record(z.string(), z.any()).optional(),
   skipAiFilter: z.boolean().optional(),
