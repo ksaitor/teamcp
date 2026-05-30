@@ -32,6 +32,39 @@ export function ProvidersList({ items }: { items: ProviderItem[] }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [testResult, setTestResult] = useState<Record<string, string>>({});
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editModel, setEditModel] = useState("");
+
+  function startEdit(p: ProviderItem) {
+    setEditingId(p.id);
+    setEditName(p.name);
+    setEditModel(p.defaultModel);
+    setError("");
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditName("");
+    setEditModel("");
+  }
+
+  async function saveEdit(id: string) {
+    setBusyId(id);
+    setError("");
+    const res = await fetch(`/api/models/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: editName, defaultModel: editModel }),
+    });
+    setBusyId(null);
+    if (!res.ok) {
+      setError("Failed to save changes.");
+      return;
+    }
+    cancelEdit();
+    router.refresh();
+  }
 
   async function setDefault(id: string) {
     setBusyId(id);
@@ -92,56 +125,109 @@ export function ProvidersList({ items }: { items: ProviderItem[] }) {
                 <ProviderGlyph logo={entry?.logo} icon={entry?.icon} className="size-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium">{p.name}</span>
-                  {p.isDefault && (
-                    <span className="rounded-full bg-info/10 px-2 py-0.5 text-xs font-medium text-info">
-                      Default
-                    </span>
-                  )}
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusClass[p.status]}`}
-                  >
-                    {p.status}
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {entry?.label ?? p.type} · {p.defaultModel}
-                </p>
-                {testResult[p.id] && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {testResult[p.id]}
-                  </p>
+                {editingId === p.id ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="Name"
+                      className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:border-ring focus:outline-none"
+                    />
+                    <input
+                      value={editModel}
+                      onChange={(e) => setEditModel(e.target.value)}
+                      placeholder="Model"
+                      className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:border-ring focus:outline-none"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {entry?.label ?? p.type}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium">{p.name}</span>
+                      {p.isDefault && (
+                        <span className="rounded-full bg-info/10 px-2 py-0.5 text-xs font-medium text-info">
+                          Default
+                        </span>
+                      )}
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusClass[p.status]}`}
+                      >
+                        {p.status}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {entry?.label ?? p.type} · {p.defaultModel}
+                    </p>
+                    {testResult[p.id] && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {testResult[p.id]}
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
               <div className="flex items-center gap-2">
-                {!p.isDefault && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={busy}
-                    onClick={() => setDefault(p.id)}
-                  >
-                    Set default
-                  </Button>
+                {editingId === p.id ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={busy || !editName.trim() || !editModel.trim()}
+                      onClick={() => saveEdit(p.id)}
+                    >
+                      {busy ? "Saving…" : "Save"}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={busy}
+                      onClick={cancelEdit}
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    {!p.isDefault && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => setDefault(p.id)}
+                      >
+                        Set default
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => startEdit(p)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => test(p.id)}
+                    >
+                      {busy ? "…" : "Test"}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => remove(p.id)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      Delete
+                    </Button>
+                  </>
                 )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={busy}
-                  onClick={() => test(p.id)}
-                >
-                  {busy ? "…" : "Test"}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={busy}
-                  onClick={() => remove(p.id)}
-                  className="text-destructive hover:text-destructive"
-                >
-                  Delete
-                </Button>
               </div>
             </div>
           </Card>
