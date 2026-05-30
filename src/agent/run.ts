@@ -21,6 +21,91 @@ export interface RunAgentTurnInput {
   userMessage: string;
 }
 
+export interface EphemeralTurnMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface RunAgentTurnEphemeralInput {
+  member: AuthenticatedMember;
+  channel: Channel;
+  history: EphemeralTurnMessage[];
+  userMessage: string;
+}
+
+/**
+ * Stateless variant of {@link runAgentTurn}: takes the prior transcript in
+ * memory, runs one user → assistant exchange, and persists nothing. Used by
+ * the admin "sample as member" mode in /chat so that simulated sessions
+ * never touch the conversation/message tables.
+ */
+export async function runAgentTurnEphemeral(
+  input: RunAgentTurnEphemeralInput
+): Promise<AgentTurnResult> {
+  const { member, channel, history, userMessage } = input;
+
+  const llm = await getChannelLlmClient(channel);
+  if (!llm || typeof llm.client.agentTurn !== "function") {
+    throw new Error(
+      "No LLM client supporting tool_use is configured for this organization."
+    );
+  }
+
+  const mcpTools = await buildToolListForMember(member.id, member.organizationId);
+  const tools: LlmTool[] = mcpTools.map((t) => ({
+    name: t.name,
+    description: t.description,
+    inputSchema: (t.inputSchema as Record<string, any>) ?? {
+      type: "object",
+      properties: {},
+    },
+  }));
+
+  const messages: LlmTurnMessage[] = [
+    ...history.map((m) => ({ role: m.role, content: m.content }) as LlmTurnMessage),
+    { role: "user", content: userMessage },
+  ];
+
+  const system = buildSystemPrompt(member);
+  let assistantText = "";
+  let toolCallCount = 0;
+
+  for (let iter = 0; iter < MAX_TOOL_ITERATIONS; iter++) {
+    const response = await llm.client.agentTurn({
+      model: llm.model,
+      system,
+      tools,
+      messages,
+    });
+    assistantText = response.text;
+
+    if (response.toolCalls.length === 0 || response.stopReason !== "tool_use") {
+      messages.push({ role: "assistant", content: response.text });
+      break;
+    }
+
+    messages.push({
+      role: "assistant",
+      content: response.text,
+      toolCalls: response.toolCalls,
+    });
+
+    for (const call of response.toolCalls) {
+      toolCallCount++;
+      const toolResult = await executeToolForMember(call.name, call.input, member);
+      const text = toolResult.content?.[0]?.text ?? "";
+      messages.push({
+        role: "tool",
+        toolCallId: call.id,
+        content: text,
+        isError: toolResult.isError,
+      });
+    }
+  }
+
+  return { assistantText, toolCalls: toolCallCount };
+}
+
 /**
  * Run one user-message → assistant-message exchange on a channel, looping
  * through tool_use cycles. Reuses the existing permission + AI filter +

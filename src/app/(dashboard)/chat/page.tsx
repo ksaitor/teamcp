@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/db";
 import { requireSession } from "@/lib/auth";
-import { ChatUI, type InitialMessage } from "./chat-ui";
+import { ChatUI, type InitialMessage, type SampleableMember } from "./chat-ui";
 
 export default async function ChatPage({
   searchParams,
@@ -82,6 +82,28 @@ export default async function ChatPage({
     }
   }
 
+  // Admins and owners can sample the assistant as any standard member (rank
+  // below them). They cannot sample other admins or owners.
+  let sampleable: SampleableMember[] = [];
+  if (session.role === "OWNER" || session.role === "ADMIN") {
+    const members = await prisma.orgMembership.findMany({
+      where: {
+        organizationId: session.organizationId,
+        role: "MEMBER",
+        status: { in: ["ACTIVE", "INVITED"] },
+      },
+      orderBy: { createdAt: "asc" },
+      include: {
+        user: { select: { name: true, email: true } },
+      },
+    });
+    sampleable = members.map((m) => ({
+      id: m.id,
+      name: m.user.name || m.user.email,
+      jobTitle: m.jobTitle,
+    }));
+  }
+
   return (
     <div className="-m-8 flex h-[calc(100vh-0px)] flex-col">
       <ChatUI
@@ -89,6 +111,7 @@ export default async function ChatPage({
         channelName={active.name}
         initialConversationId={conversation?.id}
         initialMessages={initialMessages}
+        sampleableMembers={sampleable}
       />
     </div>
   );
