@@ -70,6 +70,7 @@ model Organization {
   memberships  OrgMembership[]
   connectors   Connector[]
   llmProviders LlmProvider[]
+  channels     Channel[]
   settings     OrgSettings?
 }
 
@@ -92,10 +93,14 @@ model OrgSettings {
   require2FA                  Boolean @default(false)
 
   // AI settings
-  aiFilterEnabled     Boolean @default(true)
-  aiModel             String  @default("claude-sonnet-4-20250514") // env-fallback model when no LlmProvider is configured
+  aiFilterEnabled      Boolean @default(true)
+  aiModel              String  @default("claude-sonnet-4-20250514") // env-fallback model when no LlmProvider is configured
   defaultLlmProviderId String? // selected LlmProvider used by the AI filter (and chat later)
-  approvalTimeoutSecs Int     @default(300) // 5 minutes
+  approvalTimeoutSecs  Int     @default(300) // 5 minutes
+
+  // Channels: when false, Message rows are still written for audit/turn count
+  // but `content` and `toolCalls` bodies are stored as null.
+  channelPersistMessageBodies Boolean @default(true)
 }
 
 // Replaces both Admin and Member models
@@ -128,11 +133,14 @@ model OrgMembership {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  connectorAccess  MemberConnectorAccess[]
-  toolAccess       MemberToolAccess[]
-  auditLogs        AuditLog[]
-  approvalRequests ApprovalRequest[]
-  mcpTokens        McpToken[]
+  connectorAccess   MemberConnectorAccess[]
+  toolAccess        MemberToolAccess[]
+  auditLogs         AuditLog[]
+  approvalRequests  ApprovalRequest[]
+  mcpTokens         McpToken[]
+  channelIdentities ChannelIdentity[]
+  channelLinkCodes  ChannelLinkCode[]
+  conversations     Conversation[]
 
   @@unique([userId, organizationId])
   @@index([organizationId])
@@ -204,17 +212,17 @@ model OAuthAuthorizationCode {
 }
 
 model Connector {
-  id             String          @id @default(cuid())
-  organizationId String
-  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  name           String
-  type           ConnectorType
-  credentialsEncrypted String    @db.Text
-  config         Json            @default("{}")
-  skipAiFilter   Boolean         @default(false)
-  status         ConnectorStatus @default(ACTIVE)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id                   String          @id @default(cuid())
+  organizationId       String
+  organization         Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name                 String
+  type                 ConnectorType
+  credentialsEncrypted String          @db.Text
+  config               Json            @default("{}")
+  skipAiFilter         Boolean         @default(false)
+  status               ConnectorStatus @default(ACTIVE)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
 
   memberAccess MemberConnectorAccess[]
   tools        ConnectorTool[]
@@ -334,21 +342,21 @@ model MemberToolAccess {
 }
 
 model AuditLog {
-  id           String        @id @default(cuid())
-  membershipId String
-  membership   OrgMembership @relation(fields: [membershipId], references: [id])
+  id             String        @id @default(cuid())
+  membershipId   String
+  membership     OrgMembership @relation(fields: [membershipId], references: [id])
   connectorId    String?
-  connector      Connector?  @relation(fields: [connectorId], references: [id])
+  connector      Connector?    @relation(fields: [connectorId], references: [id])
   organizationId String
 
   toolName        String
   requestParams   Json?
-  responseSummary String?    @db.Text
+  responseSummary String?     @db.Text
   aiDecision      AiDecision?
-  aiReasoning     String?    @db.Text
+  aiReasoning     String?     @db.Text
   scriptResult    Json?
   durationMs      Int?
-  timestamp       DateTime   @default(now())
+  timestamp       DateTime    @default(now())
 
   @@index([organizationId, timestamp])
   @@index([membershipId, timestamp])
@@ -364,9 +372,9 @@ enum AiDecision {
 }
 
 model ApprovalRequest {
-  id           String        @id @default(cuid())
-  membershipId String
-  membership   OrgMembership @relation(fields: [membershipId], references: [id])
+  id             String        @id @default(cuid())
+  membershipId   String
+  membership     OrgMembership @relation(fields: [membershipId], references: [id])
   organizationId String
 
   connectorName  String
@@ -388,4 +396,142 @@ enum ApprovalStatus {
   APPROVED
   DENIED
   EXPIRED
+}
+
+// ─── Channels — multi-surface agentic chat ─────────────────────────
+
+// One configured chat surface for an org: a web chat, a Telegram bot, a
+// WhatsApp bot, a Slack app, etc. The org brings its own bot credentials —
+// nothing is centralized.
+model Channel {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name   String
+  type   ChannelType
+  status ChannelStatus @default(ACTIVE)
+
+  // AES-256-GCM blob; per-channel-type shape (e.g. Telegram bot token,
+  // Slack signing secret + bot token, WhatsApp app secret + access token).
+  // Null only for the WEB channel.
+  credentialsEncrypted String? @db.Text
+
+  // Per-channel-type non-secret config (e.g. Slack team_id, WhatsApp phone_number_id).
+  config Json @default("{}")
+
+  // Random secret we attach to outbound webhook registrations (e.g. Telegram
+  // setWebhook secret_token) and verify on inbound requests.
+  webhookSecret String
+
+  // Optional model override; falls back to OrgSettings.aiModel / env.
+  modelOverride        String?
+  // Optional LlmProvider override per channel.
+  defaultLlmProviderId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  identities    ChannelIdentity[]
+  linkCodes     ChannelLinkCode[]
+  conversations Conversation[]
+
+  @@index([organizationId])
+}
+
+enum ChannelType {
+  WEB
+  TELEGRAM
+  WHATSAPP
+  SLACK
+}
+
+enum ChannelStatus {
+  ACTIVE
+  DISABLED
+  ERROR
+}
+
+// Maps an external identity on a channel (Telegram chat_id, Slack user id,
+// WhatsApp wa_id, or — for WEB — the NextAuth user id) to one OrgMembership.
+// A member can link many identities across many channels.
+model ChannelIdentity {
+  id           String        @id @default(cuid())
+  channelId    String
+  channel      Channel       @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  membershipId String
+  membership   OrgMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  externalId  String
+  displayName String?
+
+  linkedAt DateTime @default(now())
+
+  conversations Conversation[]
+
+  @@unique([channelId, externalId])
+  @@index([membershipId])
+}
+
+// Short-lived hashed one-time code an employee generates in the admin UI and
+// sends to the bot to bind their external identity to their membership.
+model ChannelLinkCode {
+  id           String        @id @default(cuid())
+  channelId    String
+  channel      Channel       @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  membershipId String
+  membership   OrgMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  codeHash   String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([channelId])
+}
+
+// A chat thread on a channel. For WEB this is a UI-side conversation; for bot
+// channels it tracks the external thread (telegram chat_id, slack channel ts).
+model Conversation {
+  id                String          @id @default(cuid())
+  channelId         String
+  channel           Channel         @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  channelIdentityId String
+  channelIdentity   ChannelIdentity @relation(fields: [channelIdentityId], references: [id], onDelete: Cascade)
+  membershipId      String
+  membership        OrgMembership   @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  externalThreadId String?
+  title            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages Message[]
+
+  @@index([channelId, updatedAt])
+  @@index([membershipId, updatedAt])
+}
+
+// One agent-loop event. Privacy mode (`OrgSettings.channelPersistMessageBodies`)
+// keeps the row for audit but nulls out content + toolCalls bodies.
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  role      MessageRole
+  content   String?     @db.Text
+  toolCalls Json?
+  toolName  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  TOOL
 }

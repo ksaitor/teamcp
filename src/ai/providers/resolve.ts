@@ -2,6 +2,7 @@ import { prisma } from "@/db";
 import { getAnthropicClient } from "../client";
 import type { LlmClient } from "./types";
 import { getLlmClient } from "./index";
+import { anthropicAgentTurn } from "./anthropic";
 
 /**
  * Resolve the LLM client an org should use for the AI filter.
@@ -49,6 +50,9 @@ export async function getOrgLlmClient(
         }
         return { text: block.text };
       },
+      async agentTurn(req) {
+        return anthropicAgentTurn(anthropic, req);
+      },
       async testConnection() {
         return true;
       },
@@ -57,4 +61,38 @@ export async function getOrgLlmClient(
   }
 
   return null;
+}
+
+/**
+ * Resolve the LLM client for an agent-loop turn on a specific channel.
+ * Prefers the channel's overrides, then falls back to the org-wide client.
+ */
+export async function getChannelLlmClient(channel: {
+  organizationId: string;
+  modelOverride: string | null;
+  defaultLlmProviderId: string | null;
+}): Promise<{ client: LlmClient; model: string } | null> {
+  if (channel.defaultLlmProviderId) {
+    const provider = await prisma.llmProvider.findFirst({
+      where: {
+        id: channel.defaultLlmProviderId,
+        organizationId: channel.organizationId,
+        status: "ACTIVE",
+      },
+    });
+    if (provider) {
+      return {
+        client: getLlmClient(provider),
+        model: channel.modelOverride || provider.defaultModel,
+      };
+    }
+  }
+
+  const orgClient = await getOrgLlmClient(channel.organizationId);
+  if (!orgClient) return null;
+
+  return {
+    client: orgClient.client,
+    model: channel.modelOverride || orgClient.model,
+  };
 }
