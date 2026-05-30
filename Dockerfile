@@ -20,6 +20,11 @@ RUN bun run build
 FROM oven/bun:1-slim AS production
 WORKDIR /app
 
+# Prisma's query engine needs OpenSSL 3 at runtime; bun:1-slim omits it.
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # The custom server (server.ts) doesn't use Next's standalone output, so ship
 # the full build plus everything the server needs at runtime.
 COPY --from=base /app/.next ./.next
