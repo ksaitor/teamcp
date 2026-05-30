@@ -5,6 +5,7 @@ import type {
   LlmClient,
   LlmCompletionRequest,
   LlmCompletionResponse,
+  LlmStreamEvent,
   LlmToolCall,
   LlmTurnMessage,
 } from "./types";
@@ -45,6 +46,13 @@ export class AnthropicClient implements LlmClient {
 
   async agentTurn(req: LlmAgentRequest): Promise<LlmAgentResponse> {
     return anthropicAgentTurn(this.client, req);
+  }
+
+  async agentTurnStream(
+    req: LlmAgentRequest,
+    onEvent: (e: LlmStreamEvent) => void
+  ): Promise<LlmAgentResponse> {
+    return anthropicAgentTurnStream(this.client, req, onEvent);
   }
 
   async testConnection(): Promise<boolean> {
@@ -89,6 +97,84 @@ export async function anthropicAgentTurn(
   }
 
   const stopReason = mapStopReason(response.stop_reason);
+  return { text, toolCalls, stopReason };
+}
+
+export async function anthropicAgentTurnStream(
+  client: Anthropic,
+  req: LlmAgentRequest,
+  onEvent: (e: LlmStreamEvent) => void
+): Promise<LlmAgentResponse> {
+  const stream = await client.messages.create({
+    model: req.model,
+    max_tokens: req.maxTokens ?? 4096,
+    ...(req.system ? { system: req.system } : {}),
+    tools: req.tools.map((t) => ({
+      name: t.name,
+      ...(t.description ? { description: t.description } : {}),
+      input_schema: (t.inputSchema as any) ?? { type: "object", properties: {} },
+    })),
+    messages: toAnthropicMessages(req.messages),
+    stream: true,
+  });
+
+  let text = "";
+  let stopReason: LlmAgentResponse["stopReason"] = "other";
+  type PartialBlock =
+    | { kind: "text"; text: string }
+    | { kind: "tool_use"; id: string; name: string; jsonBuf: string };
+  const blocks: PartialBlock[] = [];
+
+  for await (const event of stream) {
+    if (event.type === "content_block_start") {
+      const block: any = (event as any).content_block;
+      if (block?.type === "text") {
+        blocks[event.index] = { kind: "text", text: block.text ?? "" };
+        if (block.text) {
+          text += block.text;
+          onEvent({ type: "text", delta: block.text });
+        }
+      } else if (block?.type === "tool_use") {
+        blocks[event.index] = {
+          kind: "tool_use",
+          id: block.id,
+          name: block.name,
+          jsonBuf: "",
+        };
+      }
+    } else if (event.type === "content_block_delta") {
+      const delta: any = (event as any).delta;
+      const slot = blocks[event.index];
+      if (delta?.type === "text_delta" && slot?.kind === "text") {
+        slot.text += delta.text;
+        text += delta.text;
+        onEvent({ type: "text", delta: delta.text });
+      } else if (delta?.type === "input_json_delta" && slot?.kind === "tool_use") {
+        slot.jsonBuf += delta.partial_json ?? "";
+      }
+    } else if (event.type === "message_delta") {
+      const reason = (event as any).delta?.stop_reason as string | null;
+      if (reason) stopReason = mapStopReason(reason);
+    }
+  }
+
+  const toolCalls: LlmToolCall[] = [];
+  for (const b of blocks) {
+    if (b?.kind === "tool_use") {
+      let input: Record<string, any> = {};
+      if (b.jsonBuf.length > 0) {
+        try {
+          input = JSON.parse(b.jsonBuf);
+        } catch {
+          input = { _raw: b.jsonBuf };
+        }
+      }
+      const tc: LlmToolCall = { id: b.id, name: b.name, input };
+      toolCalls.push(tc);
+      onEvent({ type: "tool_start", toolCall: tc });
+    }
+  }
+
   return { text, toolCalls, stopReason };
 }
 

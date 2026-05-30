@@ -118,9 +118,25 @@ export function ChatUI({
       .filter((m) => m.role === "user" || m.role === "assistant")
       .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
-    setMessages((m) => [...m, { role: "user", content: text }]);
+    setMessages((m) => [
+      ...m,
+      { role: "user", content: text },
+      { role: "assistant", content: "", toolCalls: 0 },
+    ]);
     setInput("");
     setLoading(true);
+
+    const updateAssistant = (mut: (msg: ChatMessage) => ChatMessage) =>
+      setMessages((m) => {
+        const out = [...m];
+        for (let i = out.length - 1; i >= 0; i--) {
+          if (out[i].role === "assistant") {
+            out[i] = mut(out[i]);
+            break;
+          }
+        }
+        return out;
+      });
 
     try {
       const res = sampling
@@ -140,23 +156,73 @@ export function ChatUI({
             body: JSON.stringify({ text, conversationId }),
           });
 
-      if (!res.ok) {
+      if (!res.ok || !res.body) {
         const data = await res.json().catch(() => ({}));
         const msg = typeof data.error === "string" ? data.error : "Request failed";
-        setMessages((m) => [...m, { role: "error", content: msg }]);
+        setMessages((m) => {
+          const out = m.filter(
+            (x, i) => !(x.role === "assistant" && x.content === "" && i === m.length - 1)
+          );
+          return [...out, { role: "error", content: msg }];
+        });
         return;
       }
 
-      const data = await res.json();
-      if (data.conversationId) setConversationId(data.conversationId);
-      setMessages((m) => [
-        ...m,
-        {
-          role: "assistant",
-          content: data.assistantText || "(no response)",
-          toolCalls: data.toolCalls,
-        },
-      ]);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let toolCount = 0;
+      let gotConversationId: string | undefined;
+      let gotAssistant = "";
+      let gotError: string | undefined;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let idx: number;
+        while ((idx = buffer.indexOf("\n")) >= 0) {
+          const line = buffer.slice(0, idx).trim();
+          buffer = buffer.slice(idx + 1);
+          if (!line) continue;
+          let event: any;
+          try {
+            event = JSON.parse(line);
+          } catch {
+            continue;
+          }
+          if (event.type === "text") {
+            gotAssistant += event.delta;
+            updateAssistant((msg) => ({
+              ...msg,
+              content: msg.content + event.delta,
+            }));
+          } else if (event.type === "tool_start") {
+            toolCount++;
+            updateAssistant((msg) => ({
+              ...msg,
+              toolCalls: (msg.toolCalls ?? 0) + 1,
+            }));
+          } else if (event.type === "done") {
+            if (event.conversationId) gotConversationId = event.conversationId;
+            if (event.assistantText && !gotAssistant) {
+              updateAssistant((msg) => ({ ...msg, content: event.assistantText }));
+            }
+          } else if (event.type === "error") {
+            gotError = event.error;
+          }
+        }
+      }
+
+      if (gotConversationId) setConversationId(gotConversationId);
+      if (gotError) {
+        setMessages((m) => [...m, { role: "error", content: gotError! }]);
+      } else if (!gotAssistant) {
+        updateAssistant((msg) => ({ ...msg, content: "(no response)" }));
+      }
+      // toolCount already reflected in bubble via updateAssistant
+      void toolCount;
     } catch (err: any) {
       setMessages((m) => [
         ...m,
@@ -216,11 +282,17 @@ export function ChatUI({
           ) : (
             <div className="space-y-6">
               {messages.map((m, i) => (
-                <Bubble key={i} message={m} />
+                <Bubble
+                  key={i}
+                  message={m}
+                  pending={
+                    loading &&
+                    i === messages.length - 1 &&
+                    m.role === "assistant" &&
+                    m.content === ""
+                  }
+                />
               ))}
-              {loading && (
-                <div className="text-sm text-muted-foreground">Thinking…</div>
-              )}
             </div>
           )}
         </div>
@@ -491,7 +563,13 @@ function ToolbarButton({
   );
 }
 
-function Bubble({ message }: { message: ChatMessage }) {
+function Bubble({
+  message,
+  pending,
+}: {
+  message: ChatMessage;
+  pending?: boolean;
+}) {
   if (message.role === "user") {
     return (
       <div className="flex justify-end">
@@ -505,6 +583,18 @@ function Bubble({ message }: { message: ChatMessage }) {
     return (
       <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
         {message.content}
+      </div>
+    );
+  }
+  if (pending) {
+    return (
+      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+        <span className="animate-pulse">Thinking</span>
+        <span className="inline-flex gap-0.5">
+          <span className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]" />
+          <span className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.15s]" />
+          <span className="h-1 w-1 animate-bounce rounded-full bg-muted-foreground" />
+        </span>
       </div>
     );
   }

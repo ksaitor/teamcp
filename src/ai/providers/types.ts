@@ -47,10 +47,20 @@ export interface LlmAgentResponse {
   stopReason: "end_turn" | "tool_use" | "max_tokens" | "other";
 }
 
+export type LlmStreamEvent =
+  | { type: "text"; delta: string }
+  | { type: "tool_start"; toolCall: LlmToolCall };
+
 export interface LlmClient {
   complete(req: LlmCompletionRequest): Promise<LlmCompletionResponse>;
   testConnection(): Promise<boolean>;
   // Optional: agent-loop turn with tools. Implemented by providers that support
   // native tool calling (Anthropic today); others throw.
   agentTurn?(req: LlmAgentRequest): Promise<LlmAgentResponse>;
+  // Optional: streaming variant — invokes onEvent for each text delta and
+  // tool-call start, then resolves with the assembled response.
+  agentTurnStream?(
+    req: LlmAgentRequest,
+    onEvent: (e: LlmStreamEvent) => void
+  ): Promise<LlmAgentResponse>;
 }

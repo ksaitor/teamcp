@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
-import { runAgentTurnEphemeral } from "@/agent/run";
+import { runAgentTurnEphemeralStream, type AgentEvent } from "@/agent/run";
 import type { AuthenticatedMember } from "@/server/auth";
 
 const sampleSchema = z.object({
@@ -21,76 +21,119 @@ const sampleSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  let session;
+  let parsed;
   try {
-    const session = await requireAdmin();
+    session = await requireAdmin();
     const body = await req.json();
-    const { channelId, actAsMembershipId, text, history } = sampleSchema.parse(body);
-
-    const channel = await prisma.channel.findFirst({
-      where: {
-        id: channelId,
-        organizationId: session.organizationId,
-        type: "WEB",
-        status: "ACTIVE",
-      },
-    });
-    if (!channel) {
-      return NextResponse.json({ error: "Web channel not found" }, { status: 404 });
-    }
-
-    const target = await prisma.orgMembership.findFirst({
-      where: {
-        id: actAsMembershipId,
-        organizationId: session.organizationId,
-      },
-      include: {
-        user: { select: { name: true, email: true } },
-        organization: { select: { slug: true } },
-      },
-    });
-    if (!target) {
-      return NextResponse.json({ error: "Member not found" }, { status: 404 });
-    }
-    // No one can sample owners or admins — only rank-below members.
-    if (target.role !== "MEMBER") {
-      return NextResponse.json(
-        { error: "Only standard members can be sampled" },
-        { status: 403 }
-      );
-    }
-
-    const member: AuthenticatedMember = {
-      id: target.id,
-      userId: target.userId,
-      name: target.user.name || "",
-      email: target.user.email,
-      organizationId: target.organizationId,
-      orgSlug: target.organization.slug,
-      status: target.status,
-      suspendedAt: target.suspendedAt,
-      permissionInstructions: target.permissionInstructions,
-      responsibilities: target.responsibilities,
-      jobTitle: target.jobTitle,
-    };
-
-    const result = await runAgentTurnEphemeral({
-      member,
-      channel,
-      history,
-      userMessage: text,
-    });
-
-    return NextResponse.json({
-      assistantText: result.assistantText,
-      toolCalls: result.toolCalls,
-    });
+    parsed = sampleSchema.parse(body);
   } catch (error: any) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues }, { status: 400 });
-    }
-    return NextResponse.json(
-      { error: error.message },
-      { status: error.statusCode || 500 }
+    const message =
+      error instanceof z.ZodError ? "Invalid request" : error.message;
+    return new Response(JSON.stringify({ error: message }), {
+      status: error?.statusCode || 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const { channelId, actAsMembershipId, text, history } = parsed;
+
+  const channel = await prisma.channel.findFirst({
+    where: {
+      id: channelId,
+      organizationId: session.organizationId,
+      type: "WEB",
+      status: "ACTIVE",
+    },
+  });
+  if (!channel) {
+    return new Response(JSON.stringify({ error: "Web channel not found" }), {
+      status: 404,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const target = await prisma.orgMembership.findFirst({
+    where: {
+      id: actAsMembershipId,
+      organizationId: session.organizationId,
+    },
+    include: {
+      user: { select: { name: true, email: true } },
+      organization: { select: { slug: true } },
+    },
+  });
+  if (!target) {
+    return new Response(JSON.stringify({ error: "Member not found" }), {
+      status: 404,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  if (target.role !== "MEMBER") {
+    return new Response(
+      JSON.stringify({ error: "Only standard members can be sampled" }),
+      { status: 403, headers: { "Content-Type": "application/json" } }
     );
   }
+
+  const member: AuthenticatedMember = {
+    id: target.id,
+    userId: target.userId,
+    name: target.user.name || "",
+    email: target.user.email,
+    organizationId: target.organizationId,
+    orgSlug: target.organization.slug,
+    status: target.status,
+    suspendedAt: target.suspendedAt,
+    permissionInstructions: target.permissionInstructions,
+    responsibilities: target.responsibilities,
+    jobTitle: target.jobTitle,
+  };
+
+  return streamAgentTurn((onEvent) =>
+    runAgentTurnEphemeralStream(
+      { member, channel, history, userMessage: text },
+      onEvent
+    )
+  );
+}
+
+function streamAgentTurn(
+  run: (
+    onEvent: (e: AgentEvent) => void
+  ) => Promise<{ assistantText: string; toolCalls: number; conversationId?: string }>
+) {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (e: AgentEvent) => {
+        controller.enqueue(encoder.encode(JSON.stringify(e) + "\n"));
+      };
+      try {
+        const result = await run(send);
+        send({
+          type: "done",
+          assistantText: result.assistantText,
+          toolCalls: result.toolCalls,
+          conversationId: result.conversationId,
+        });
+      } catch (err: any) {
+        controller.enqueue(
+          encoder.encode(
+            JSON.stringify({ type: "error", error: err?.message || "Run failed" }) + "\n"
+          )
+        );
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "application/x-ndjson; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      "X-Accel-Buffering": "no",
+    },
+  });
 }

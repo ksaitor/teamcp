@@ -2,7 +2,7 @@ import { prisma } from "@/db";
 import { getAnthropicClient } from "../client";
 import type { LlmClient } from "./types";
 import { getLlmClient } from "./index";
-import { anthropicAgentTurn } from "./anthropic";
+import { anthropicAgentTurn, anthropicAgentTurnStream } from "./anthropic";
 
 /**
  * Resolve the LLM client an org should use for the AI filter.
@@ -52,6 +52,9 @@ export async function getOrgLlmClient(
       },
       async agentTurn(req) {
         return anthropicAgentTurn(anthropic, req);
+      },
+      async agentTurnStream(req, onEvent) {
+        return anthropicAgentTurnStream(anthropic, req, onEvent);
       },
       async testConnection() {
         return true;
