@@ -11,6 +11,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "mcp:dev": "bun run src/server/index.ts",
+    "mcp:inspect": "bunx @modelcontextprotocol/inspector",
     "dev:unified": "bun run server.ts"
   },
   "dependencies": {
