@@ -1,12 +1,6 @@
-import {
-  Database,
-  Leaf,
-  CreditCard,
-  Server,
-  BarChart3,
-  Snowflake,
-  type LucideIcon,
-} from "lucide-react";
+import type { IconType } from "react-icons";
+import { FiDatabase, FiServer, FiBarChart2 } from "react-icons/fi";
+import { SiMongodb, SiStripe, SiSnowflake } from "react-icons/si";
 
 export type ConnectorType =
   | "POSTGRES"
@@ -28,7 +22,7 @@ export interface ConnectorCatalogEntry {
   type: ConnectorType;
   label: string;
   description: string;
-  icon: LucideIcon;
+  icon: IconType;
   available: boolean;
   credentialField?: CredentialField;
 }
@@ -39,7 +33,7 @@ export const connectorCatalog: ConnectorCatalogEntry[] = [
     type: "POSTGRES",
     label: "PostgreSQL",
     description: "Connect a PostgreSQL database via connection string.",
-    icon: Database,
+    icon: FiDatabase,
     available: true,
     credentialField: {
       label: "Connection string",
@@ -52,7 +46,7 @@ export const connectorCatalog: ConnectorCatalogEntry[] = [
     type: "MONGODB",
     label: "MongoDB",
     description: "Connect a MongoDB database via connection string.",
-    icon: Leaf,
+    icon: SiMongodb,
     available: true,
     credentialField: {
       label: "Connection string",
@@ -65,7 +59,7 @@ export const connectorCatalog: ConnectorCatalogEntry[] = [
     type: "STRIPE",
     label: "Stripe",
     description: "Read payments, customers, and subscriptions from Stripe.",
-    icon: CreditCard,
+    icon: SiStripe,
     available: true,
     credentialField: {
       label: "API key",
@@ -78,7 +72,7 @@ export const connectorCatalog: ConnectorCatalogEntry[] = [
     type: "EXTERNAL_MCP",
     label: "Custom MCP Server",
     description: "Connect any external MCP server by URL.",
-    icon: Server,
+    icon: FiServer,
     available: true,
     credentialField: {
       label: "Server URL",
@@ -92,7 +86,7 @@ export const connectorCatalog: ConnectorCatalogEntry[] = [
     type: "CUSTOM",
     label: "Google Analytics",
     description: "Query traffic and conversion data from GA4.",
-    icon: BarChart3,
+    icon: FiBarChart2,
     available: false,
   },
   {
@@ -100,7 +94,7 @@ export const connectorCatalog: ConnectorCatalogEntry[] = [
     type: "CUSTOM",
     label: "MySQL",
     description: "Connect a MySQL database via connection string.",
-    icon: Database,
+    icon: FiDatabase,
     available: false,
   },
   {
@@ -108,7 +102,7 @@ export const connectorCatalog: ConnectorCatalogEntry[] = [
     type: "CUSTOM",
     label: "Snowflake",
     description: "Run queries against your Snowflake warehouse.",
-    icon: Snowflake,
+    icon: SiSnowflake,
     available: false,
   },
 ];

@@ -16,6 +16,7 @@ export default function SignupForm({ providers }: { providers: OAuthProviders })
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const [session, setSession] = useState<any>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
@@ -144,13 +145,14 @@ export default function SignupForm({ providers }: { providers: OAuthProviders })
     });
 
     const data = await res.json();
-    setLoading(false);
 
     if (!res.ok) {
+      setLoading(false);
       setError(typeof data.error === "string" ? data.error : "Signup failed");
       return;
     }
 
+    setRedirecting(true);
     router.push("/dashboard");
   }
 
@@ -374,10 +376,14 @@ export default function SignupForm({ providers }: { providers: OAuthProviders })
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || redirecting}
             className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
-            {loading ? "Creating..." : "Create organization"}
+            {redirecting
+              ? "Redirecting…"
+              : loading
+                ? "Creating…"
+                : "Create organization"}
           </button>
         </form>
 

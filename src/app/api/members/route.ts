@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(membership, { status: 201 });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return NextResponse.json({ error: error.issues }, { status: 400 });
     }
     if (error.code === "P2002") {
       return NextResponse.json(

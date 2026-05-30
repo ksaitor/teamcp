@@ -24,6 +24,7 @@ export default async function DashboardLayout({
   if (!session?.user) redirect("/login");
 
   const user = session.user as any;
+  if (!user.activeOrgId || !user.activeMembershipId) redirect("/signup");
 
   return (
     <div className="flex min-h-screen">
