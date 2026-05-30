@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
 import { ProvidersList } from "./providers-list";
@@ -16,6 +17,10 @@ export default async function LlmProvidersPage() {
       select: { defaultLlmProviderId: true },
     }),
   ]);
+
+  if (providers.length === 0) {
+    redirect("/models/new");
+  }
 
   const items = providers.map((p) => ({
     id: p.id,
