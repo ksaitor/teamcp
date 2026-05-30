@@ -1,6 +1,8 @@
 export function buildFilterPrompt(params: {
   memberName: string;
   memberEmail: string;
+  memberJobTitle?: string;
+  memberResponsibilities?: string;
   memberPermissions: string;
   connectorName: string;
   connectorType: string;
@@ -12,7 +14,10 @@ export function buildFilterPrompt(params: {
 }): string {
   return `You are a data access filter for an organization. Your job is to evaluate whether data or actions should be permitted for a specific team member based on their permission rules.
 
-MEMBER: ${params.memberName} (${params.memberEmail})
+MEMBER: ${params.memberName} (${params.memberEmail})${params.memberJobTitle ? `\nJOB TITLE: ${params.memberJobTitle}` : ""}
+MEMBER ROLE & RESPONSIBILITIES:
+${params.memberResponsibilities || "Not specified."}
+
 MEMBER PERMISSION RULES:
 ${params.memberPermissions || "No specific rules set."}
 

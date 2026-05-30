@@ -116,6 +116,11 @@ model OrgMembership {
   // The team member's job title within the organization (e.g. "Marketing Manager").
   jobTitle String?
 
+  // Admin-only description of role, responsibilities, job duties. Fed to the AI
+  // filter as context so the LLM knows what the member is supposed to do.
+  // Never shown to the member themselves.
+  responsibilities String? @db.Text
+
   // Global natural-language permission instructions (only for MEMBER role)
   permissionInstructions String? @db.Text
 

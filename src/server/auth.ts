@@ -10,6 +10,8 @@ export interface AuthenticatedMember {
   status: string;
   suspendedAt: Date | null;
   permissionInstructions: string | null;
+  responsibilities: string | null;
+  jobTitle: string | null;
 }
 
 /**
@@ -54,5 +56,7 @@ export async function authenticateMcpToken(
     status: membership.status,
     suspendedAt: membership.suspendedAt,
     permissionInstructions: membership.permissionInstructions,
+    responsibilities: membership.responsibilities,
+    jobTitle: membership.jobTitle,
   };
 }
