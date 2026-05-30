@@ -209,13 +209,6 @@ export function MemberEditForm({ membershipId, initial, sessionRole, isSelf }: P
         />
       </div>
 
-      {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
-      )}
-      {success && !error && (
-        <div className="rounded-md bg-success/10 p-3 text-sm text-success">{success}</div>
-      )}
-
       {confirmingTransfer && (
         <div className="rounded-md border border-warning/40 bg-warning/10 p-4">
           <h3 className="text-sm font-semibold text-warning">Transfer ownership?</h3>
@@ -244,7 +237,7 @@ export function MemberEditForm({ membershipId, initial, sessionRole, isSelf }: P
         </div>
       )}
 
-      <div>
+      <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={loading || confirmingTransfer}
@@ -252,6 +245,8 @@ export function MemberEditForm({ membershipId, initial, sessionRole, isSelf }: P
         >
           {loading ? "Saving…" : "Save"}
         </button>
+        {error && <span className="text-sm text-destructive">{error}</span>}
+        {success && !error && <span className="text-sm text-success">{success}</span>}
       </div>
     </form>
   );

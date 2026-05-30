@@ -54,6 +54,9 @@ export function AddMemberForm({ mode = "toggle" }: { mode?: "toggle" | "standalo
         email: formData.get("email"),
         name: formData.get("name"),
         jobTitle: formData.get("jobTitle"),
+        responsibilities: (formData.get("responsibilities") as string)?.trim() || undefined,
+        permissionInstructions:
+          (formData.get("permissionInstructions") as string)?.trim() || undefined,
         image,
       }),
     });
@@ -149,6 +152,41 @@ export function AddMemberForm({ mode = "toggle" }: { mode?: "toggle" | "standalo
           required
           placeholder="e.g. Marketing Manager"
           className="mt-1 w-full rounded-md border border-input px-3 py-1.5 text-sm focus:border-ring focus:outline-none"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-muted-foreground">
+          Responsibilities <span className="text-muted-foreground">(optional)</span>
+        </label>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Visible only to admins. Used as AI context so the assistant knows this member&apos;s role,
+          job description, and what they&apos;re responsible for.
+        </p>
+        <textarea
+          name="responsibilities"
+          rows={4}
+          placeholder={
+            "e.g. Marketing Manager. Owns the company blog and email campaigns. " +
+            "Responsible for SEO, content calendar, and tracking acquisition metrics. " +
+            "Does not handle billing, payroll, or product roadmap."
+          }
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-ring focus:outline-none"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-muted-foreground">
+          Permission Instructions <span className="text-muted-foreground">(optional)</span>
+        </label>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Natural language instructions for AI filtering (applies to all connectors).
+        </p>
+        <textarea
+          name="permissionInstructions"
+          rows={3}
+          placeholder="e.g., Marketing team member. No access to financial data, API keys, or employee salaries."
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-ring focus:outline-none"
         />
       </div>
 
