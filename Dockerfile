@@ -8,6 +8,7 @@ RUN bun install --frozen-lockfile
 
 # Generate Prisma client
 COPY prisma ./prisma
+COPY prisma.config.ts ./prisma.config.ts
 RUN bunx prisma generate
 
 # Copy app source
@@ -30,6 +31,7 @@ RUN apt-get update -y \
 COPY --from=base /app/.next ./.next
 COPY --from=base /app/public ./public
 COPY --from=base /app/prisma ./prisma
+COPY --from=base /app/prisma.config.ts ./prisma.config.ts
 COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/src ./src
 COPY --from=base /app/next.config.ts ./next.config.ts
