@@ -1,7 +1,7 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
-import { AddMemberForm } from "./add-member-form";
 import { MembersTable, type MemberRow } from "./members-table";
 
 export default async function MembersPage() {
@@ -34,7 +34,12 @@ export default async function MembersPage() {
     <div>
       <div className="flex flex-wrap items-center gap-4">
         <h1 className="text-2xl font-bold">Members</h1>
-        <AddMemberForm />
+        <Link
+          href="/members/new"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          Add member
+        </Link>
       </div>
 
       <MembersTable members={members} />
