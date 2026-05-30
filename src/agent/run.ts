@@ -3,7 +3,17 @@ import { getChannelLlmClient } from "@/ai/providers/resolve";
 import { buildToolListForMember } from "@/server/tool-builder";
 import { executeToolForMember } from "@/server/execute";
 import type { AuthenticatedMember } from "@/server/auth";
-import type { LlmTool, LlmTurnMessage } from "@/ai/providers/types";
+import type {
+  LlmAgentResponse,
+  LlmTool,
+  LlmTurnMessage,
+} from "@/ai/providers/types";
+
+export type AgentEvent =
+  | { type: "text"; delta: string }
+  | { type: "tool_start"; name: string; id: string }
+  | { type: "tool_end"; name: string; id: string; isError: boolean }
+  | { type: "done"; assistantText: string; toolCalls: number; conversationId?: string };
 import type { Channel, Conversation } from "@prisma/client";
 
 const MAX_TOOL_ITERATIONS = 8;
@@ -211,6 +221,220 @@ export async function runAgentTurn(
   });
 
   return { assistantText, toolCalls: toolCallCount };
+}
+
+/** Streaming variant of {@link runAgentTurnEphemeral}. */
+export async function runAgentTurnEphemeralStream(
+  input: RunAgentTurnEphemeralInput,
+  onEvent: (e: AgentEvent) => void
+): Promise<AgentTurnResult> {
+  const { member, channel, history, userMessage } = input;
+
+  const llm = await getChannelLlmClient(channel);
+  if (!llm || typeof llm.client.agentTurn !== "function") {
+    throw new Error(
+      "No LLM client supporting tool_use is configured for this organization."
+    );
+  }
+
+  const mcpTools = await buildToolListForMember(member.id, member.organizationId);
+  const tools: LlmTool[] = mcpTools.map((t) => ({
+    name: t.name,
+    description: t.description,
+    inputSchema: (t.inputSchema as Record<string, any>) ?? {
+      type: "object",
+      properties: {},
+    },
+  }));
+
+  const messages: LlmTurnMessage[] = [
+    ...history.map((m) => ({ role: m.role, content: m.content }) as LlmTurnMessage),
+    { role: "user", content: userMessage },
+  ];
+
+  const system = buildSystemPrompt(member);
+  let assistantText = "";
+  let toolCallCount = 0;
+
+  for (let iter = 0; iter < MAX_TOOL_ITERATIONS; iter++) {
+    const response = await runOneTurnWithStream(llm.client, {
+      model: llm.model,
+      system,
+      tools,
+      messages,
+    }, onEvent);
+    assistantText = response.text;
+
+    if (response.toolCalls.length === 0 || response.stopReason !== "tool_use") {
+      messages.push({ role: "assistant", content: response.text });
+      break;
+    }
+
+    messages.push({
+      role: "assistant",
+      content: response.text,
+      toolCalls: response.toolCalls,
+    });
+
+    for (const call of response.toolCalls) {
+      toolCallCount++;
+      const toolResult = await executeToolForMember(call.name, call.input, member);
+      const text = toolResult.content?.[0]?.text ?? "";
+      messages.push({
+        role: "tool",
+        toolCallId: call.id,
+        content: text,
+        isError: toolResult.isError,
+      });
+      onEvent({
+        type: "tool_end",
+        name: call.name,
+        id: call.id,
+        isError: !!toolResult.isError,
+      });
+    }
+  }
+
+  return { assistantText, toolCalls: toolCallCount };
+}
+
+/** Streaming variant of {@link runAgentTurn}. */
+export async function runAgentTurnStream(
+  input: RunAgentTurnInput,
+  onEvent: (e: AgentEvent) => void
+): Promise<AgentTurnResult> {
+  const { member, channel, conversation, userMessage } = input;
+
+  const llm = await getChannelLlmClient(channel);
+  if (!llm || typeof llm.client.agentTurn !== "function") {
+    throw new Error(
+      "No LLM client supporting tool_use is configured for this organization."
+    );
+  }
+
+  const settings = await prisma.orgSettings.findUnique({
+    where: { organizationId: member.organizationId },
+  });
+  const persistBodies = settings?.channelPersistMessageBodies !== false;
+
+  const mcpTools = await buildToolListForMember(member.id, member.organizationId);
+  const tools: LlmTool[] = mcpTools.map((t) => ({
+    name: t.name,
+    description: t.description,
+    inputSchema: (t.inputSchema as Record<string, any>) ?? {
+      type: "object",
+      properties: {},
+    },
+  }));
+
+  const history = await loadHistory(conversation.id);
+  const messages: LlmTurnMessage[] = [
+    ...history,
+    { role: "user", content: userMessage },
+  ];
+
+  await persistMessage(conversation.id, {
+    role: "USER",
+    content: persistBodies ? userMessage : null,
+  });
+
+  const system = buildSystemPrompt(member);
+  let assistantText = "";
+  let toolCallCount = 0;
+
+  for (let iter = 0; iter < MAX_TOOL_ITERATIONS; iter++) {
+    const response = await runOneTurnWithStream(llm.client, {
+      model: llm.model,
+      system,
+      tools,
+      messages,
+    }, onEvent);
+    assistantText = response.text;
+
+    await persistMessage(conversation.id, {
+      role: "ASSISTANT",
+      content: persistBodies ? response.text : null,
+      toolCalls:
+        response.toolCalls.length > 0
+          ? (persistBodies ? response.toolCalls : response.toolCalls.map((c) => ({ id: c.id, name: c.name })))
+          : null,
+    });
+
+    if (response.toolCalls.length === 0 || response.stopReason !== "tool_use") {
+      messages.push({ role: "assistant", content: response.text });
+      break;
+    }
+
+    messages.push({
+      role: "assistant",
+      content: response.text,
+      toolCalls: response.toolCalls,
+    });
+
+    for (const call of response.toolCalls) {
+      toolCallCount++;
+      const toolResult = await executeToolForMember(call.name, call.input, member);
+      const text = toolResult.content?.[0]?.text ?? "";
+
+      messages.push({
+        role: "tool",
+        toolCallId: call.id,
+        content: text,
+        isError: toolResult.isError,
+      });
+
+      await persistMessage(conversation.id, {
+        role: "TOOL",
+        content: persistBodies ? text : null,
+        toolName: call.name,
+      });
+
+      onEvent({
+        type: "tool_end",
+        name: call.name,
+        id: call.id,
+        isError: !!toolResult.isError,
+      });
+    }
+  }
+
+  await prisma.conversation.update({
+    where: { id: conversation.id },
+    data: { updatedAt: new Date() },
+  });
+
+  return { assistantText, toolCalls: toolCallCount };
+}
+
+async function runOneTurnWithStream(
+  client: { agentTurn?: Function; agentTurnStream?: Function },
+  req: {
+    model: string;
+    system: string;
+    tools: LlmTool[];
+    messages: LlmTurnMessage[];
+  },
+  onEvent: (e: AgentEvent) => void
+): Promise<LlmAgentResponse> {
+  if (typeof client.agentTurnStream === "function") {
+    return (client as any).agentTurnStream(req, (e: any) => {
+      if (e.type === "text") onEvent({ type: "text", delta: e.delta });
+      else if (e.type === "tool_start") {
+        onEvent({
+          type: "tool_start",
+          name: e.toolCall.name,
+          id: e.toolCall.id,
+        });
+      }
+    });
+  }
+  // Fall back to non-streaming, then emit one text chunk + tool_start events.
+  const resp = await (client as any).agentTurn(req);
+  if (resp.text) onEvent({ type: "text", delta: resp.text });
+  for (const tc of resp.toolCalls ?? []) {
+    onEvent({ type: "tool_start", name: tc.name, id: tc.id });
+  }
+  return resp;
 }
 
 async function loadHistory(conversationId: string): Promise<LlmTurnMessage[]> {
