@@ -8,7 +8,7 @@ const upsertPermissionSchema = z.object({
   connectorId: z.string(),
   readAccess: z.boolean().optional(),
   writeAccess: z.boolean().optional(),
-  nativePermissions: z.record(z.any()).nullable().optional(),
+  nativePermissions: z.record(z.string(), z.any()).nullable().optional(),
   customScript: z.string().nullable().optional(),
   aiInstructions: z.string().nullable().optional(),
 });
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(access);
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return NextResponse.json({ error: error.issues }, { status: 400 });
     }
     return NextResponse.json(
       { error: error.message },

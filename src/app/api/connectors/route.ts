@@ -8,7 +8,7 @@ const createConnectorSchema = z.object({
   name: z.string().min(1),
   type: z.enum(["POSTGRES", "MONGODB", "STRIPE", "EXTERNAL_MCP", "CUSTOM"]),
   credentials: z.string().min(1),
-  config: z.record(z.any()).optional(),
+  config: z.record(z.string(), z.any()).optional(),
   skipAiFilter: z.boolean().optional(),
   status: z.enum(["ACTIVE", "PENDING"]).optional(),
 });
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ...safe, hasCredentials: true }, { status: 201 });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return NextResponse.json({ error: error.issues }, { status: 400 });
     }
     return NextResponse.json(
       { error: error.message },

@@ -7,7 +7,7 @@ import { encrypt } from "@/lib/crypto";
 const updateConnectorSchema = z.object({
   name: z.string().min(1).optional(),
   credentials: z.string().min(1).optional(),
-  config: z.record(z.any()).optional(),
+  config: z.record(z.string(), z.any()).optional(),
   skipAiFilter: z.boolean().optional(),
   status: z.enum(["ACTIVE", "DISABLED"]).optional(),
 });
@@ -73,7 +73,7 @@ export async function PATCH(
     return NextResponse.json({ ...safe, hasCredentials: true });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return NextResponse.json({ error: error.issues }, { status: 400 });
     }
     return NextResponse.json(
       { error: error.message },

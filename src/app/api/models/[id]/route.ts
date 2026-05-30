@@ -9,7 +9,7 @@ const updateSchema = z.object({
   apiKey: z.string().min(1).optional(),
   baseUrl: z.string().url().optional(),
   defaultModel: z.string().min(1).optional(),
-  config: z.record(z.any()).optional(),
+  config: z.record(z.string(), z.any()).optional(),
   status: z.enum(["ACTIVE", "DISABLED"]).optional(),
 });
 
@@ -38,7 +38,7 @@ export async function PATCH(
     return NextResponse.json({ ...safe, hasApiKey: !!apiKeyEncrypted });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return NextResponse.json({ error: error.issues }, { status: 400 });
     }
     return NextResponse.json(
       { error: error.message },

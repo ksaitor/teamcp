@@ -72,7 +72,7 @@ export async function POST(
     return NextResponse.json({ authorizeUrl: provider.authorizationUrl.toString() });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return NextResponse.json({ error: error.issues }, { status: 400 });
     }
     if (error.statusCode) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });
