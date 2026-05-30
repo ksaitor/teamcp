@@ -9,8 +9,10 @@ import {
   FiFileText,
   FiCheckSquare,
   FiSettings,
+  FiMessageSquare,
 } from "react-icons/fi";
 import { auth } from "@/auth";
+import { prisma } from "@/db";
 import { LogoutButton } from "./logout-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -19,6 +21,8 @@ const navItems = [
   { href: "/connection", label: "Connection", icon: FiLink },
   { href: "/members", label: "Members", icon: FiUsers },
   { href: "/connectors", label: "Connectors", icon: FiDatabase },
+  { href: "/channels", label: "Channels", icon: FiMessageSquare },
+  { href: "/chat", label: "Chat", icon: FiMessageSquare },
   { href: "/models", label: "AI Models", icon: FiCpu },
   { href: "/logs", label: "Audit Logs", icon: FiFileText },
   { href: "/approvals", label: "Approvals", icon: FiCheckSquare },
@@ -36,6 +40,13 @@ export default async function DashboardLayout({
   const user = session.user as any;
   if (!user.activeOrgId || !user.activeMembershipId) redirect("/signup");
 
+  const pendingApprovals = await prisma.approvalRequest.count({
+    where: { organizationId: user.activeOrgId, status: "PENDING" },
+  });
+  const visibleNavItems = navItems.filter(
+    (item) => item.href !== "/approvals" || pendingApprovals > 0,
+  );
+
   return (
     <div className="flex min-h-screen">
       <aside className="flex w-56 flex-col border-r border-border bg-card">
@@ -45,7 +56,7 @@ export default async function DashboardLayout({
           </Link>
         </div>
         <nav className="mt-4 space-y-1 px-2">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
             return (
               <Link
