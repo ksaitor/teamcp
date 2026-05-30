@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -86,15 +86,16 @@ function LoginFormInner({ providers }: { providers: OAuthProviders }) {
     setState("code-verify");
   }
 
-  async function handleVerifyCode(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleVerifyCode(e: React.FormEvent | null, codeOverride?: string) {
+    e?.preventDefault();
+    const codeToVerify = codeOverride ?? code;
     setError("");
     setLoading("verify");
 
     const res = await fetch("/api/auth/verify-code", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, code }),
+      body: JSON.stringify({ email, code: codeToVerify }),
     });
 
     const data = await res.json();
@@ -205,15 +206,15 @@ function LoginFormInner({ providers }: { providers: OAuthProviders }) {
             <p className="text-sm text-muted-foreground">
               Enter the 5-digit code sent to <strong>{email}</strong>
             </p>
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={5}
+            <OtpInput
+              length={5}
               value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-              placeholder="12345"
-              className="block w-full rounded-md border border-input px-3 py-2 text-center text-2xl tracking-widest focus:border-ring focus:outline-none"
-              autoFocus
+              onChange={setCode}
+              onComplete={(value) => {
+                setCode(value);
+                void handleVerifyCode(null, value);
+              }}
+              disabled={!!loading}
             />
             <button
               type="submit"
@@ -288,6 +289,112 @@ function LoginFormInner({ providers }: { providers: OAuthProviders }) {
           </Link>
         </p>
       </div>
+    </div>
+  );
+}
+
+function OtpInput({
+  length,
+  value,
+  onChange,
+  onComplete,
+  disabled,
+}: {
+  length: number;
+  value: string;
+  onChange: (value: string) => void;
+  onComplete?: (value: string) => void;
+  disabled?: boolean;
+}) {
+  const refs = useRef<Array<HTMLInputElement | null>>([]);
+
+  useEffect(() => {
+    refs.current[0]?.focus();
+  }, []);
+
+  const digits = Array.from({ length }, (_, i) => value[i] ?? "");
+
+  function setDigit(index: number, digit: string) {
+    const next = digits.slice();
+    next[index] = digit;
+    onChange(next.join("").slice(0, length));
+  }
+
+  function handleChange(index: number, raw: string) {
+    const digit = raw.replace(/\D/g, "");
+    if (!digit) {
+      setDigit(index, "");
+      return;
+    }
+    if (digit.length === 1) {
+      setDigit(index, digit);
+      refs.current[index + 1]?.focus();
+      return;
+    }
+    // Multiple chars typed/pasted into a single field — distribute forward.
+    const chars = digit.slice(0, length - index).split("");
+    const next = digits.slice();
+    chars.forEach((c, i) => {
+      next[index + i] = c;
+    });
+    onChange(next.join("").slice(0, length));
+    const focusIndex = Math.min(index + chars.length, length - 1);
+    refs.current[focusIndex]?.focus();
+  }
+
+  function handleKeyDown(index: number, e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Backspace") {
+      if (digits[index]) {
+        setDigit(index, "");
+      } else if (index > 0) {
+        setDigit(index - 1, "");
+        refs.current[index - 1]?.focus();
+      }
+      e.preventDefault();
+    } else if (e.key === "ArrowLeft" && index > 0) {
+      refs.current[index - 1]?.focus();
+      e.preventDefault();
+    } else if (e.key === "ArrowRight" && index < length - 1) {
+      refs.current[index + 1]?.focus();
+      e.preventDefault();
+    }
+  }
+
+  function handlePaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, length);
+    if (!pasted) return;
+    e.preventDefault();
+    onChange(pasted);
+    const focusIndex = Math.min(pasted.length, length - 1);
+    refs.current[focusIndex]?.focus();
+    if (pasted.length === length) {
+      refs.current[focusIndex]?.blur();
+      onComplete?.(pasted);
+    }
+  }
+
+  return (
+    <div className="flex justify-center gap-2">
+      {digits.map((digit, index) => (
+        <input
+          key={index}
+          ref={(el) => {
+            refs.current[index] = el;
+          }}
+          type="text"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={1}
+          value={digit}
+          disabled={disabled}
+          onChange={(e) => handleChange(index, e.target.value)}
+          onKeyDown={(e) => handleKeyDown(index, e)}
+          onPaste={handlePaste}
+          onFocus={(e) => e.target.select()}
+          aria-label={`Digit ${index + 1}`}
+          className="h-12 w-12 rounded-md border border-input bg-background text-center text-xl font-semibold tabular-nums focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30 disabled:opacity-50"
+        />
+      ))}
     </div>
   );
 }
