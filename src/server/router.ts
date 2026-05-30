@@ -1,6 +1,6 @@
 import { getConnector } from "@/connectors/registry";
 import { decrypt } from "@/lib/crypto";
-import { parseToolName, resolveConnectorBySlug } from "./tool-builder";
+import { resolveToolCall } from "./tool-builder";
 import type { AuthenticatedMember } from "./auth";
 import type { ToolResult } from "@/connectors/interface";
 
@@ -21,14 +21,13 @@ export async function routeToolCall(
   params: Record<string, any>,
   member: AuthenticatedMember
 ): Promise<RouteResult> {
-  const { connectorSlug, toolName } = parseToolName(namespacedToolName);
+  const resolved = await resolveToolCall(member.id, member.organizationId, namespacedToolName);
 
-  // Resolve the connector slug back to a connector within the member's org
-  const connector = await resolveConnectorBySlug(member.organizationId, connectorSlug);
-
-  if (!connector) {
-    throw new Error("Connector not found");
+  if (!resolved) {
+    throw new Error("Tool not found");
   }
+
+  const { connector, toolName } = resolved;
 
   if (connector.status !== "ACTIVE") {
     throw new Error("Connector is not active");

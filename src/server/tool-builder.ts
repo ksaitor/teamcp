@@ -1,9 +1,13 @@
 import { prisma } from "@/db";
 import { getConnector } from "@/connectors/registry";
-import { generateSlug } from "@/lib/crypto";
+import { generateSlug, base64urlSha256 } from "@/lib/crypto";
+import type { Connector } from "@prisma/client";
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 
 type ConnectorSlugInput = { id: string; name: string; createdAt: Date };
+
+const SEP = "__";
+const MAX_TOOL_NAME = 64;
 
 /**
  * Map every connector in an org to a unique, human-readable slug derived from
@@ -29,23 +33,31 @@ export function computeConnectorSlugs(connectors: ConnectorSlugInput[]): Map<str
 }
 
 /**
- * Resolve a parsed connector slug back to its Connector row within an org.
+ * Build the namespaced tool name `{connectorSlug}__{toolName}`, kept within the
+ * 64-char limit that Anthropic/OpenAI enforce on tool names. Over-long names are
+ * truncated with a deterministic hash suffix so they stay unique and stable
+ * (the same inputs always produce the same final name, which is what lets the
+ * call path resolve a name back to its connector + tool).
  */
-export async function resolveConnectorBySlug(organizationId: string, connectorSlug: string) {
-  const connectors = await prisma.connector.findMany({ where: { organizationId } });
-  const slugById = computeConnectorSlugs(connectors);
-  return connectors.find((c) => slugById.get(c.id) === connectorSlug) ?? null;
+function finalizeToolName(connectorSlug: string, toolName: string): string {
+  const name = `${connectorSlug}${SEP}${toolName}`;
+  if (name.length <= MAX_TOOL_NAME) return name;
+  const suffix = `-${base64urlSha256(name).slice(0, 8)}`;
+  return name.slice(0, MAX_TOOL_NAME - suffix.length) + suffix;
 }
 
+type MemberToolEntry = { tool: Tool; connector: Connector; toolName: string };
+
 /**
- * Build a personalized list of MCP tools for a specific member.
- * Only includes tools from connectors the member has access to.
+ * Build the personalized tool entries for a member — the single source of truth
+ * shared by `tools/list` (maps to MCP Tool objects) and tool-call routing (maps
+ * a namespaced name back to its connector + raw tool name). Only includes tools
+ * from connectors the member has access to.
  */
-export async function buildToolListForMember(
+async function buildMemberToolEntries(
   membershipId: string,
-  orgSlug: string,
   organizationId: string
-): Promise<Tool[]> {
+): Promise<MemberToolEntry[]> {
   const accessRecords = await prisma.memberConnectorAccess.findMany({
     where: { membershipId },
     include: {
@@ -63,11 +75,12 @@ export async function buildToolListForMember(
   });
   const slugById = computeConnectorSlugs(allConnectors);
 
-  const tools: Tool[] = [];
+  const entries: MemberToolEntry[] = [];
 
   for (const access of accessRecords) {
     const connector = access.connector;
     if (connector.status !== "ACTIVE") continue;
+    const slug = slugById.get(connector.id) ?? generateSlug(connector.name) ?? "connector";
 
     if (connector.type === "EXTERNAL_MCP") {
       // For external MCP, use cherry-picked tools from ConnectorTool
@@ -83,12 +96,16 @@ export async function buildToolListForMember(
         if (!mta.allowed) continue;
         if (!mta.connectorTool.enabled) continue;
 
-        tools.push({
-          name: `${orgSlug}__${slugById.get(connector.id)}__${mta.connectorTool.toolName}`,
-          description: mta.connectorTool.description || undefined,
-          inputSchema: (mta.connectorTool.inputSchema as any) || {
-            type: "object",
-            properties: {},
+        entries.push({
+          connector,
+          toolName: mta.connectorTool.toolName,
+          tool: {
+            name: finalizeToolName(slug, mta.connectorTool.toolName),
+            description: mta.connectorTool.description || undefined,
+            inputSchema: (mta.connectorTool.inputSchema as any) || {
+              type: "object",
+              properties: {},
+            },
           },
         });
       }
@@ -97,12 +114,16 @@ export async function buildToolListForMember(
       if (memberToolAccess.length === 0) {
         for (const tool of connector.tools) {
           if (!tool.enabled) continue;
-          tools.push({
-            name: `${orgSlug}__${slugById.get(connector.id)}__${tool.toolName}`,
-            description: tool.description || undefined,
-            inputSchema: (tool.inputSchema as any) || {
-              type: "object",
-              properties: {},
+          entries.push({
+            connector,
+            toolName: tool.toolName,
+            tool: {
+              name: finalizeToolName(slug, tool.toolName),
+              description: tool.description || undefined,
+              inputSchema: (tool.inputSchema as any) || {
+                type: "object",
+                properties: {},
+              },
             },
           });
         }
@@ -120,37 +141,45 @@ export async function buildToolListForMember(
         if (opType === "read" && !access.readAccess) continue;
         if (opType === "write" && !access.writeAccess) continue;
 
-        // Prefix tool name with connector ID to avoid collisions
-        tools.push({
-          ...tool,
-          name: `${orgSlug}__${slugById.get(connector.id)}__${tool.name}`,
-          description: `[${connector.name}] ${tool.description || ""}`,
+        entries.push({
+          connector,
+          toolName: tool.name,
+          tool: {
+            ...tool,
+            name: finalizeToolName(slug, tool.name),
+            description: `[${connector.name}] ${tool.description || ""}`,
+          },
         });
       }
     }
   }
 
-  return tools;
+  return entries;
 }
 
 /**
- * Parse a namespaced tool name `{orgSlug}__{connectorSlug}__{toolName}` back
- * into its segments. The tool name may contain dashes, but the two `__`
- * separators are the only delimiters, so we split on the first two occurrences.
+ * Build a personalized list of MCP tools for a specific member.
  */
-export function parseToolName(namespacedName: string): {
-  orgSlug: string;
-  connectorSlug: string;
-  toolName: string;
-} {
-  const first = namespacedName.indexOf("__");
-  const second = first === -1 ? -1 : namespacedName.indexOf("__", first + 2);
-  if (first === -1 || second === -1) {
-    throw new Error(`Invalid tool name format: ${namespacedName}`);
-  }
-  return {
-    orgSlug: namespacedName.slice(0, first),
-    connectorSlug: namespacedName.slice(first + 2, second),
-    toolName: namespacedName.slice(second + 2),
-  };
+export async function buildToolListForMember(
+  membershipId: string,
+  organizationId: string
+): Promise<Tool[]> {
+  const entries = await buildMemberToolEntries(membershipId, organizationId);
+  return entries.map((e) => e.tool);
+}
+
+/**
+ * Resolve an incoming namespaced tool name back to its connector and raw tool
+ * name by recomputing the member's authoritative tool list and matching by the
+ * final (possibly truncated/hashed) name. Returns null if the member has no
+ * such tool.
+ */
+export async function resolveToolCall(
+  membershipId: string,
+  organizationId: string,
+  namespacedName: string
+): Promise<{ connector: Connector; toolName: string } | null> {
+  const entries = await buildMemberToolEntries(membershipId, organizationId);
+  const entry = entries.find((e) => e.tool.name === namespacedName);
+  return entry ? { connector: entry.connector, toolName: entry.toolName } : null;
 }
