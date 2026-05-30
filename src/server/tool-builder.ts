@@ -135,7 +135,7 @@ async function buildMemberToolEntries(
       const connectorTools = connectorImpl.listTools(config);
 
       for (const tool of connectorTools) {
-        const opType = connectorImpl.getOperationType(tool.name);
+        const opType = connectorImpl.getOperationType(tool.name, config);
 
         // Filter based on read/write access
         if (opType === "read" && !access.readAccess) continue;

@@ -33,7 +33,10 @@ export async function executeToolForMember(
 
     const { connector, toolName } = resolved;
     const connectorImpl = getConnector(connector.type);
-    const operationType = connectorImpl.getOperationType(toolName);
+    const operationType = connectorImpl.getOperationType(
+      toolName,
+      connector.config as Record<string, any>
+    );
 
     // Layers 1-3 — hard permission checks.
     const permResult = await checkPermissions({

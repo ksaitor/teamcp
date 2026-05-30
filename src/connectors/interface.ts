@@ -45,5 +45,5 @@ export interface ConnectorInstance {
   ): Promise<boolean>;
 
   /** Classify a tool call as read or write */
-  getOperationType(toolName: string): "read" | "write";
+  getOperationType(toolName: string, config?: ConnectorConfig): "read" | "write";
 }

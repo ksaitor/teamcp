@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import { getCatalogEntry } from "@/lib/connectors-catalog";
 import { ConnectorConfigForm } from "./connector-config-form";
 import { CustomMcpWizard } from "./custom-mcp-wizard";
+import { WebRequestForm } from "./web-request-form";
 
 export default async function NewConnectorConfigPage({
   params,
@@ -15,14 +16,21 @@ export default async function NewConnectorConfigPage({
   const { type } = await params;
 
   const entry = getCatalogEntry(type);
-  if (!entry || !entry.available || !entry.credentialField) {
+  if (!entry || !entry.available) {
+    notFound();
+  }
+  const needsCredentialField =
+    entry.type !== "EXTERNAL_MCP" && entry.type !== "WEB_REQUEST";
+  if (needsCredentialField && !entry.credentialField) {
     notFound();
   }
 
   const Icon = entry.icon;
 
+  const wide = entry.type === "WEB_REQUEST";
+
   return (
-    <div className="max-w-lg">
+    <div className={wide ? "max-w-3xl" : "max-w-lg"}>
       <Link
         href="/connectors/new"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -43,13 +51,15 @@ export default async function NewConnectorConfigPage({
 
       {entry.type === "EXTERNAL_MCP" ? (
         <CustomMcpWizard />
-      ) : (
+      ) : entry.type === "WEB_REQUEST" ? (
+        <WebRequestForm />
+      ) : entry.credentialField ? (
         <ConnectorConfigForm
           type={entry.type}
           label={entry.label}
           credentialField={entry.credentialField}
         />
-      )}
+      ) : null}
     </div>
   );
 }
