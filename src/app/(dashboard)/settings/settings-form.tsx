@@ -13,6 +13,7 @@ interface Settings {
   notifyEmail: boolean;
   notifyWebhookUrl: string | null;
   notifySlackWebhookUrl: string | null;
+  channelPersistMessageBodies: boolean;
 }
 
 export function SettingsForm({ settings }: { settings: Settings }) {
@@ -39,6 +40,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
         notifyEmail: formData.get("notifyEmail") === "on",
         notifyWebhookUrl: formData.get("notifyWebhookUrl") || null,
         notifySlackWebhookUrl: formData.get("notifySlackWebhookUrl") || null,
+        channelPersistMessageBodies: formData.get("channelPersistMessageBodies") === "on",
       }),
     });
 
@@ -81,6 +83,25 @@ export function SettingsForm({ settings }: { settings: Settings }) {
             className="mt-1 w-32 rounded-md border border-input px-3 py-1.5 text-sm"
           />
         </div>
+      </div>
+
+      <div className="rounded-md border border-border bg-card p-4 space-y-4">
+        <h2 className="font-semibold">Channels</h2>
+
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="channelPersistMessageBodies"
+            defaultChecked={settings.channelPersistMessageBodies}
+            className="mt-0.5"
+          />
+          <span>
+            Store chat message bodies
+            <span className="block text-xs text-muted-foreground">
+              When off, conversation rows still record audit metadata and tool calls, but raw message text is not saved.
+            </span>
+          </span>
+        </label>
       </div>
 
       <div className="rounded-md border border-border bg-card p-4 space-y-4">

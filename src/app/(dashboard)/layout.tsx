@@ -79,7 +79,7 @@ export default async function DashboardLayout({
             Chat
           </Link>
         </div>
-        <div className="flex items-center gap-2 border-t border-border px-4 py-3">
+        <div className="flex items-center gap-2 px-4 py-3">
           <p className="flex-1 truncate text-xs text-muted-foreground">
             {user.email}
           </p>
