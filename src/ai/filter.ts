@@ -56,6 +56,7 @@ export async function aiFilter(input: AiFilterInput): Promise<AiFilterResult> {
   });
 
   const memberPermissions = input.member.permissionInstructions || "";
+  const memberResponsibilities = input.member.responsibilities || "";
   const connectorPermissions = access?.aiInstructions || "";
 
   // If no permission instructions are set, skip AI filter
@@ -68,7 +69,7 @@ export async function aiFilter(input: AiFilterInput): Promise<AiFilterResult> {
     .map((c) => c.text)
     .join("\n");
   const cacheKey = getCacheKey(
-    `${memberPermissions}|${connectorPermissions}`,
+    `${memberPermissions}|${memberResponsibilities}|${connectorPermissions}`,
     input.toolName,
     JSON.stringify(input.params)
   );
@@ -93,6 +94,8 @@ export async function aiFilter(input: AiFilterInput): Promise<AiFilterResult> {
     const prompt = buildFilterPrompt({
       memberName: input.member.name,
       memberEmail: input.member.email,
+      memberJobTitle: input.member.jobTitle || undefined,
+      memberResponsibilities,
       memberPermissions,
       connectorName: input.connectorName,
       connectorType: input.connectorType,

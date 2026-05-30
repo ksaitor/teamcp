@@ -2,29 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { fileToAvatarDataUrl } from "@/lib/avatar";
 
-// Downscale the chosen image to a small square avatar and return a data URI,
-// so it fits comfortably in the User.image text column (no blob storage needed).
-async function fileToAvatarDataUrl(file: File, size = 256): Promise<string> {
-  const bitmap = await createImageBitmap(file);
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Could not process image");
-
-  // Cover-crop to a centered square.
-  const scale = Math.max(size / bitmap.width, size / bitmap.height);
-  const w = bitmap.width * scale;
-  const h = bitmap.height * scale;
-  ctx.drawImage(bitmap, (size - w) / 2, (size - h) / 2, w, h);
-
-  return canvas.toDataURL("image/jpeg", 0.85);
-}
-
-export function AddMemberForm() {
+export function AddMemberForm({ mode = "toggle" }: { mode?: "toggle" | "standalone" } = {}) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(mode === "standalone");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [image, setImage] = useState<string | undefined>();
@@ -32,6 +14,10 @@ export function AddMemberForm() {
   function reset() {
     setError("");
     setImage(undefined);
+    if (mode === "standalone") {
+      router.push("/members");
+      return;
+    }
     setOpen(false);
   }
 
