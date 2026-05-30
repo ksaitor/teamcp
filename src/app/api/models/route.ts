@@ -53,6 +53,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const existingCount = await prisma.llmProvider.count({
+      where: { organizationId: session.organizationId },
+    });
+
     const provider = await prisma.llmProvider.create({
       data: {
         name: data.name,
@@ -64,6 +68,17 @@ export async function POST(req: NextRequest) {
         organizationId: session.organizationId,
       },
     });
+
+    if (existingCount === 0) {
+      await prisma.orgSettings.upsert({
+        where: { organizationId: session.organizationId },
+        update: { defaultLlmProviderId: provider.id },
+        create: {
+          organizationId: session.organizationId,
+          defaultLlmProviderId: provider.id,
+        },
+      });
+    }
 
     const { apiKeyEncrypted, ...safe } = provider;
     return NextResponse.json({ ...safe, hasApiKey: !!apiKeyEncrypted }, { status: 201 });

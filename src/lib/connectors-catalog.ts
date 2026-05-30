@@ -30,6 +30,29 @@ export interface ConnectorCatalogEntry {
 
 export const connectorCatalog: ConnectorCatalogEntry[] = [
   {
+    slug: "custom-mcp",
+    type: "EXTERNAL_MCP",
+    label: "Custom MCP Server",
+    description: "Connect any external MCP server by URL.",
+    icon: FiServer,
+    available: true,
+    credentialField: {
+      label: "Server URL",
+      inputType: "url",
+      placeholder: "https://mcp-server.example.com",
+      configKey: "serverUrl",
+    },
+  },
+  {
+    slug: "web-request",
+    type: "WEB_REQUEST",
+    label: "Web Request",
+    description:
+      "Call any HTTP endpoint — REST APIs, internal services, lookups.",
+    icon: FiGlobe,
+    available: true,
+  },
+  {
     slug: "postgres",
     type: "POSTGRES",
     label: "PostgreSQL",
@@ -66,29 +89,6 @@ export const connectorCatalog: ConnectorCatalogEntry[] = [
       label: "API key",
       inputType: "password",
       placeholder: "sk_live_...",
-    },
-  },
-  {
-    slug: "web-request",
-    type: "WEB_REQUEST",
-    label: "Web Request",
-    description:
-      "Call any HTTP endpoint — REST APIs, internal services, lookups.",
-    icon: FiGlobe,
-    available: true,
-  },
-  {
-    slug: "custom-mcp",
-    type: "EXTERNAL_MCP",
-    label: "Custom MCP Server",
-    description: "Connect any external MCP server by URL.",
-    icon: FiServer,
-    available: true,
-    credentialField: {
-      label: "Server URL",
-      inputType: "url",
-      placeholder: "https://mcp-server.example.com",
-      configKey: "serverUrl",
     },
   },
   {
