@@ -1,6 +1,9 @@
 import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
 import { SettingsForm } from "./settings-form";
+import { DangerZone } from "./danger-zone";
+import { LogoutLink } from "./logout-link";
+import { Appearance } from "./appearance";
 
 export default async function SettingsPage() {
   const session = await requireAdmin();
@@ -22,9 +25,26 @@ export default async function SettingsPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             <strong>{org.name}</strong> ({org.slug})
           </p>
+          {org.suspendedAt && (
+            <p className="mt-2 inline-block rounded-full bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
+              Suspended
+            </p>
+          )}
         </div>
 
+        <Appearance />
+
         {org.settings && <SettingsForm settings={org.settings} />}
+
+        <DangerZone
+          orgName={org.name}
+          suspended={Boolean(org.suspendedAt)}
+          isOwner={session.role === "OWNER"}
+        />
+
+        <div className="flex justify-end border-t border-border pt-4">
+          <LogoutLink />
+        </div>
       </div>
     </div>
   );

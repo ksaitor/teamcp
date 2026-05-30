@@ -2,11 +2,10 @@
 
 import { useRouter } from "next/navigation";
 
-export function LogoutButton() {
+export function LogoutLink() {
   const router = useRouter();
 
   async function handleLogout() {
-    // NextAuth signOut via API
     await fetch("/api/auth/signout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -18,7 +17,7 @@ export function LogoutButton() {
   return (
     <button
       onClick={handleLogout}
-      className="text-sm text-muted-foreground hover:text-foreground"
+      className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
     >
       Log out
     </button>
