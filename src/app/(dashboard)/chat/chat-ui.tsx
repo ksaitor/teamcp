@@ -257,7 +257,7 @@ export function ChatUI({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-end border-b border-border px-4 py-2">
+      <div className="flex items-center justify-end px-4 py-2">
         <button
           type="button"
           onClick={newChat}
