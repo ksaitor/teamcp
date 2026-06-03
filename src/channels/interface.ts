@@ -57,4 +57,11 @@ export interface ChannelAdapter {
    * don't push to an external API.
    */
   configureDelivery?(channel: Channel): Promise<void>;
+
+  /**
+   * Optional: tear down external delivery when a channel is disabled (e.g.
+   * Telegram deleteWebhook so the platform stops pushing updates). No-op for
+   * channels that don't push to an external API.
+   */
+  teardownDelivery?(channel: Channel): Promise<void>;
 }
