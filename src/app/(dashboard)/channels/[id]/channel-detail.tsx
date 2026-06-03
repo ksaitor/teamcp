@@ -13,7 +13,6 @@ interface Channel {
   defaultLlmProviderId: string | null;
   webhookSecret: string;
   hasCredentials: boolean;
-  config: Record<string, unknown>;
 }
 
 interface Identity {
@@ -37,10 +36,13 @@ export function ChannelDetail({
   channel,
   identities,
   conversations,
+  deliveryMode,
 }: {
   channel: Channel;
   identities: Identity[];
   conversations: ConversationListItem[];
+  // Telegram-only: the deployment's global delivery mode, resolved server-side.
+  deliveryMode: "webhook" | "polling" | null;
 }) {
   const router = useRouter();
   const [origin, setOrigin] = useState<string>("");
@@ -53,13 +55,6 @@ export function ChannelDetail({
     () => (origin ? `${origin}/api/channels/${channel.id}/webhook` : ""),
     [origin, channel.id]
   );
-
-  const deliveryMode =
-    channel.type === "TELEGRAM"
-      ? (channel.config.deliveryMode as string) === "webhook"
-        ? "webhook"
-        : "polling"
-      : null;
 
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);

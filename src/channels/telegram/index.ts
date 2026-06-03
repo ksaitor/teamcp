@@ -13,18 +13,19 @@ import {
 export type TelegramDeliveryMode = "webhook" | "polling";
 
 /**
- * Default delivery mode. Polling runs a standalone, stateful worker process
- * (`bun run bot:telegram`) and needs no public URL — the right default for
- * long-running Node/Bun hosts. Serverless deploys (e.g. Vercel) should pick
- * "webhook" explicitly when creating the channel.
+ * Global Telegram delivery mode — an internal, code-level switch (NOT a
+ * per-channel or end-user setting). Flip this constant to change how every
+ * Telegram bot in this deployment receives updates:
+ *
+ *   "polling"  — standalone, stateful worker process (`bun run bot:telegram`).
+ *                No public URL needed. Use on stateful Node/Bun hosts.
+ *   "webhook"  — Telegram pushes to our /webhook route via setWebhook.
+ *                Use on serverless deploys (e.g. Vercel).
+ *
+ * We deliberately keep this a single constant for now; if it ever needs to vary
+ * per deployment, promote it to an env var here without touching call sites.
  */
-export const DEFAULT_TELEGRAM_DELIVERY_MODE: TelegramDeliveryMode = "polling";
-
-/** Read the per-channel delivery mode from `config`, falling back to the default. */
-export function getTelegramDeliveryMode(channel: Pick<Channel, "config">): TelegramDeliveryMode {
-  const mode = (channel.config as { deliveryMode?: string } | null)?.deliveryMode;
-  return mode === "webhook" || mode === "polling" ? mode : DEFAULT_TELEGRAM_DELIVERY_MODE;
-}
+export const TELEGRAM_DELIVERY_MODE: TelegramDeliveryMode = "polling";
 
 /**
  * Map a raw Telegram `Update` to our channel-agnostic InboundMessage. Returns
@@ -91,8 +92,7 @@ export class TelegramChannelAdapter implements ChannelAdapter {
    */
   async configureDelivery(channel: Channel): Promise<void> {
     const token = getBotToken(channel);
-    const mode = getTelegramDeliveryMode(channel);
-    if (mode === "webhook") {
+    if (TELEGRAM_DELIVERY_MODE === "webhook") {
       const url = `${getConfig().APP_URL}/api/channels/${channel.id}/webhook`;
       await setWebhook(token, url, channel.webhookSecret);
     } else {

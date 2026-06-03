@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
+import { TELEGRAM_DELIVERY_MODE } from "@/channels/telegram";
 import { ChannelDetail } from "./channel-detail";
 
 export default async function ChannelDetailPage({
@@ -67,8 +68,8 @@ export default async function ChannelDetailPage({
           defaultLlmProviderId: channel.defaultLlmProviderId,
           webhookSecret: channel.webhookSecret,
           hasCredentials: !!channel.credentialsEncrypted,
-          config: (channel.config as Record<string, unknown>) ?? {},
         }}
+        deliveryMode={channel.type === "TELEGRAM" ? TELEGRAM_DELIVERY_MODE : null}
         identities={channel.identities.map((i) => ({
           id: i.id,
           externalId: i.externalId,
