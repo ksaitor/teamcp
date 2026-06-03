@@ -87,6 +87,26 @@ export function ChannelDetail({
     setLinkCode(data.code);
   }
 
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  async function toggleStatus() {
+    const next = channel.status === "ACTIVE" ? "DISABLED" : "ACTIVE";
+    setStatusLoading(true);
+    setStatusError(null);
+    const res = await fetch(`/api/channels/${channel.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: next }),
+    });
+    setStatusLoading(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setStatusError(typeof data.error === "string" ? data.error : "Failed to update status");
+      return;
+    }
+    router.refresh();
+  }
+
   const [deleting, setDeleting] = useState(false);
   async function deleteChannel() {
     if (!confirm("Delete this channel? Identities and conversations will be removed.")) return;
@@ -97,8 +117,57 @@ export function ChannelDetail({
     router.refresh();
   }
 
+  const isActive = channel.status === "ACTIVE";
+
   return (
     <div className="space-y-6">
+      {channel.type !== "WEB" && (
+        <div className="rounded-md border border-border bg-card p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="font-semibold">Status</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {isActive
+                  ? "This bot is enabled and responding to linked members."
+                  : "This bot is disabled. It won't receive or respond to messages."}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                  isActive
+                    ? "bg-success/10 text-success"
+                    : channel.status === "ERROR"
+                      ? "bg-destructive/10 text-destructive"
+                      : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {channel.status}
+              </span>
+              <button
+                type="button"
+                onClick={toggleStatus}
+                disabled={statusLoading}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium disabled:opacity-50 ${
+                  isActive
+                    ? "border border-border hover:bg-accent hover:text-accent-foreground"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                }`}
+              >
+                {statusLoading
+                  ? "Saving…"
+                  : isActive
+                    ? "Disable"
+                    : "Enable"}
+              </button>
+            </div>
+          </div>
+          {statusError && (
+            <p className="mt-2 text-xs text-destructive">{statusError}</p>
+          )}
+        </div>
+      )}
+
       {channel.type !== "WEB" && (
         <div className="rounded-md border border-border bg-card p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">

@@ -76,17 +76,20 @@ export async function PATCH(
       data: updateData,
     });
 
-    // Re-reconcile external delivery so a token change re-registers Telegram's
-    // webhook (or clears it in polling mode). Best-effort.
+    // Re-reconcile external delivery. When active, register delivery (a token
+    // change re-registers Telegram's webhook, or clears it in polling mode);
+    // when disabled, tear it down so the platform stops pushing. Best-effort.
     let deliveryWarning: string | undefined;
     const adapter = getChannelAdapter(channel.type);
-    if (adapter.configureDelivery && channel.status === "ACTIVE") {
-      try {
-        await adapter.configureDelivery(channel);
-      } catch (err: any) {
-        deliveryWarning = `Saved, but delivery setup failed: ${err.message}`;
-        console.error("configureDelivery failed", err);
+    try {
+      if (channel.status === "ACTIVE") {
+        await adapter.configureDelivery?.(channel);
+      } else {
+        await adapter.teardownDelivery?.(channel);
       }
+    } catch (err: any) {
+      deliveryWarning = `Saved, but delivery setup failed: ${err.message}`;
+      console.error("delivery reconcile failed", err);
     }
 
     const { credentialsEncrypted, ...safe } = channel;

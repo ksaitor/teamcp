@@ -99,4 +99,9 @@ export class TelegramChannelAdapter implements ChannelAdapter {
       await deleteWebhook(token);
     }
   }
+
+  /** Stop Telegram from pushing once a channel is disabled. */
+  async teardownDelivery(channel: Channel): Promise<void> {
+    await deleteWebhook(getBotToken(channel));
+  }
 }
