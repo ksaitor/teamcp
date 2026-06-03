@@ -2,12 +2,19 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/db";
+import { extensions } from "@/extensions";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const session = await auth();
   if (session?.user) redirect("/dashboard");
+
+  // Downstream wrappers (e.g. the hosted build) can replace the unauthenticated
+  // landing experience with their own marketing page. OSS standalone falls through.
+  if (extensions.renderPublicHome) {
+    return await extensions.renderPublicHome();
+  }
 
   let userCount: number;
   try {

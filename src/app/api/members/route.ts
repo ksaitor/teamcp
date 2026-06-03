@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
+import { extensions } from "@/extensions";
 
 const createMemberSchema = z.object({
   email: z.string().email(),
@@ -43,6 +44,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const data = createMemberSchema.parse(body);
 
+    if (extensions.canAddSeat) {
+      const decision = await extensions.canAddSeat(session.organizationId);
+      if (!decision.allowed) {
+        return NextResponse.json({ error: decision.reason }, { status: 402 });
+      }
+    }
+
     // Find or create user by email. For an existing user, fill in name/image
     // only when they're not already set, so we don't clobber their own profile.
     let user = await prisma.user.findUnique({ where: { email: data.email } });
@@ -74,6 +82,12 @@ export async function POST(req: NextRequest) {
         user: { select: { id: true, name: true, email: true, image: true } },
       },
     });
+
+    try {
+      extensions.onMembershipAdded?.(session.organizationId, user.id);
+    } catch {
+      // Telemetry hooks must never affect the response.
+    }
 
     return NextResponse.json(membership, { status: 201 });
   } catch (error: any) {
