@@ -76,8 +76,8 @@ export async function PATCH(
       data: updateData,
     });
 
-    // Re-reconcile external delivery (e.g. a deliveryMode or token change flips
-    // Telegram between setWebhook and deleteWebhook). Best-effort.
+    // Re-reconcile external delivery so a token change re-registers Telegram's
+    // webhook (or clears it in polling mode). Best-effort.
     let deliveryWarning: string | undefined;
     const adapter = getChannelAdapter(channel.type);
     if (adapter.configureDelivery && channel.status === "ACTIVE") {

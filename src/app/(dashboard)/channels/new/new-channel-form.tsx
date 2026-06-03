@@ -56,7 +56,6 @@ export function NewChannelForm() {
   const [type, setType] = useState<ChannelType>("WEB");
   const [name, setName] = useState("Internal chat");
   const [credentials, setCredentials] = useState("");
-  const [deliveryMode, setDeliveryMode] = useState<"polling" | "webhook">("polling");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -69,7 +68,6 @@ export function NewChannelForm() {
 
     const body: Record<string, unknown> = { name, type };
     if (type !== "WEB") body.credentials = credentials;
-    if (type === "TELEGRAM") body.config = { deliveryMode };
 
     const res = await fetch("/api/channels", {
       method: "POST",
@@ -161,62 +159,6 @@ export function NewChannelForm() {
                 {chosen.credentialHelp}
               </p>
             )}
-          </div>
-        )}
-
-        {type === "TELEGRAM" && (
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground">
-              Delivery mode
-            </label>
-            <div className="mt-2 grid gap-2">
-              <label
-                className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 text-sm ${
-                  deliveryMode === "polling"
-                    ? "border-ring bg-accent"
-                    : "border-border hover:bg-accent/40"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="deliveryMode"
-                  value="polling"
-                  checked={deliveryMode === "polling"}
-                  onChange={() => setDeliveryMode("polling")}
-                  className="mt-0.5"
-                />
-                <span className="flex-1">
-                  <span className="font-medium">Long-polling (standalone worker)</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">
-                    Runs in the TeamRouter bot worker — no public URL needed. Best
-                    for stateful Node/Bun hosts.
-                  </span>
-                </span>
-              </label>
-              <label
-                className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 text-sm ${
-                  deliveryMode === "webhook"
-                    ? "border-ring bg-accent"
-                    : "border-border hover:bg-accent/40"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="deliveryMode"
-                  value="webhook"
-                  checked={deliveryMode === "webhook"}
-                  onChange={() => setDeliveryMode("webhook")}
-                  className="mt-0.5"
-                />
-                <span className="flex-1">
-                  <span className="font-medium">Webhook</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">
-                    We register the webhook automatically. Best for serverless
-                    deploys (e.g. Vercel) with a public URL.
-                  </span>
-                </span>
-              </label>
-            </div>
           </div>
         )}
       </div>

@@ -15,7 +15,7 @@ import type { Channel } from "@prisma/client";
 import { prisma } from "@/db";
 import { processInboundMessage } from "@/channels/process";
 import { deleteWebhook, getBotToken, getUpdates } from "@/channels/telegram/api";
-import { getTelegramDeliveryMode, updateToInbound } from "@/channels/telegram";
+import { TELEGRAM_DELIVERY_MODE, updateToInbound } from "@/channels/telegram";
 
 const RECONCILE_INTERVAL_MS = 15_000;
 const LONG_POLL_TIMEOUT_S = 50;
@@ -79,13 +79,15 @@ class ChannelPoller {
 const pollers = new Map<string, ChannelPoller>();
 
 async function reconcile() {
-  const channels = await prisma.channel.findMany({
-    where: { type: "TELEGRAM", status: "ACTIVE" },
-  });
-  const polling = channels.filter((c) => getTelegramDeliveryMode(c) === "polling");
+  // When the deployment is configured for webhook delivery, the worker has
+  // nothing to do — Telegram pushes to the /webhook route instead.
+  const polling =
+    TELEGRAM_DELIVERY_MODE === "polling"
+      ? await prisma.channel.findMany({ where: { type: "TELEGRAM", status: "ACTIVE" } })
+      : [];
   const wanted = new Set(polling.map((c) => c.id));
 
-  // Stop pollers whose channel disappeared, was disabled, or switched to webhook.
+  // Stop pollers whose channel disappeared or was disabled.
   for (const [id, poller] of pollers) {
     if (!wanted.has(id)) {
       poller.stop();
