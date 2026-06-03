@@ -4,10 +4,23 @@ import { checkPermissions } from "@/permissions/engine";
 import { aiFilter } from "@/ai/filter";
 import { createAuditLog } from "@/audit/logger";
 import { createApprovalAndWait } from "@/approvals/queue";
+import { extensions, type ToolCallEvent } from "@/extensions";
 import type { ToolResult } from "@/connectors/interface";
 import type { AuthenticatedMember } from "./auth";
 import { resolveToolCall } from "./tool-builder";
 import { routeToolCall } from "./router";
+
+function emitToolCall(event: ToolCallEvent) {
+  if (!extensions.onToolCall) return;
+  // Fire-and-forget: telemetry must never affect the tool-call result or latency.
+  queueMicrotask(() => {
+    try {
+      extensions.onToolCall!(event);
+    } catch {
+      // swallow — wrappers are responsible for their own error handling
+    }
+  });
+}
 
 /**
  * Run the full tool-call pipeline (permission layers 1-3, execute, AI filter,
@@ -58,6 +71,14 @@ export async function executeToolForMember(
         responseSummary: `Denied: ${permResult.reason}`,
         aiDecision: "BLOCKED",
         durationMs: Date.now() - startTime,
+      });
+      emitToolCall({
+        organizationId: member.organizationId,
+        membershipId: member.id,
+        connectorId: connector.id,
+        toolName,
+        durationMs: Date.now() - startTime,
+        status: "denied",
       });
       return {
         content: [
@@ -112,6 +133,15 @@ export async function executeToolForMember(
         durationMs: Date.now() - startTime,
       });
 
+      emitToolCall({
+        organizationId: member.organizationId,
+        membershipId: member.id,
+        connectorId: routeResult.connectorId,
+        toolName: routeResult.toolName,
+        durationMs: Date.now() - startTime,
+        status: "queued",
+      });
+
       if (approvalResult === "APPROVED") return routeResult.result;
       return {
         content: [
@@ -146,6 +176,15 @@ export async function executeToolForMember(
       durationMs: Date.now() - startTime,
     });
 
+    emitToolCall({
+      organizationId: member.organizationId,
+      membershipId: member.id,
+      connectorId: routeResult.connectorId,
+      toolName: routeResult.toolName,
+      durationMs: Date.now() - startTime,
+      status: filterResult.decision === "block" ? "filtered" : "ok",
+    });
+
     return filterResult.result;
   } catch (error: any) {
     await createAuditLog({
@@ -157,6 +196,14 @@ export async function executeToolForMember(
       responseSummary: `Error: ${error.message}`,
       aiDecision: "BLOCKED",
       durationMs: Date.now() - startTime,
+    });
+    emitToolCall({
+      organizationId: member.organizationId,
+      membershipId: member.id,
+      connectorId: null,
+      toolName: namespacedToolName,
+      durationMs: Date.now() - startTime,
+      status: "error",
     });
     return {
       content: [{ type: "text", text: `Error: ${error.message}` }],

@@ -1,5 +1,6 @@
 import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
+import { extensions } from "@/extensions";
 import { SettingsForm } from "./settings-form";
 import { DangerZone } from "./danger-zone";
 import { LogoutLink } from "./logout-link";
@@ -35,6 +36,9 @@ export default async function SettingsPage() {
         <Appearance />
 
         {org.settings && <SettingsForm settings={org.settings} />}
+
+        {extensions.renderSettingsExtras &&
+          (await extensions.renderSettingsExtras(session.organizationId))}
 
         <DangerZone
           orgName={org.name}
