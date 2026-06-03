@@ -67,6 +67,7 @@ export default async function ChannelDetailPage({
           defaultLlmProviderId: channel.defaultLlmProviderId,
           webhookSecret: channel.webhookSecret,
           hasCredentials: !!channel.credentialsEncrypted,
+          config: (channel.config as Record<string, unknown>) ?? {},
         }}
         identities={channel.identities.map((i) => ({
           id: i.id,

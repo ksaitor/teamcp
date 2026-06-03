@@ -13,6 +13,7 @@ interface Channel {
   defaultLlmProviderId: string | null;
   webhookSecret: string;
   hasCredentials: boolean;
+  config: Record<string, unknown>;
 }
 
 interface Identity {
@@ -53,6 +54,24 @@ export function ChannelDetail({
     [origin, channel.id]
   );
 
+  const deliveryMode =
+    channel.type === "TELEGRAM"
+      ? (channel.config.deliveryMode as string) === "webhook"
+        ? "webhook"
+        : "polling"
+      : null;
+
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<string | null>(null);
+  async function testConnection() {
+    setTesting(true);
+    setTestResult(null);
+    const res = await fetch(`/api/channels/${channel.id}/test`, { method: "POST" });
+    setTesting(false);
+    const data = await res.json().catch(() => ({}));
+    setTestResult(data.ok ? "ok" : "fail");
+  }
+
   const [linkCode, setLinkCode] = useState<string | null>(null);
   const [linkLoading, setLinkLoading] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
@@ -87,15 +106,50 @@ export function ChannelDetail({
     <div className="space-y-6">
       {channel.type !== "WEB" && (
         <div className="rounded-md border border-border bg-card p-4">
-          <h2 className="font-semibold">Webhook</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Configure this URL on the bot platform. We verify each inbound
-            request with the channel's webhook secret.
-          </p>
-          <div className="mt-3 space-y-2">
-            <CopyableValue label="URL" value={webhookUrl} />
-            <CopyableValue label="Secret" value={channel.webhookSecret} mono />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-semibold">Connection</h2>
+            <div className="flex items-center gap-3">
+              {testResult === "ok" && (
+                <span className="rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
+                  Connected
+                </span>
+              )}
+              {testResult === "fail" && (
+                <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+                  Failed
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={testConnection}
+                disabled={testing}
+                className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
+              >
+                {testing ? "Testing…" : "Test connection"}
+              </button>
+            </div>
           </div>
+
+          {deliveryMode === "polling" ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Delivery mode: <span className="font-medium">long-polling</span>.
+              This bot receives messages through the standalone TeamRouter bot
+              worker (<code className="font-mono">bun run bot:telegram</code>) —
+              no public URL required.
+            </p>
+          ) : (
+            <>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Delivery mode: <span className="font-medium">webhook</span>. We
+                register this URL automatically and verify each inbound request
+                with the channel's webhook secret.
+              </p>
+              <div className="mt-3 space-y-2">
+                <CopyableValue label="URL" value={webhookUrl} />
+                <CopyableValue label="Secret" value={channel.webhookSecret} mono />
+              </div>
+            </>
+          )}
         </div>
       )}
 

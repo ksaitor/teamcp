@@ -22,5 +22,13 @@ else
   echo "WARNING: DATABASE_URL is not set — skipping schema sync"
 fi
 
+# Optionally run the standalone Telegram bot worker (polling delivery) in the
+# background. Off by default — serverless deploys use webhook delivery and
+# should leave this unset. On a stateful host, set RUN_TELEGRAM_WORKER=1.
+if [ "$RUN_TELEGRAM_WORKER" = "1" ]; then
+  echo "  Telegram worker: enabled (polling)"
+  bun run src/bots/telegram/worker.ts &
+fi
+
 # Start the unified server (admin UI + MCP gateway on one port)
 exec bun run server.ts

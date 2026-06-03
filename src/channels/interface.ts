@@ -49,4 +49,12 @@ export interface ChannelAdapter {
   testConnection(
     channel: Pick<Channel, "type" | "config" | "credentialsEncrypted">
   ): Promise<boolean>;
+
+  /**
+   * Optional: reconcile the external platform's delivery configuration with the
+   * channel's settings after a create/update (e.g. Telegram setWebhook vs
+   * deleteWebhook depending on webhook/polling mode). No-op for channels that
+   * don't push to an external API.
+   */
+  configureDelivery?(channel: Channel): Promise<void>;
 }

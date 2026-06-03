@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
 import { encrypt } from "@/lib/crypto";
+import { getChannelAdapter } from "@/channels/registry";
 
 const updateChannelSchema = z.object({
   name: z.string().min(1).optional(),
@@ -75,10 +76,24 @@ export async function PATCH(
       data: updateData,
     });
 
+    // Re-reconcile external delivery (e.g. a deliveryMode or token change flips
+    // Telegram between setWebhook and deleteWebhook). Best-effort.
+    let deliveryWarning: string | undefined;
+    const adapter = getChannelAdapter(channel.type);
+    if (adapter.configureDelivery && channel.status === "ACTIVE") {
+      try {
+        await adapter.configureDelivery(channel);
+      } catch (err: any) {
+        deliveryWarning = `Saved, but delivery setup failed: ${err.message}`;
+        console.error("configureDelivery failed", err);
+      }
+    }
+
     const { credentialsEncrypted, ...safe } = channel;
     return NextResponse.json({
       ...safe,
       hasCredentials: !!credentialsEncrypted,
+      deliveryWarning,
     });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
