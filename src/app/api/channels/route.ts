@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import { encrypt, generateToken } from "@/lib/crypto";
 import { getChannelAdapter } from "@/channels/registry";
 import { MAX_CHANNELS_PER_TYPE, channelLimitMessage } from "@/channels/limits";
-import { notifyChannelsChanged } from "@/channels/notify";
+import { requestChannelReconcile } from "@/channels/reconcile-bus";
 
 const createChannelSchema = z.object({
   name: z.string().min(1),
@@ -104,10 +104,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Notify the standalone bot worker so it spins up this bot instantly
+    // Signal the in-process supervisor so it spins up this bot instantly
     // (only meaningful for polling-mode bot channels; harmless otherwise).
     if (channel.type !== "WEB") {
-      await notifyChannelsChanged(channel.id);
+      requestChannelReconcile(channel.id);
     }
 
     const { credentialsEncrypted, ...safe } = channel;

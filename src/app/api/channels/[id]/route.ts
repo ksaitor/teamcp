@@ -4,7 +4,7 @@ import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
 import { encrypt } from "@/lib/crypto";
 import { getChannelAdapter } from "@/channels/registry";
-import { notifyChannelsChanged } from "@/channels/notify";
+import { requestChannelReconcile } from "@/channels/reconcile-bus";
 
 const updateChannelSchema = z.object({
   name: z.string().min(1).optional(),
@@ -117,9 +117,9 @@ export async function PATCH(
       console.error("delivery reconcile failed", err);
     }
 
-    // Tell the worker to (re)start or stop this bot instantly.
+    // Tell the supervisor to (re)start or stop this bot instantly.
     if (channel.type !== "WEB") {
-      await notifyChannelsChanged(channel.id);
+      requestChannelReconcile(channel.id);
     }
 
     const { credentialsEncrypted, ...safe } = channel;
@@ -167,9 +167,9 @@ export async function DELETE(
       where: { id, organizationId: session.organizationId },
     });
 
-    // Tell the worker to stop polling this bot instantly.
+    // Tell the supervisor to stop polling this bot instantly.
     if (channel.type !== "WEB") {
-      await notifyChannelsChanged(channel.id);
+      requestChannelReconcile(channel.id);
     }
 
     return NextResponse.json({ ok: true });
