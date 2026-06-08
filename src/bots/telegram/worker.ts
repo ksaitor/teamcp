@@ -12,12 +12,18 @@
  * one of these alongside the web server.
  */
 import type { Channel } from "@prisma/client";
+import { Client } from "pg";
 import { prisma } from "@/db";
 import { processInboundMessage } from "@/channels/process";
 import { deleteWebhook, getBotToken, getUpdates } from "@/channels/telegram/api";
 import { TELEGRAM_DELIVERY_MODE, updateToInbound } from "@/channels/telegram";
+import { CHANNELS_NOTIFY_CHANNEL } from "@/channels/notify";
 
-const RECONCILE_INTERVAL_MS = 15_000;
+// Safety-net full reconcile; the LISTEN/NOTIFY path makes changes near-instant,
+// so this only needs to catch a missed notification (e.g. worker was down).
+const RECONCILE_INTERVAL_MS = 60_000;
+// Coalesce a burst of notifications into a single reconcile.
+const RECONCILE_DEBOUNCE_MS = 250;
 const LONG_POLL_TIMEOUT_S = 50;
 const MAX_BACKOFF_MS = 60_000;
 
@@ -112,6 +118,72 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Serialize reconciles so an instant (notify-driven) run and the periodic run
+// can't overlap. If a run is requested while one is in flight, queue exactly one
+// follow-up so we always end on fresh state.
+let reconcileRunning = false;
+let reconcilePending = false;
+async function runReconcile() {
+  if (reconcileRunning) {
+    reconcilePending = true;
+    return;
+  }
+  reconcileRunning = true;
+  try {
+    await reconcile();
+  } catch (err) {
+    console.error("[telegram] reconcile error", err);
+  } finally {
+    reconcileRunning = false;
+    if (reconcilePending) {
+      reconcilePending = false;
+      void runReconcile();
+    }
+  }
+}
+
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleReconcile() {
+  if (debounceTimer) return;
+  debounceTimer = setTimeout(() => {
+    debounceTimer = null;
+    void runReconcile();
+  }, RECONCILE_DEBOUNCE_MS);
+}
+
+/**
+ * Hold a dedicated Postgres connection that LISTENs for channel changes and
+ * reconciles immediately, so saving a bot's token in the admin UI starts that
+ * bot within a few hundred ms. Reconnects (and reconciles, in case we missed
+ * something) if the connection drops.
+ */
+async function startListener(): Promise<void> {
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  let reconnecting = false;
+  const reconnect = () => {
+    if (reconnecting) return;
+    reconnecting = true;
+    console.warn("[telegram] listen connection lost, reconnecting in 2s");
+    setTimeout(() => {
+      void startListener().then(scheduleReconcile);
+    }, 2000);
+  };
+
+  client.on("notification", (msg) => {
+    console.log(`[telegram] change notification (${msg.payload || "all"})`);
+    scheduleReconcile();
+  });
+  client.on("error", (err) => {
+    console.error("[telegram] listen connection error", err);
+    reconnect();
+  });
+  client.on("end", reconnect);
+
+  await client.connect();
+  await client.query(`LISTEN ${CHANNELS_NOTIFY_CHANNEL}`);
+  console.log("[telegram] listening for channel changes");
+}
+
 async function main() {
   console.log("[telegram] worker starting…");
 
@@ -126,13 +198,16 @@ async function main() {
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
 
+  // Instant path: react to admin changes via NOTIFY.
+  await startListener().catch((err) =>
+    console.error("[telegram] failed to start listener (periodic reconcile still active)", err)
+  );
+
+  // Initial sync + periodic safety-net reconcile.
+  await runReconcile();
   while (!stopping) {
-    try {
-      await reconcile();
-    } catch (err) {
-      console.error("[telegram] reconcile error", err);
-    }
     await sleep(RECONCILE_INTERVAL_MS);
+    await runReconcile();
   }
 }
 
