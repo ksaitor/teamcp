@@ -30,6 +30,9 @@ export interface Extensions {
   // Seat / membership policy
   canAddSeat?: (organizationId: string) => Promise<SeatDecision>;
 
+  // Connector policy — same decision shape as seats
+  canAddConnector?: (organizationId: string) => Promise<SeatDecision>;
+
   // UI slots — return null/undefined to render nothing
   renderPublicHome?: () => ReactNode | Promise<ReactNode>;
   renderSettingsExtras?: (organizationId: string) => ReactNode | Promise<ReactNode>;
@@ -41,6 +44,7 @@ export interface Extensions {
   onToolCall?: (event: ToolCallEvent) => void;
   onSignup?: (userId: string) => void;
   onMembershipAdded?: (organizationId: string, userId: string) => void;
+  onMembershipRemoved?: (organizationId: string, userId: string) => void;
 }
 
 const registry: Extensions = {};
