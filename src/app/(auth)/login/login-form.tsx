@@ -204,10 +204,10 @@ function LoginFormInner({ providers }: { providers: OAuthProviders }) {
         {state === "code-verify" && (
           <form onSubmit={handleVerifyCode} className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Enter the 5-digit code sent to <strong>{email}</strong>
+              Enter the 6-digit code sent to <strong>{email}</strong>
             </p>
             <OtpInput
-              length={5}
+              length={6}
               value={code}
               onChange={setCode}
               onComplete={(value) => {
@@ -218,7 +218,7 @@ function LoginFormInner({ providers }: { providers: OAuthProviders }) {
             />
             <button
               type="submit"
-              disabled={code.length !== 5 || !!loading}
+              disabled={code.length !== 6 || !!loading}
               className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               {loading === "verify" ? "Verifying..." : "Verify code"}

@@ -3,27 +3,56 @@ import { z } from "zod";
 import { prisma } from "@/db";
 import { randomUUID } from "crypto";
 import { cookies } from "next/headers";
+import { isRateLimited, clientIp } from "@/lib/rate-limit";
 
 const schema = z.object({
   email: z.string().email(),
-  code: z.string().length(5),
+  code: z.string().length(6),
 });
+
+// A 6-digit code has 900k combinations; cap guesses well below anything useful.
+const MAX_ATTEMPTS = 5;
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { email, code } = schema.parse(body);
 
-    // Look up valid token
+    if (isRateLimited(`verify-code:${clientIp(req)}:${email}`, 10, 10 * 60 * 1000)) {
+      return NextResponse.json(
+        { error: "Too many attempts. Please request a new code." },
+        { status: 429 }
+      );
+    }
+
+    // Look up the active token for this email (send-code keeps at most one)
     const token = await prisma.verificationToken.findFirst({
       where: {
         identifier: email,
-        token: code,
         expires: { gt: new Date() },
       },
     });
 
-    if (!token) {
+    if (!token || token.attempts >= MAX_ATTEMPTS) {
+      return NextResponse.json(
+        { error: "Invalid or expired code" },
+        { status: 400 }
+      );
+    }
+
+    if (token.token !== code) {
+      // Burn an attempt; once the budget is exhausted the token is useless
+      // (and removed), so the code can't be brute-forced.
+      if (token.attempts + 1 >= MAX_ATTEMPTS) {
+        await prisma.verificationToken.deleteMany({
+          where: { identifier: email },
+        });
+      } else {
+        await prisma.verificationToken.updateMany({
+          where: { identifier: email },
+          data: { attempts: { increment: 1 } },
+        });
+      }
       return NextResponse.json(
         { error: "Invalid or expired code" },
         { status: 400 }
