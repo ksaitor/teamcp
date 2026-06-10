@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
 import { encrypt } from "@/lib/crypto";
+import { extensions } from "@/extensions";
 
 const createConnectorSchema = z.object({
   name: z.string().min(1),
@@ -50,6 +51,13 @@ export async function POST(req: NextRequest) {
     const session = await requireAdmin();
     const body = await req.json();
     const data = createConnectorSchema.parse(body);
+
+    if (extensions.canAddConnector) {
+      const decision = await extensions.canAddConnector(session.organizationId);
+      if (!decision.allowed) {
+        return NextResponse.json({ error: decision.reason }, { status: 402 });
+      }
+    }
 
     const connector = await prisma.connector.create({
       data: {
