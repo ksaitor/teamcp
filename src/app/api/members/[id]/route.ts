@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
+import { extensions } from "@/extensions";
 
 const MAX_IMAGE_BYTES = 1_500_000;
 
@@ -158,8 +159,16 @@ export async function DELETE(
       );
     }
 
-    await prisma.orgMembership.delete({
+    const deleted = await prisma.orgMembership.delete({
       where: { id, organizationId: session.organizationId },
+    });
+
+    queueMicrotask(() => {
+      try {
+        extensions.onMembershipRemoved?.(session.organizationId, deleted.userId);
+      } catch (err) {
+        console.error("[extensions] onMembershipRemoved failed:", err);
+      }
     });
 
     return NextResponse.json({ ok: true });
