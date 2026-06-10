@@ -53,6 +53,9 @@ model VerificationToken {
   identifier String
   token      String
   expires    DateTime
+  // Failed verification attempts; the token is deleted once a small budget is
+  // exhausted so short numeric codes can't be brute-forced.
+  attempts   Int      @default(0)
 
   @@unique([identifier, token])
 }

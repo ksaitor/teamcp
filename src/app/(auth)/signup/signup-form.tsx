@@ -187,21 +187,21 @@ export default function SignupForm({ providers }: { providers: OAuthProviders })
           {authState === "code-verify" && (
             <form onSubmit={handleVerifyCode} className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Enter the 5-digit code sent to <strong>{email}</strong>
+                Enter the 6-digit code sent to <strong>{email}</strong>
               </p>
               <input
                 type="text"
                 inputMode="numeric"
-                maxLength={5}
+                maxLength={6}
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                placeholder="12345"
+                placeholder="123456"
                 className="block w-full rounded-md border border-input px-3 py-2 text-center text-2xl tracking-widest focus:border-ring focus:outline-none"
                 autoFocus
               />
               <button
                 type="submit"
-                disabled={code.length !== 5 || loading}
+                disabled={code.length !== 6 || loading}
                 className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
               >
                 {loading ? "Verifying..." : "Verify code"}

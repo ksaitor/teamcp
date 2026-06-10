@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/db";
 import { randomUUID } from "crypto";
 import { cookies } from "next/headers";
+import { isRateLimited, clientIp } from "@/lib/rate-limit";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -14,6 +15,13 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { email, password } = loginSchema.parse(body);
+
+    if (isRateLimited(`login:${clientIp(req)}:${email}`, 10, 5 * 60 * 1000)) {
+      return NextResponse.json(
+        { error: "Too many login attempts. Please try again later." },
+        { status: 429 }
+      );
+    }
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user?.passwordHash) {
