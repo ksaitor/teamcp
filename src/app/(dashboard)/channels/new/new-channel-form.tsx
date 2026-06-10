@@ -24,8 +24,8 @@ const TYPES: {
     value: "TELEGRAM",
     label: "Telegram bot",
     description:
-      "Bring your own Telegram bot. After saving, paste the webhook URL into BotFather via setWebhook.",
-    ready: false,
+      "Bring your own Telegram bot. Linked members chat with it as an AI agent using their permitted tools.",
+    ready: true,
     credentialLabel: "Bot token",
     credentialHelp: "From @BotFather. We store it encrypted at rest.",
   },

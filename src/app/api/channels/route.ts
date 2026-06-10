@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
 import { encrypt, generateToken } from "@/lib/crypto";
+import { getChannelAdapter } from "@/channels/registry";
+import { MAX_CHANNELS_PER_TYPE, channelLimitMessage } from "@/channels/limits";
 
 const createChannelSchema = z.object({
   name: z.string().min(1),
@@ -50,6 +52,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Hard per-type limit (one bot per channel type, for now).
+    const existing = await prisma.channel.count({
+      where: { organizationId: session.organizationId, type: data.type },
+    });
+    if (existing >= MAX_CHANNELS_PER_TYPE) {
+      return NextResponse.json({ error: channelLimitMessage(data.type) }, { status: 409 });
+    }
+
+    const adapter = getChannelAdapter(data.type);
+
+    // Reject bad credentials up front so the org never saves a dead channel.
+    if (data.type !== "WEB") {
+      const ok = await adapter.testConnection({
+        type: data.type,
+        config: data.config || {},
+        credentialsEncrypted: encrypt(data.credentials!),
+      });
+      if (!ok) {
+        return NextResponse.json(
+          { error: "Could not connect with these credentials. Double-check the token." },
+          { status: 400 }
+        );
+      }
+    }
+
     const channel = await prisma.channel.create({
       data: {
         organizationId: session.organizationId,
@@ -63,9 +90,22 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Reconcile external delivery config (e.g. Telegram setWebhook/deleteWebhook).
+    // Best-effort: a failure here doesn't undo the channel — the admin can retry
+    // by re-saving. We surface it as a non-fatal warning.
+    let deliveryWarning: string | undefined;
+    if (adapter.configureDelivery) {
+      try {
+        await adapter.configureDelivery(channel);
+      } catch (err: any) {
+        deliveryWarning = `Channel saved, but delivery setup failed: ${err.message}`;
+        console.error("configureDelivery failed", err);
+      }
+    }
+
     const { credentialsEncrypted, ...safe } = channel;
     return NextResponse.json(
-      { ...safe, hasCredentials: !!credentialsEncrypted },
+      { ...safe, hasCredentials: !!credentialsEncrypted, deliveryWarning },
       { status: 201 }
     );
   } catch (error: any) {

@@ -22,5 +22,6 @@ else
   echo "WARNING: DATABASE_URL is not set — skipping schema sync"
 fi
 
-# Start the unified server (admin UI + MCP gateway on one port)
+# Start the unified server (admin UI + MCP gateway on one port). It also runs the
+# Telegram polling supervisor in-process, so no separate worker process is needed.
 exec bun run server.ts
