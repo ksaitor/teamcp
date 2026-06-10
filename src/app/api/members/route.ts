@@ -85,8 +85,9 @@ export async function POST(req: NextRequest) {
 
     try {
       extensions.onMembershipAdded?.(session.organizationId, user.id);
-    } catch {
+    } catch (err) {
       // Telemetry hooks must never affect the response.
+      console.error("[extensions] onMembershipAdded failed:", err);
     }
 
     return NextResponse.json(membership, { status: 201 });
