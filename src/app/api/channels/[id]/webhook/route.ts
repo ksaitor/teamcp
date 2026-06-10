@@ -7,7 +7,7 @@ import { processInboundMessage } from "@/channels/process";
  * Generic webhook receiver. Looks up the channel, hands the raw request to the
  * adapter for signature verification + parsing, then runs the shared inbound
  * pipeline (identity linking + agent turn). The same pipeline backs the
- * standalone polling worker.
+ * per-channel polling runners.
  *
  * Each org owns its own bot, so the adapter verifies the signature using
  * credentials stored on the channel row.

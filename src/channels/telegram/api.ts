@@ -1,5 +1,6 @@
 import { decrypt } from "@/lib/crypto";
 import type { Channel } from "@prisma/client";
+import type { InboundMessage } from "../interface";
 
 /**
  * Thin wrapper around the Telegram Bot API. Each org brings its own bot token
@@ -101,4 +102,28 @@ export function getUpdates(token: string, offset: number, timeoutSeconds: number
     timeout: timeoutSeconds,
     allowed_updates: ["message"],
   });
+}
+
+/**
+ * Map a raw Telegram `Update` to our channel-agnostic InboundMessage. Returns
+ * null for updates we don't act on (non-message, non-text). Shared by the
+ * webhook adapter and the polling runner so both paths behave identically.
+ */
+export function updateToInbound(update: TelegramUpdate): InboundMessage | null {
+  const message = update.message;
+  if (!message || !message.text) return null;
+
+  const chatId = message.chat.id;
+  const displayName =
+    message.from?.username ||
+    [message.from?.first_name, message.from?.last_name].filter(Boolean).join(" ") ||
+    message.chat.title;
+
+  return {
+    externalId: String(chatId),
+    displayName: displayName || undefined,
+    externalThreadId: String(chatId),
+    text: message.text,
+    threadRef: { chatId },
+  };
 }

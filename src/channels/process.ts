@@ -8,13 +8,13 @@ import type { InboundMessage } from "./interface";
 
 /**
  * Channel-agnostic inbound pipeline shared by the webhook route and the
- * standalone polling worker: resolve identity (consuming a link code if the
+ * per-channel polling runners: resolve identity (consuming a link code if the
  * sender is unlinked), verify the member is active, get-or-create the
  * conversation, run one agent turn, and send the reply back through the
  * channel's adapter.
  *
  * The caller is responsible for parsing the raw payload into an InboundMessage
- * (webhook route via `adapter.handleInbound`, worker via the adapter's parser).
+ * (webhook route via `adapter.handleInbound`, runners via the adapter's parser).
  */
 export async function processInboundMessage(
   channel: Channel,
