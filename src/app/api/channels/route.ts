@@ -5,7 +5,6 @@ import { requireAdmin } from "@/lib/auth";
 import { encrypt, generateToken } from "@/lib/crypto";
 import { getChannelAdapter } from "@/channels/registry";
 import { MAX_CHANNELS_PER_TYPE, channelLimitMessage } from "@/channels/limits";
-import { requestChannelReconcile } from "@/channels/reconcile-bus";
 
 const createChannelSchema = z.object({
   name: z.string().min(1),
@@ -102,12 +101,6 @@ export async function POST(req: NextRequest) {
         deliveryWarning = `Channel saved, but delivery setup failed: ${err.message}`;
         console.error("configureDelivery failed", err);
       }
-    }
-
-    // Signal the in-process supervisor so it spins up this bot instantly
-    // (only meaningful for polling-mode bot channels; harmless otherwise).
-    if (channel.type !== "WEB") {
-      requestChannelReconcile(channel.id);
     }
 
     const { credentialsEncrypted, ...safe } = channel;

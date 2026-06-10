@@ -17,7 +17,7 @@ export type TelegramDeliveryMode = "webhook" | "polling";
  * per-channel or end-user setting). Flip this constant to change how every
  * Telegram bot in this deployment receives updates:
  *
- *   "polling"  — standalone, stateful worker process (`bun run bot:telegram`).
+ *   "polling"  — in-process supervisor inside the unified server (server.ts).
  *                No public URL needed. Use on stateful Node/Bun hosts.
  *   "webhook"  — Telegram pushes to our /webhook route via setWebhook.
  *                Use on serverless deploys (e.g. Vercel).
@@ -30,7 +30,7 @@ export const TELEGRAM_DELIVERY_MODE: TelegramDeliveryMode = "polling";
 /**
  * Map a raw Telegram `Update` to our channel-agnostic InboundMessage. Returns
  * null for updates we don't act on (non-message, non-text). Shared by the
- * webhook adapter and the polling worker so both paths behave identically.
+ * webhook adapter and the polling supervisor so both paths behave identically.
  */
 export function updateToInbound(update: TelegramUpdate): InboundMessage | null {
   const message = update.message;

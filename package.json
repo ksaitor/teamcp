@@ -12,8 +12,7 @@
     "db:studio": "prisma studio",
     "mcp:dev": "bun run src/server/index.ts",
     "mcp:inspect": "bunx @modelcontextprotocol/inspector",
-    "dev:unified": "bun run server.ts",
-    "bot:telegram": "bun run src/bots/telegram/worker.ts"
+    "dev:unified": "bun run server.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100",
