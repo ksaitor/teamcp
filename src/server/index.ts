@@ -25,6 +25,13 @@ const sessions = new Map<
   { transport: StreamableHTTPServerTransport; membershipId: string }
 >();
 
+/** Close all live MCP transports (ends their SSE streams). Used on shutdown. */
+export async function closeMcpSessions(): Promise<void> {
+  const transports = [...sessions.values()].map((s) => s.transport);
+  sessions.clear();
+  await Promise.allSettled(transports.map((t) => t.close()));
+}
+
 // Handles the MCP gateway routes. Mounted either by the standalone MCP server
 // (startMcpServer, for `mcp:dev`) or by the unified Next.js server (server.ts).
 export async function handleMcpRequest(
@@ -50,8 +57,16 @@ export async function handleMcpRequest(
   }
 
   if (path === "/health") {
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ status: "ok" }));
+    // Verify the database too — orchestrators use this to decide whether the
+    // instance can actually serve traffic.
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ status: "ok" }));
+    } catch {
+      res.writeHead(503, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ status: "error", error: "database unreachable" }));
+    }
     return;
   }
 
