@@ -1,6 +1,6 @@
 import type { Channel } from "@prisma/client";
 import { getConfig } from "@/lib/config";
-import type { ChannelAdapter, InboundMessage } from "../interface";
+import type { ChannelAdapter, ChannelRunner, InboundMessage } from "../interface";
 import {
   type TelegramUpdate,
   deleteWebhook,
@@ -8,7 +8,9 @@ import {
   getMe,
   sendMessage,
   setWebhook,
+  updateToInbound,
 } from "./api";
+import { TelegramPoller } from "./poller";
 
 export type TelegramDeliveryMode = "webhook" | "polling";
 
@@ -26,30 +28,6 @@ export type TelegramDeliveryMode = "webhook" | "polling";
  * per deployment, promote it to an env var here without touching call sites.
  */
 export const TELEGRAM_DELIVERY_MODE: TelegramDeliveryMode = "polling";
-
-/**
- * Map a raw Telegram `Update` to our channel-agnostic InboundMessage. Returns
- * null for updates we don't act on (non-message, non-text). Shared by the
- * webhook adapter and the polling supervisor so both paths behave identically.
- */
-export function updateToInbound(update: TelegramUpdate): InboundMessage | null {
-  const message = update.message;
-  if (!message || !message.text) return null;
-
-  const chatId = message.chat.id;
-  const displayName =
-    message.from?.username ||
-    [message.from?.first_name, message.from?.last_name].filter(Boolean).join(" ") ||
-    message.chat.title;
-
-  return {
-    externalId: String(chatId),
-    displayName: displayName || undefined,
-    externalThreadId: String(chatId),
-    text: message.text,
-    threadRef: { chatId },
-  };
-}
 
 export class TelegramChannelAdapter implements ChannelAdapter {
   readonly type = "TELEGRAM" as const;
@@ -103,5 +81,15 @@ export class TelegramChannelAdapter implements ChannelAdapter {
   /** Stop Telegram from pushing once a channel is disabled. */
   async teardownDelivery(channel: Channel): Promise<void> {
     await deleteWebhook(getBotToken(channel));
+  }
+
+  /**
+   * In polling mode, the supervisor runs one long-poll loop per channel. In
+   * webhook mode there's nothing to run (Telegram pushes to /webhook), so return
+   * null and keep the mode decision local to this adapter.
+   */
+  createRunner(channel: Channel): ChannelRunner | null {
+    if (TELEGRAM_DELIVERY_MODE !== "polling") return null;
+    return new TelegramPoller(channel);
   }
 }
