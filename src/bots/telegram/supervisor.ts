@@ -6,10 +6,14 @@
  * same `processInboundMessage` pipeline the webhook route uses — so polling and
  * webhook deployments behave identically.
  *
- * This runs in-process inside the long-lived web/MCP server (server.ts) for
- * stateful deployments. Serverless hosts (Vercel) use webhook delivery and never
- * start it; there, `reconcile()` would hold no pollers anyway because
- * TELEGRAM_DELIVERY_MODE is "webhook".
+ * Runs in-process inside the long-lived web/MCP server (server.ts); in dev, use
+ * `bun run dev:unified` to get it (plain `bun run dev` is Next-only). Serverless
+ * hosts (Vercel) use webhook delivery and never start it; there, `reconcile()`
+ * would hold no pollers anyway because TELEGRAM_DELIVERY_MODE is "webhook".
+ *
+ * Desired state is read straight from the DB on a short interval — admin changes
+ * (create/enable/disable/delete, token rotation) are picked up within one tick,
+ * from any process that writes the DB, with no cross-process signalling.
  *
  * Single-instance assumption: Telegram allows only one getUpdates consumer per
  * bot token, so exactly one supervisor may poll a given bot. Running the web app
@@ -21,13 +25,8 @@ import { prisma } from "@/db";
 import { processInboundMessage } from "@/channels/process";
 import { deleteWebhook, getBotToken, getUpdates } from "@/channels/telegram/api";
 import { TELEGRAM_DELIVERY_MODE, updateToInbound } from "@/channels/telegram";
-import { CHANNEL_CHANGED, channelReconcileBus } from "@/channels/reconcile-bus";
 
-// Safety-net full reconcile; the in-memory signal makes admin changes near-instant
-// (in-process only), so this mainly catches a missed signal or out-of-band change.
-const RECONCILE_INTERVAL_MS = 60_000;
-// Coalesce a burst of change signals into a single reconcile.
-const RECONCILE_DEBOUNCE_MS = 250;
+const RECONCILE_INTERVAL_MS = 5_000;
 const LONG_POLL_TIMEOUT_S = 50;
 const MAX_BACKOFF_MS = 60_000;
 
@@ -122,85 +121,21 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Serialize reconciles so an instant (signal-driven) run and the periodic run
-// can't overlap. If a run is requested while one is in flight, queue exactly one
-// follow-up so we always end on fresh state.
-let reconcileRunning = false;
-let reconcilePending = false;
-async function runReconcile() {
-  if (reconcileRunning) {
-    reconcilePending = true;
-    return;
-  }
-  reconcileRunning = true;
-  try {
-    await reconcile();
-  } catch (err) {
-    console.error("[telegram] reconcile error", err);
-  } finally {
-    reconcileRunning = false;
-    if (reconcilePending) {
-      reconcilePending = false;
-      void runReconcile();
-    }
-  }
-}
-
-let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-function scheduleReconcile() {
-  if (debounceTimer) return;
-  debounceTimer = setTimeout(() => {
-    debounceTimer = null;
-    void runReconcile();
-  }, RECONCILE_DEBOUNCE_MS);
-}
-
 let started = false;
 
-/**
- * Start the supervisor: subscribe to the in-memory change signal (instant path),
- * run an initial reconcile, and tick a periodic safety-net reconcile. Idempotent
- * — calling it twice is a no-op. Returns a stop handle that tears down pollers,
- * the timer, and the listener.
- *
- * Note: the instant (signal-driven) path only fires for changes made in the same
- * process. The standalone worker entry relies on the periodic reconcile to pick
- * up admin changes made by the web process.
- */
-export function startTelegramSupervisor(): () => void {
-  if (started) return () => {};
+/** Start the reconcile loop. Idempotent — a second call is a no-op. */
+export function startTelegramSupervisor(): void {
+  if (started) return;
   started = true;
   console.log("[telegram] supervisor starting…");
-
-  // Instant path: react to admin changes signalled in-process.
-  const onChange = (channelId?: string) => {
-    console.log(`[telegram] change signal (${channelId || "all"})`);
-    scheduleReconcile();
-  };
-  channelReconcileBus.on(CHANNEL_CHANGED, onChange);
-
-  let stopping = false;
-
-  // Initial sync, then periodic safety-net reconcile.
   void (async () => {
-    await runReconcile();
-    while (!stopping) {
+    for (;;) {
+      try {
+        await reconcile();
+      } catch (err) {
+        console.error("[telegram] reconcile error", err);
+      }
       await sleep(RECONCILE_INTERVAL_MS);
-      await runReconcile();
     }
   })();
-
-  return () => {
-    if (stopping) return;
-    stopping = true;
-    started = false;
-    channelReconcileBus.off(CHANNEL_CHANGED, onChange);
-    if (debounceTimer) {
-      clearTimeout(debounceTimer);
-      debounceTimer = null;
-    }
-    for (const poller of pollers.values()) poller.stop();
-    pollers.clear();
-    console.log("[telegram] supervisor stopped");
-  };
 }

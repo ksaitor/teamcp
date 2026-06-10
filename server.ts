@@ -11,14 +11,9 @@ const handle = app.getRequestHandler();
 
 await app.prepare();
 
-// Drive polling-mode Telegram bots in-process. Fire-and-forget so a supervisor
-// failure can't take down HTTP serving; it no-ops (holds no pollers) under
+// Drive polling-mode Telegram bots in-process; no-ops (holds no pollers) under
 // webhook delivery, so no env gate is needed.
-try {
-  startTelegramSupervisor();
-} catch (err) {
-  console.error("[telegram] failed to start supervisor", err);
-}
+startTelegramSupervisor();
 
 createServer((req, res) => {
   const path = new URL(req.url || "/", "http://localhost").pathname;

@@ -197,9 +197,8 @@ export function ChannelDetail({
           {deliveryMode === "polling" ? (
             <p className="mt-2 text-xs text-muted-foreground">
               Delivery mode: <span className="font-medium">long-polling</span>.
-              This bot receives messages through the standalone TeamRouter bot
-              worker (<code className="font-mono">bun run bot:telegram</code>) —
-              no public URL required.
+              The TeamRouter server polls Telegram for new messages — no public
+              URL required.
             </p>
           ) : (
             <>
