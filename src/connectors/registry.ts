@@ -1,5 +1,6 @@
 import type { ConnectorInstance } from "./interface";
 import { PostgresConnector } from "./postgres";
+import { MySQLConnector } from "./mysql";
 import { MongoDBConnector } from "./mongodb";
 import { StripeConnector } from "./stripe";
 import { ExternalMcpConnector } from "./external-mcp";
@@ -7,6 +8,7 @@ import { WebRequestConnector } from "./web-request";
 
 const connectors: Record<string, ConnectorInstance> = {
   POSTGRES: new PostgresConnector(),
+  MYSQL: new MySQLConnector(),
   MONGODB: new MongoDBConnector(),
   STRIPE: new StripeConnector(),
   EXTERNAL_MCP: new ExternalMcpConnector(),

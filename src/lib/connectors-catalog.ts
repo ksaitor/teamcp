@@ -1,9 +1,10 @@
 import type { IconType } from "react-icons";
 import { FiDatabase, FiServer, FiBarChart2, FiGlobe } from "react-icons/fi";
-import { SiMongodb, SiStripe, SiSnowflake } from "react-icons/si";
+import { SiMongodb, SiMysql, SiStripe, SiSnowflake } from "react-icons/si";
 
 export type ConnectorType =
   | "POSTGRES"
+  | "MYSQL"
   | "MONGODB"
   | "STRIPE"
   | "EXTERNAL_MCP"
@@ -66,6 +67,19 @@ export const connectorCatalog: ConnectorCatalogEntry[] = [
     },
   },
   {
+    slug: "mysql",
+    type: "MYSQL",
+    label: "MySQL",
+    description: "Connect a MySQL database via connection string.",
+    icon: SiMysql,
+    available: true,
+    credentialField: {
+      label: "Connection string",
+      inputType: "password",
+      placeholder: "mysql://user:pass@host:3306/db",
+    },
+  },
+  {
     slug: "mongodb",
     type: "MONGODB",
     label: "MongoDB",
@@ -97,14 +111,6 @@ export const connectorCatalog: ConnectorCatalogEntry[] = [
     label: "Google Analytics",
     description: "Query traffic and conversion data from GA4.",
     icon: FiBarChart2,
-    available: false,
-  },
-  {
-    slug: "mysql",
-    type: "CUSTOM",
-    label: "MySQL",
-    description: "Connect a MySQL database via connection string.",
-    icon: FiDatabase,
     available: false,
   },
   {
