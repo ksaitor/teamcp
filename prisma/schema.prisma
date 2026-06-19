@@ -235,6 +235,7 @@ model Connector {
 
 enum ConnectorType {
   POSTGRES
+  MYSQL
   MONGODB
   STRIPE
   EXTERNAL_MCP
