@@ -17,6 +17,8 @@ export function checkNativePermissions(
   switch (connectorType) {
     case "POSTGRES":
       return checkPostgresPermissions(nativePermissions, toolName, params);
+    case "MYSQL":
+      return checkMysqlPermissions(nativePermissions, toolName, params);
     case "MONGODB":
       return checkMongoPermissions(nativePermissions, toolName, params);
     case "STRIPE":
@@ -66,6 +68,61 @@ function checkPostgresPermissions(
   if (allowedSchemas && allowedSchemas.length > 0) {
     if (
       (toolName === "pg_list_tables" || toolName === "pg_describe_table") &&
+      params.schema
+    ) {
+      if (!allowedSchemas.includes(params.schema)) {
+        return {
+          allowed: false,
+          reason: `Schema '${params.schema}' is not in the allowed schemas list`,
+          layer: "native",
+        };
+      }
+    }
+  }
+
+  return { allowed: true, layer: "native" };
+}
+
+function checkMysqlPermissions(
+  perms: Record<string, any>,
+  toolName: string,
+  params: Record<string, any>
+): PermissionResult {
+  const { allowedSchemas, allowedTables } = perms;
+
+  // For describe_table, check table restrictions
+  if (allowedTables && allowedTables.length > 0) {
+    if (toolName === "mysql_describe_table" && params.table) {
+      if (!allowedTables.includes(params.table)) {
+        return {
+          allowed: false,
+          reason: `Table '${params.table}' is not in the allowed tables list`,
+          layer: "native",
+        };
+      }
+    }
+
+    // Basic SQL table check — not a full parser, but catches simple cases
+    if (
+      (toolName === "mysql_query" || toolName === "mysql_execute") &&
+      params.sql
+    ) {
+      const sql = params.sql.toLowerCase();
+      for (const table of allowedTables) {
+        // This is a basic check — AI layer handles more nuanced filtering
+        if (sql.includes(table.toLowerCase())) {
+          return { allowed: true, layer: "native" };
+        }
+      }
+      // If SQL doesn't mention any allowed tables, it might be accessing restricted ones
+      // Let it through for now — AI layer will catch detailed violations
+    }
+  }
+
+  // Schema check
+  if (allowedSchemas && allowedSchemas.length > 0) {
+    if (
+      (toolName === "mysql_list_tables" || toolName === "mysql_describe_table") &&
       params.schema
     ) {
       if (!allowedSchemas.includes(params.schema)) {
