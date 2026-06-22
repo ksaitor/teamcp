@@ -42,6 +42,15 @@ export interface ChannelAdapter {
   handleInbound(req: Request, channel: Channel): Promise<InboundMessage | null>;
 
   /**
+   * Optional: produce a raw HTTP response for inbound webhook requests the
+   * standard InboundMessage pipeline can't express — e.g. Slack's
+   * url_verification handshake, which must echo `challenge` back in the body.
+   * Called before handleInbound; return null to defer to it. Implementations
+   * read the request body, so the webhook route passes a clone.
+   */
+  handleWebhookHandshake?(req: Request, channel: Channel): Promise<Response | null>;
+
+  /**
    * Send one assistant message back to the external user.
    */
   sendReply(
