@@ -99,3 +99,5 @@ export class ExternalMcpConnector implements ConnectorInstance {
     }
   }
 }
+
+export default new ExternalMcpConnector();
