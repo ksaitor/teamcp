@@ -1,5 +1,6 @@
 import { prisma } from "@/db";
 import { parseAuthorizeParams, type AuthorizeParams } from "./params";
+import { resolveClientBrand } from "./client-brands";
 
 export type ValidationError =
   | { kind: "untrusted"; error: string } // can't safely redirect to client
@@ -8,7 +9,9 @@ export type ValidationError =
 export interface ValidatedAuthorize {
   params: AuthorizeParams;
   clientName: string | null;
+  clientLogo: string | null;
   orgName: string;
+  orgLogo: string | null;
   membershipId: string;
 }
 
@@ -36,7 +39,7 @@ export async function validateAuthorize(
       status: "ACTIVE",
       organization: { slug: params.slug },
     },
-    include: { organization: { select: { name: true } } },
+    include: { organization: { select: { name: true, logoUrl: true } } },
   });
   if (!membership)
     return {
@@ -47,12 +50,19 @@ export async function validateAuthorize(
       },
     };
 
+  // A recognized brand (matched by redirect_uri host) wins over the
+  // self-reported client_name/logo_uri; otherwise fall back to what the
+  // client registered.
+  const brand = resolveClientBrand(params.redirectUri);
+
   return {
     ok: true,
     data: {
       params,
-      clientName: client.clientName,
+      clientName: brand?.name ?? client.clientName,
+      clientLogo: brand?.logo ?? client.logoUri ?? null,
       orgName: membership.organization.name,
+      orgLogo: membership.organization.logoUrl,
       membershipId: membership.id,
     },
   };

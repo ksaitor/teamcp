@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
       clientSecretHash,
       redirectUris: redirectUris as string[],
       clientName: typeof body?.client_name === "string" ? body.client_name : null,
+      logoUri: typeof body?.logo_uri === "string" ? body.logo_uri : null,
       tokenEndpointAuthMethod: authMethod,
       grantTypes,
     },
@@ -74,6 +75,7 @@ export async function POST(req: NextRequest) {
       grant_types: grantTypes,
       response_types: ["code"],
       ...(body?.client_name ? { client_name: body.client_name } : {}),
+      ...(typeof body?.logo_uri === "string" ? { logo_uri: body.logo_uri } : {}),
     },
     { status: 201 }
   );

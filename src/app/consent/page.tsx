@@ -1,6 +1,32 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { FiArrowRight } from "react-icons/fi";
 import { validateAuthorize } from "@/lib/oauth/authorize";
+
+// A square logo badge: shows the brand/team logo when available, otherwise a
+// placeholder with the entity's initials. `contain` keeps full-bleed brand
+// marks (e.g. Claude) intact rather than cover-cropping them.
+function LogoBadge({ label, logo }: { label: string; logo: string | null }) {
+  const initials = label
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w.charAt(0).toUpperCase())
+    .join("");
+
+  return (
+    <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-card">
+      {logo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={logo} alt={`${label} logo`} className="h-full w-full object-contain p-2" />
+      ) : (
+        <span className="text-lg font-semibold text-muted-foreground" aria-label={label}>
+          {initials || "?"}
+        </span>
+      )}
+    </div>
+  );
+}
 
 const PASS_THROUGH = [
   "response_type",
@@ -66,15 +92,21 @@ export default async function ConsentPage({
     );
   }
 
-  const { params, clientName, orgName } = result.data;
+  const { params, clientName, clientLogo, orgName, orgLogo } = result.data;
+  const clientLabel = clientName || "An MCP client";
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
+          <div className="mb-5 flex items-center justify-center gap-3">
+            <LogoBadge label={clientLabel} logo={clientLogo} />
+            <FiArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+            <LogoBadge label={orgName} logo={orgLogo} />
+          </div>
           <h1 className="text-2xl font-bold">Authorize access</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            <strong className="text-foreground">{clientName || "An MCP client"}</strong>{" "}
+            <strong className="text-foreground">{clientLabel}</strong>{" "}
             wants to connect to{" "}
             <strong className="text-foreground">{orgName}</strong> on your behalf
             as <strong className="text-foreground">{session.user.email}</strong>.

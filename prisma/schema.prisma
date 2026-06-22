@@ -66,6 +66,7 @@ model Organization {
   id          String    @id @default(cuid())
   name        String
   slug        String    @unique
+  logoUrl     String? // data URI or URL shown on the consent screen
   suspendedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -193,6 +194,7 @@ model OAuthClient {
   clientSecretHash        String? // null = public client (PKCE only)
   redirectUris            String[]
   clientName              String?
+  logoUri                 String? // RFC 7591 logo_uri, shown on the consent screen
   tokenEndpointAuthMethod String   @default("none") // "none" | "client_secret_post"
   grantTypes              String[] @default(["authorization_code", "refresh_token"])
   createdAt               DateTime @default(now())

@@ -2,6 +2,7 @@ import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
 import { extensions } from "@/extensions";
 import { SettingsForm } from "./settings-form";
+import { OrgLogoForm } from "./org-logo-form";
 import { DangerZone } from "./danger-zone";
 import { LogoutLink } from "./logout-link";
 import { Appearance } from "./appearance";
@@ -32,6 +33,8 @@ export default async function SettingsPage() {
             </p>
           )}
         </div>
+
+        <OrgLogoForm name={org.name} logoUrl={org.logoUrl} />
 
         <Appearance />
 
