@@ -234,13 +234,13 @@ export function ChannelDetail({
           {deliveryMode === "socket" ? (
             <p className="mt-2 text-xs text-muted-foreground">
               Delivery mode: <span className="font-medium">Socket Mode</span>.
-              The TeamRouter server keeps a WebSocket open to Slack — no public
+              The TeamCP server keeps a WebSocket open to Slack — no public
               URL required.
             </p>
           ) : deliveryMode === "polling" ? (
             <p className="mt-2 text-xs text-muted-foreground">
               Delivery mode: <span className="font-medium">long-polling</span>.
-              The TeamRouter server polls Telegram for new messages — no public
+              The TeamCP server polls Telegram for new messages — no public
               URL required.
             </p>
           ) : channel.type === "SLACK" ? (
@@ -275,7 +275,7 @@ export function ChannelDetail({
           <h2 className="font-semibold">Link your account</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             Generate a one-time code (valid 15 min), DM the bot with it, and
-            this account will be linked to your TeamRouter membership.
+            this account will be linked to your TeamCP membership.
           </p>
           <div className="mt-3 flex items-center gap-3">
             <button

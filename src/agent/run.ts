@@ -484,7 +484,7 @@ async function persistMessage(
 
 function buildSystemPrompt(member: AuthenticatedMember): string {
   const parts = [
-    `You are an assistant for ${member.name || member.email}, an employee at their organization on TeamRouter.`,
+    `You are an assistant for ${member.name || member.email}, an employee at their organization on TeamCP.`,
     `You can call the tools listed for this user — they are scoped to what the organization owner has permitted.`,
     `If a tool call is denied, queued for admin approval, or returns an error, explain it plainly to the user.`,
   ];
