@@ -1,6 +1,7 @@
 import { decrypt } from "@/lib/crypto";
 import type { Channel } from "@prisma/client";
 import type { InboundMessage } from "../interface";
+import { MAX_MESSAGE_LENGTH, chunkMarkdown, htmlToPlainText, markdownToHtml } from "./markdown";
 
 /**
  * Thin wrapper around the Telegram Bot API. Each org brings its own bot token
@@ -10,9 +11,6 @@ import type { InboundMessage } from "../interface";
  */
 
 const API_BASE = "https://api.telegram.org";
-
-// Telegram rejects messages longer than 4096 UTF-16 code units.
-const MAX_MESSAGE_LENGTH = 4096;
 
 export interface TelegramUpdate {
   update_id: number;
@@ -82,6 +80,63 @@ export async function sendMessage(token: string, chatId: number | string, text: 
     const chunk = text.slice(i, i + MAX_MESSAGE_LENGTH);
     await call(token, "sendMessage", { chat_id: chatId, text: chunk });
   }
+}
+
+/**
+ * Send an assistant reply, rendering the Markdown the agent emits as Telegram
+ * HTML so the user sees formatted text (bold, code, links, …) instead of raw
+ * markup. Splits on Markdown boundaries so each message is valid, balanced
+ * HTML, and falls back to plain text if Telegram ever rejects the markup so a
+ * reply is never silently dropped.
+ */
+export async function sendFormattedMessage(
+  token: string,
+  chatId: number | string,
+  markdown: string
+) {
+  const source = markdown.trim() || "(no response)";
+  for (const chunk of chunkMarkdown(source)) {
+    const html = markdownToHtml(chunk);
+    // A single chunk is normally within the limit; hard-split the rare oversized
+    // one (e.g. a huge code block) at line boundaries as a last resort.
+    for (const piece of hardSplit(html, MAX_MESSAGE_LENGTH)) {
+      await sendHtmlPiece(token, chatId, piece);
+    }
+  }
+}
+
+async function sendHtmlPiece(token: string, chatId: number | string, html: string) {
+  try {
+    await call(token, "sendMessage", {
+      chat_id: chatId,
+      text: html,
+      parse_mode: "HTML",
+    });
+  } catch (err) {
+    // Unbalanced/unsupported markup → Telegram 400. Resend as plain text rather
+    // than lose the reply.
+    if (err instanceof TelegramApiError && /can't parse|entities|tag/i.test(err.description)) {
+      await sendMessage(token, chatId, htmlToPlainText(html));
+      return;
+    }
+    throw err;
+  }
+}
+
+/** Split text into <=max pieces, preferring the last newline before the cap. */
+function hardSplit(text: string, max: number): string[] {
+  if (text.length <= max) return [text];
+  const pieces: string[] = [];
+  let rest = text;
+  while (rest.length > max) {
+    const slice = rest.slice(0, max);
+    const nl = slice.lastIndexOf("\n");
+    const cut = nl > max * 0.5 ? nl : max;
+    pieces.push(rest.slice(0, cut));
+    rest = rest.slice(cut).replace(/^\n/, "");
+  }
+  if (rest) pieces.push(rest);
+  return pieces;
 }
 
 /**

@@ -6,7 +6,7 @@
  */
 import type { AgentEvent } from "@/agent/run";
 import type { ReplyStream } from "@/channels/interface";
-import { clearMessageDraft, sendChatAction, sendMessage, sendMessageDraft } from "./api";
+import { clearMessageDraft, sendChatAction, sendFormattedMessage, sendMessageDraft } from "./api";
 
 // Telegram's typing status lasts ~5s; refresh it a touch sooner so it never lapses.
 const TYPING_REFRESH_MS = 4000;
@@ -51,10 +51,12 @@ export class TelegramReplyStream implements ReplyStream {
       clearInterval(this.typingTimer);
       this.typingTimer = null;
     }
-    // Commit the real message, then clear the streaming draft. Guard against an
-    // empty turn so we never replace a live "typing…" with silence. Clearing is
-    // best-effort: a failed clear leaves a stale draft, never a missing reply.
-    await sendMessage(this.token, this.chatId, assistantText.trim() || "(no response)");
+    // Commit the real message (Markdown rendered as Telegram HTML), then clear
+    // the streaming draft. sendFormattedMessage guards the empty case and falls
+    // back to plain text, so we never replace a live "typing…" with silence.
+    // Clearing is best-effort: a failed clear leaves a stale draft, never a
+    // missing reply.
+    await sendFormattedMessage(this.token, this.chatId, assistantText);
     await clearMessageDraft(this.token, this.chatId).catch((err) =>
       console.error("[telegram] clearMessageDraft failed", err)
     );
