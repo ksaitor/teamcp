@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import type { McpPreset } from "@/lib/connectors-catalog";
 
 type AuthMode = "none" | "token" | "oauth";
 type Phase = "input" | "token" | "oauth" | "working";
@@ -24,13 +25,13 @@ function domainFromUrl(raw: string): string | null {
   }
 }
 
-export function CustomMcpWizard() {
+export function CustomMcpWizard({ preset }: { preset?: McpPreset }) {
   const router = useRouter();
 
   const [phase, setPhase] = useState<Phase>("input");
-  const [name, setName] = useState("");
+  const [name, setName] = useState(preset?.defaultName ?? "");
   const [nameEdited, setNameEdited] = useState(false);
-  const [serverUrl, setServerUrl] = useState("");
+  const [serverUrl, setServerUrl] = useState(preset?.serverUrl ?? "");
   const [token, setToken] = useState("");
   const [probe, setProbe] = useState<ProbeResult | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -185,21 +186,27 @@ export function CustomMcpWizard() {
             <label className="block text-xs font-medium text-muted-foreground">
               Server URL
             </label>
-            <input
-              type="url"
-              value={serverUrl}
-              onChange={(e) => {
-                const v = e.target.value;
-                setServerUrl(v);
-                if (!nameEdited) {
-                  const d = domainFromUrl(v);
-                  if (d) setName(d);
-                }
-              }}
-              required
-              placeholder="https://mcp-server.example.com"
-              className={inputClass}
-            />
+            {preset ? (
+              <p className="mt-1 rounded-md border border-input bg-muted px-3 py-1.5 text-sm text-muted-foreground">
+                {serverUrl}
+              </p>
+            ) : (
+              <input
+                type="url"
+                value={serverUrl}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setServerUrl(v);
+                  if (!nameEdited) {
+                    const d = domainFromUrl(v);
+                    if (d) setName(d);
+                  }
+                }}
+                required
+                placeholder="https://mcp-server.example.com"
+                className={inputClass}
+              />
+            )}
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground">
