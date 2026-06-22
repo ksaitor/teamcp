@@ -1,5 +1,11 @@
 import type { IconType } from "react-icons";
-import { FiDatabase, FiServer, FiBarChart2, FiGlobe } from "react-icons/fi";
+import {
+  FiDatabase,
+  FiServer,
+  FiBarChart2,
+  FiGlobe,
+  FiTrendingUp,
+} from "react-icons/fi";
 import {
   SiMongodb,
   SiMysql,
@@ -73,6 +79,19 @@ export const connectorCatalog: ConnectorCatalogEntry[] = [
     mcpPreset: {
       serverUrl: "https://mcp.cloudflare.com/mcp",
       defaultName: "Cloudflare",
+    },
+  },
+  {
+    slug: "ahrefs",
+    type: "EXTERNAL_MCP",
+    label: "Ahrefs",
+    description:
+      "Pull live SEO data from Ahrefs via its hosted MCP server — backlinks, organic keywords, rank tracking, site audits, and Web Analytics.",
+    icon: FiTrendingUp,
+    available: true,
+    mcpPreset: {
+      serverUrl: "https://api.ahrefs.com/mcp/mcp",
+      defaultName: "Ahrefs",
     },
   },
   {
