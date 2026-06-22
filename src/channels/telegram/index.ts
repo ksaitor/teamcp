@@ -1,6 +1,6 @@
 import type { Channel } from "@prisma/client";
 import { getConfig } from "@/lib/config";
-import type { ChannelAdapter, ChannelRunner, InboundMessage } from "../interface";
+import type { ChannelAdapter, ChannelRunner, InboundMessage, ReplyStream } from "../interface";
 import {
   type TelegramUpdate,
   deleteWebhook,
@@ -11,6 +11,7 @@ import {
   updateToInbound,
 } from "./api";
 import { TelegramPoller } from "./poller";
+import { TelegramReplyStream } from "./stream";
 
 export type TelegramDeliveryMode = "webhook" | "polling";
 
@@ -49,6 +50,22 @@ export class TelegramChannelAdapter implements ChannelAdapter {
   ): Promise<void> {
     const token = getBotToken(channel);
     await sendMessage(token, threadRef.chatId, text);
+  }
+
+  /**
+   * Stream the turn: show "typing…" the moment the message lands, live-update a
+   * draft as the agent generates text, then commit the final message. Telegram
+   * is well-suited to this (native sendMessageDraft), so we always prefer it
+   * over the single-shot sendReply.
+   */
+  async beginReplyStream(
+    channel: Channel,
+    threadRef: Record<string, any>
+  ): Promise<ReplyStream> {
+    const token = getBotToken(channel);
+    const stream = new TelegramReplyStream(token, threadRef.chatId);
+    await stream.start();
+    return stream;
   }
 
   async testConnection(

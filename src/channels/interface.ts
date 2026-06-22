@@ -1,4 +1,5 @@
 import type { Channel, ChannelType } from "@prisma/client";
+import type { AgentEvent } from "@/agent/run";
 
 export interface InboundMessage {
   /** External user id (telegram chat_id, slack user id, etc.) */
@@ -32,6 +33,20 @@ export interface ChannelRunner {
   update(channel: Channel): void;
 }
 
+/**
+ * A live, in-progress reply for channels that can show output as it's produced
+ * (e.g. a typing indicator plus streaming partial text). The inbound pipeline
+ * drives one agent turn through `onEvent` (text deltas, tool start/stop), then
+ * calls `finish` exactly once with the completed assistant text to commit the
+ * reply and tear down any live preview.
+ */
+export interface ReplyStream {
+  /** Consume one streamed agent event. Must not throw or block the turn. */
+  onEvent(event: AgentEvent): void;
+  /** Commit the finished reply (and clear any live preview). Called once. */
+  finish(assistantText: string): Promise<void>;
+}
+
 export interface ChannelAdapter {
   type: ChannelType;
 
@@ -58,6 +73,18 @@ export interface ChannelAdapter {
     threadRef: Record<string, any>,
     text: string
   ): Promise<void>;
+
+  /**
+   * Optional: start a streaming reply so the user sees the assistant respond as
+   * it's generated (e.g. Telegram's typing indicator + sendMessageDraft). The
+   * inbound pipeline prefers this over `sendReply` when present, feeding it
+   * agent events and finishing with the completed text. Omit for channels that
+   * can only post a single finished message.
+   */
+  beginReplyStream?(
+    channel: Channel,
+    threadRef: Record<string, any>
+  ): Promise<ReplyStream>;
 
   /**
    * Validate credentials when the org creates/updates the channel.
