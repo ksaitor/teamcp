@@ -7,6 +7,12 @@ import { fileToAvatarDataUrl } from "@/lib/avatar";
 
 type Role = "OWNER" | "ADMIN" | "MEMBER";
 
+const ROLE_LABELS: Record<Role, string> = {
+  OWNER: "Owner",
+  ADMIN: "Admin",
+  MEMBER: "Member",
+};
+
 interface Props {
   membershipId: string;
   initial: {
@@ -39,6 +45,7 @@ export function MemberEditForm({ membershipId, initial, sessionRole, isSelf }: P
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [confirmingTransfer, setConfirmingTransfer] = useState(false);
+  const [editingField, setEditingField] = useState<string | null>(null);
 
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -141,36 +148,88 @@ export function MemberEditForm({ membershipId, initial, sessionRole, isSelf }: P
         </div>
 
         <div className="flex-1 space-y-2">
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Name"
-            className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-2xl font-bold focus:border-ring focus:outline-none"
-          />
-          <input
-            type="text"
-            value={jobTitle}
-            onChange={(e) => setJobTitle(e.target.value)}
-            placeholder="Job title (e.g. Marketing Manager)"
-            className="w-full rounded-md border border-input px-3 py-1.5 text-sm focus:border-ring focus:outline-none"
-          />
-          <p className="text-sm text-muted-foreground">{initial.email}</p>
+          {editingField === "name" ? (
+            <input
+              autoFocus
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={() => setEditingField(null)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === "Escape") {
+                  e.preventDefault();
+                  setEditingField(null);
+                }
+              }}
+              placeholder="Name"
+              className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-2xl font-bold focus:border-ring focus:outline-none"
+            />
+          ) : (
+            <div
+              onDoubleClick={() => setEditingField("name")}
+              title="Double-click to edit"
+              className="cursor-text rounded-md border border-transparent px-3 py-1.5 text-2xl font-bold hover:bg-accent"
+            >
+              {name || <span className="text-muted-foreground">Name</span>}
+            </div>
+          )}
+
+          {editingField === "jobTitle" ? (
+            <input
+              autoFocus
+              type="text"
+              value={jobTitle}
+              onChange={(e) => setJobTitle(e.target.value)}
+              onBlur={() => setEditingField(null)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === "Escape") {
+                  e.preventDefault();
+                  setEditingField(null);
+                }
+              }}
+              placeholder="Job title (e.g. Marketing Manager)"
+              className="w-full rounded-md border border-input px-3 py-1.5 text-sm focus:border-ring focus:outline-none"
+            />
+          ) : (
+            <div
+              onDoubleClick={() => setEditingField("jobTitle")}
+              title="Double-click to edit"
+              className="cursor-text rounded-md border border-transparent px-3 py-1.5 text-sm hover:bg-accent"
+            >
+              {jobTitle || (
+                <span className="text-muted-foreground">Job title (e.g. Marketing Manager)</span>
+              )}
+            </div>
+          )}
+
+          <p className="px-3 text-sm text-muted-foreground">{initial.email}</p>
 
           {!isSelf && (
-            <div className="flex items-center gap-2 pt-1">
+            <div className="flex items-center gap-2 px-3 pt-1">
               <label className="text-xs font-medium text-muted-foreground">Role</label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value as Role)}
-                className="rounded-md border border-input bg-background px-2 py-1 text-sm focus:border-ring focus:outline-none"
-              >
-                <option value="MEMBER">Member</option>
-                <option value="ADMIN">Admin</option>
-                <option value="OWNER" disabled={sessionRole !== "OWNER"}>
-                  Owner{sessionRole !== "OWNER" ? " (owners only)" : ""}
-                </option>
-              </select>
+              {editingField === "role" ? (
+                <select
+                  autoFocus
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as Role)}
+                  onBlur={() => setEditingField(null)}
+                  className="rounded-md border border-input bg-background px-2 py-1 text-sm focus:border-ring focus:outline-none"
+                >
+                  <option value="MEMBER">Member</option>
+                  <option value="ADMIN">Admin</option>
+                  <option value="OWNER" disabled={sessionRole !== "OWNER"}>
+                    Owner{sessionRole !== "OWNER" ? " (owners only)" : ""}
+                  </option>
+                </select>
+              ) : (
+                <span
+                  onDoubleClick={() => setEditingField("role")}
+                  title="Double-click to edit"
+                  className="cursor-text rounded-md border border-transparent px-2 py-1 text-sm hover:bg-accent"
+                >
+                  {ROLE_LABELS[role]}
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -182,17 +241,38 @@ export function MemberEditForm({ membershipId, initial, sessionRole, isSelf }: P
           Visible only to admins. Used as AI context so the assistant knows this member&apos;s role,
           job description, and what they&apos;re responsible for.
         </p>
-        <textarea
-          value={responsibilities}
-          onChange={(e) => setResponsibilities(e.target.value)}
-          placeholder={
-            "e.g. Marketing Manager. Owns the company blog and email campaigns. " +
-            "Responsible for SEO, content calendar, and tracking acquisition metrics. " +
-            "Does not handle billing, payroll, or product roadmap."
-          }
-          rows={5}
-          className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-ring focus:outline-none"
-        />
+        {editingField === "responsibilities" ? (
+          <textarea
+            autoFocus
+            value={responsibilities}
+            onChange={(e) => setResponsibilities(e.target.value)}
+            onBlur={() => setEditingField(null)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setEditingField(null);
+            }}
+            placeholder={
+              "e.g. Marketing Manager. Owns the company blog and email campaigns. " +
+              "Responsible for SEO, content calendar, and tracking acquisition metrics. " +
+              "Does not handle billing, payroll, or product roadmap."
+            }
+            rows={5}
+            className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-ring focus:outline-none"
+          />
+        ) : (
+          <div
+            onDoubleClick={() => setEditingField("responsibilities")}
+            title="Double-click to edit"
+            className="mt-2 min-h-[2.5rem] cursor-text whitespace-pre-wrap rounded-md border border-transparent px-3 py-2 text-sm hover:bg-accent"
+          >
+            {responsibilities || (
+              <span className="text-muted-foreground">
+                e.g. Marketing Manager. Owns the company blog and email campaigns. Responsible for
+                SEO, content calendar, and tracking acquisition metrics. Does not handle billing,
+                payroll, or product roadmap.
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       <div>
@@ -200,13 +280,33 @@ export function MemberEditForm({ membershipId, initial, sessionRole, isSelf }: P
         <p className="text-sm text-muted-foreground">
           Natural language instructions for AI filtering (applies to all connectors).
         </p>
-        <textarea
-          value={permissionInstructions}
-          onChange={(e) => setPermissionInstructions(e.target.value)}
-          placeholder="e.g., Marketing team member. No access to financial data, API keys, or employee salaries."
-          rows={3}
-          className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-ring focus:outline-none"
-        />
+        {editingField === "permissionInstructions" ? (
+          <textarea
+            autoFocus
+            value={permissionInstructions}
+            onChange={(e) => setPermissionInstructions(e.target.value)}
+            onBlur={() => setEditingField(null)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setEditingField(null);
+            }}
+            placeholder="e.g., Marketing team member. No access to financial data, API keys, or employee salaries."
+            rows={3}
+            className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-ring focus:outline-none"
+          />
+        ) : (
+          <div
+            onDoubleClick={() => setEditingField("permissionInstructions")}
+            title="Double-click to edit"
+            className="mt-2 min-h-[2.5rem] cursor-text whitespace-pre-wrap rounded-md border border-transparent px-3 py-2 text-sm hover:bg-accent"
+          >
+            {permissionInstructions || (
+              <span className="text-muted-foreground">
+                e.g., Marketing team member. No access to financial data, API keys, or employee
+                salaries.
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {confirmingTransfer && (
