@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
 import { TELEGRAM_DELIVERY_MODE } from "@/channels/telegram";
+import { SLACK_DELIVERY_MODE } from "@/channels/slack";
 import { ChannelDetail } from "./channel-detail";
 
 export default async function ChannelDetailPage({
@@ -69,7 +70,13 @@ export default async function ChannelDetailPage({
           webhookSecret: channel.webhookSecret,
           hasCredentials: !!channel.credentialsEncrypted,
         }}
-        deliveryMode={channel.type === "TELEGRAM" ? TELEGRAM_DELIVERY_MODE : null}
+        deliveryMode={
+          channel.type === "TELEGRAM"
+            ? TELEGRAM_DELIVERY_MODE
+            : channel.type === "SLACK"
+              ? SLACK_DELIVERY_MODE
+              : null
+        }
         identities={channel.identities.map((i) => ({
           id: i.id,
           externalId: i.externalId,

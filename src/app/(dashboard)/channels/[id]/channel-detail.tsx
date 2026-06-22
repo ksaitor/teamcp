@@ -41,8 +41,10 @@ export function ChannelDetail({
   channel: Channel;
   identities: Identity[];
   conversations: ConversationListItem[];
-  // Telegram-only: the deployment's global delivery mode, resolved server-side.
-  deliveryMode: "webhook" | "polling" | null;
+  // Bot channels only: the deployment's global delivery mode, resolved
+  // server-side. "polling" is Telegram long-polling; "socket" is Slack Socket
+  // Mode — both pull from the platform and need no public URL.
+  deliveryMode: "webhook" | "polling" | "socket" | null;
 }) {
   const router = useRouter();
   const [origin, setOrigin] = useState<string>("");
@@ -194,12 +196,29 @@ export function ChannelDetail({
             </div>
           </div>
 
-          {deliveryMode === "polling" ? (
+          {deliveryMode === "socket" ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Delivery mode: <span className="font-medium">Socket Mode</span>.
+              The TeamRouter server keeps a WebSocket open to Slack — no public
+              URL required.
+            </p>
+          ) : deliveryMode === "polling" ? (
             <p className="mt-2 text-xs text-muted-foreground">
               Delivery mode: <span className="font-medium">long-polling</span>.
               The TeamRouter server polls Telegram for new messages — no public
               URL required.
             </p>
+          ) : channel.type === "SLACK" ? (
+            <>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Delivery mode: <span className="font-medium">webhook</span>.
+                Paste this Request URL into your Slack app's Event Subscriptions;
+                Slack signs each request with your app's signing secret.
+              </p>
+              <div className="mt-3 space-y-2">
+                <CopyableValue label="Request URL" value={webhookUrl} />
+              </div>
+            </>
           ) : (
             <>
               <p className="mt-2 text-xs text-muted-foreground">
