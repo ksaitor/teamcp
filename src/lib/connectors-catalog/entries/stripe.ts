@@ -3,14 +3,14 @@ import { defineConnector } from "../types";
 
 export default defineConnector({
   slug: "stripe",
-  type: "STRIPE",
+  type: "EXTERNAL_MCP",
   label: "Stripe",
-  description: "Read payments, customers, and subscriptions from Stripe.",
+  description:
+    "Connect Stripe via its official hosted MCP server — payments, customers, subscriptions, invoices, and refunds.",
   icon: SiStripe,
   available: true,
-  credentialField: {
-    label: "API key",
-    inputType: "password",
-    placeholder: "sk_live_...",
+  mcpPreset: {
+    serverUrl: "https://mcp.stripe.com",
+    defaultName: "Stripe",
   },
 });
