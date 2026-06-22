@@ -7,10 +7,14 @@ import { issuer } from "@/lib/oauth/urls";
 
 const AUTH_CODE_TTL_MS = 60_000;
 
-function consentError(message: string) {
+// Status defaults to 307, but redirects that follow a POST (the consent form
+// submission) must use 303 so the browser switches to GET when following them.
+// Claude's redirect_uri (and our /consent page) only accept GET; a 307 would
+// re-issue the request as a POST and the target replies 405 Method Not Allowed.
+function consentError(message: string, status = 307) {
   const url = new URL("/consent", issuer());
   url.searchParams.set("error", message);
-  return NextResponse.redirect(url);
+  return NextResponse.redirect(url, status);
 }
 
 // GET /authorize — the OAuth 2.1 authorization endpoint. Validates the request,
@@ -57,7 +61,7 @@ export async function POST(req: NextRequest) {
 
   const result = await validateAuthorize(sp, session.user.id);
   if (!result.ok) {
-    return consentError(result.err.error);
+    return consentError(result.err.error, 303);
   }
   const { params, membershipId } = result.data;
 
@@ -66,7 +70,8 @@ export async function POST(req: NextRequest) {
       buildRedirect(params.redirectUri, {
         error: "access_denied",
         state: params.state,
-      })
+      }),
+      303
     );
   }
 
@@ -86,6 +91,7 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.redirect(
-    buildRedirect(params.redirectUri, { code, state: params.state })
+    buildRedirect(params.redirectUri, { code, state: params.state }),
+    303
   );
 }
