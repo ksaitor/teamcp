@@ -84,6 +84,40 @@ export async function sendMessage(token: string, chatId: number | string, text: 
   }
 }
 
+/**
+ * Show a status (default "typing…") in the chat. The status auto-clears after
+ * ~5s, so callers re-send it periodically to keep it alive across a long turn.
+ * https://core.telegram.org/bots/api#sendchataction
+ */
+export function sendChatAction(
+  token: string,
+  chatId: number | string,
+  action: string = "typing"
+) {
+  return call(token, "sendChatAction", { chat_id: chatId, action });
+}
+
+/**
+ * Stream a partial assistant message as a live "draft" the user watches being
+ * typed (Bot API 9.3+, opened to all bots in 9.5). Call repeatedly with the
+ * growing text, then commit the turn with `sendMessage` and clear the draft.
+ * It's built for high-frequency updates, so it avoids the 429s the old
+ * "send once, then editMessageText repeatedly" approach risked. Drafts share
+ * the message length cap, so we send only the head while a long reply streams;
+ * the committed `sendMessage` chunks the full text.
+ */
+export function sendMessageDraft(token: string, chatId: number | string, text: string) {
+  return call(token, "sendMessageDraft", {
+    chat_id: chatId,
+    text: text.slice(0, MAX_MESSAGE_LENGTH),
+  });
+}
+
+/** Clear the streaming draft (empty text, Bot API 10.0+) once the real message is committed. */
+export function clearMessageDraft(token: string, chatId: number | string) {
+  return call(token, "sendMessageDraft", { chat_id: chatId, text: "" });
+}
+
 export function setWebhook(token: string, url: string, secretToken: string) {
   return call(token, "setWebhook", {
     url,
