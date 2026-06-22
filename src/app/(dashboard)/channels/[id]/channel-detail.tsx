@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { FiCheck, FiCopy } from "react-icons/fi";
 
 interface Channel {
   id: string;
@@ -75,10 +76,22 @@ export function ChannelDetail({
   const [linkCode, setLinkCode] = useState<string | null>(null);
   const [linkLoading, setLinkLoading] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  async function copyLinkCode(code: string) {
+    try {
+      await navigator.clipboard.writeText(code);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 1500);
+    } catch {
+      // Clipboard may be unavailable (e.g. insecure context); ignore.
+    }
+  }
 
   async function generateLinkCode() {
     setLinkLoading(true);
     setLinkError(null);
+    setLinkCopied(false);
     const res = await fetch(`/api/channels/${channel.id}/link-codes`, {
       method: "POST",
     });
@@ -90,6 +103,8 @@ export function ChannelDetail({
     }
     const data = await res.json();
     setLinkCode(data.code);
+    // Copy the freshly generated code to the clipboard for convenience.
+    await copyLinkCode(data.code);
   }
 
   const [statusLoading, setStatusLoading] = useState(false);
@@ -272,11 +287,29 @@ export function ChannelDetail({
               {linkLoading ? "Generating…" : "Generate code"}
             </button>
             {linkCode && (
-              <code className="rounded-md bg-muted px-3 py-1.5 font-mono text-sm">
-                {linkCode}
-              </code>
+              <div className="flex items-center gap-2">
+                <code className="rounded-md bg-muted px-3 py-1.5 font-mono text-sm">
+                  {linkCode}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => copyLinkCode(linkCode)}
+                  aria-label={linkCopied ? "Copied" : "Copy code"}
+                  title={linkCopied ? "Copied" : "Copy code"}
+                  className="rounded-md border border-border p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                >
+                  {linkCopied ? (
+                    <FiCheck className="h-4 w-4 text-success" />
+                  ) : (
+                    <FiCopy className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             )}
           </div>
+          {linkCopied && (
+            <p className="mt-2 text-xs text-success">Code copied to clipboard.</p>
+          )}
           {linkError && (
             <p className="mt-2 text-xs text-destructive">{linkError}</p>
           )}
