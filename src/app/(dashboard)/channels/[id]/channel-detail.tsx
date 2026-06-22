@@ -126,15 +126,15 @@ export function ChannelDetail({
 
   return (
     <div className="space-y-6">
-      {channel.type !== "WEB" && (
+      {(
         <div className="rounded-md border border-border bg-card p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="font-semibold">Status</h2>
               <p className="mt-1 text-xs text-muted-foreground">
                 {isActive
-                  ? "This bot is enabled and responding to linked members."
-                  : "This bot is disabled. It won't receive or respond to messages."}
+                  ? "This channel is enabled and responding to linked members."
+                  : "Disabled — a kill switch. This channel won't receive or respond to messages until you re-enable it."}
               </p>
             </div>
             <div className="flex items-center gap-3">
