@@ -1,7 +1,7 @@
 import type { Channel } from "@prisma/client";
 import { prisma } from "@/db";
 import { sha256 } from "@/lib/crypto";
-import { runAgentTurn } from "@/agent/run";
+import { runAgentTurn, runAgentTurnStream } from "@/agent/run";
 import type { AuthenticatedMember } from "@/server/auth";
 import { getChannelAdapter } from "./registry";
 import type { InboundMessage } from "./interface";
@@ -88,6 +88,28 @@ export async function processInboundMessage(
     membershipId: membership.id,
     externalThreadId: inbound.externalThreadId,
   });
+
+  // Prefer streaming when the channel supports it (Telegram): show a typing
+  // indicator and stream partial output straight from the agent, then commit
+  // the final message. Otherwise fall back to a single completed reply.
+  if (adapter.beginReplyStream) {
+    const stream = await adapter.beginReplyStream(channel, inbound.threadRef);
+    try {
+      const result = await runAgentTurnStream(
+        { member, channel, conversation, userMessage: inbound.text },
+        (event) => stream.onEvent(event)
+      );
+      await stream.finish(result.assistantText);
+    } catch (err) {
+      // Commit a clear reply (and tear down the live draft) before bubbling up,
+      // so the user isn't left watching a frozen "typing…" indicator.
+      await stream
+        .finish("Sorry — something went wrong handling your message.")
+        .catch(() => {});
+      throw err;
+    }
+    return;
+  }
 
   const result = await runAgentTurn({
     member,
