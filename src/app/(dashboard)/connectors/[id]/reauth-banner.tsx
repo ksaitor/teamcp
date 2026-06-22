@@ -6,10 +6,13 @@ export function ReauthBanner({
   connectorId,
   status,
   authMode,
+  startPath,
 }: {
   connectorId: string;
   status: string;
   authMode?: string;
+  /** OAuth-start endpoint; defaults to the external-MCP route. */
+  startPath?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -17,7 +20,9 @@ export function ReauthBanner({
   async function reauth() {
     setBusy(true);
     setError("");
-    const res = await fetch(`/api/connectors/${connectorId}/oauth/start`, {
+    const res = await fetch(
+      startPath ?? `/api/connectors/${connectorId}/oauth/start`,
+      {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),

@@ -4,18 +4,18 @@ import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
 import { encrypt } from "@/lib/crypto";
 import { extensions } from "@/extensions";
+import { connectorCatalog } from "@/lib/connectors-catalog";
+
+// Valid connector types are whatever the catalog declares — a single source of
+// truth, so adding a connector means adding a catalog entry, not editing a list
+// here (or a Prisma enum).
+const VALID_TYPES = new Set(connectorCatalog.map((e) => e.type));
 
 const createConnectorSchema = z.object({
   name: z.string().min(1),
-  type: z.enum([
-    "POSTGRES",
-    "MYSQL",
-    "MONGODB",
-    "STRIPE",
-    "EXTERNAL_MCP",
-    "WEB_REQUEST",
-    "CUSTOM",
-  ]),
+  type: z
+    .string()
+    .refine((t) => VALID_TYPES.has(t), { message: "Unknown connector type" }),
   credentials: z.string().min(1),
   config: z.record(z.string(), z.any()).optional(),
   skipAiFilter: z.boolean().optional(),

@@ -3,9 +3,11 @@ import { notFound } from "next/navigation";
 import { FiArrowLeft } from "react-icons/fi";
 import { requireAdmin } from "@/lib/auth";
 import { getCatalogEntry } from "@/lib/connectors-catalog";
+import { xeroRedirectUri } from "@/connectors/xero/oauth";
 import { ConnectorConfigForm } from "./connector-config-form";
 import { CustomMcpWizard } from "./custom-mcp-wizard";
 import { WebRequestForm } from "./web-request-form";
+import { XeroWizard } from "./xero-wizard";
 
 export default async function NewConnectorConfigPage({
   params,
@@ -20,7 +22,9 @@ export default async function NewConnectorConfigPage({
     notFound();
   }
   const needsCredentialField =
-    entry.type !== "EXTERNAL_MCP" && entry.type !== "WEB_REQUEST";
+    entry.type !== "EXTERNAL_MCP" &&
+    entry.type !== "WEB_REQUEST" &&
+    entry.type !== "XERO";
   if (needsCredentialField && !entry.credentialField) {
     notFound();
   }
@@ -51,6 +55,8 @@ export default async function NewConnectorConfigPage({
 
       {entry.type === "EXTERNAL_MCP" ? (
         <CustomMcpWizard preset={entry.mcpPreset} />
+      ) : entry.type === "XERO" ? (
+        <XeroWizard redirectUri={xeroRedirectUri()} />
       ) : entry.type === "WEB_REQUEST" ? (
         <WebRequestForm />
       ) : entry.credentialField ? (

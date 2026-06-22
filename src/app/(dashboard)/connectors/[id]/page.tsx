@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ConnectorControls } from "./connector-controls";
 import { ToolList } from "./tool-list";
 import { ReauthBanner } from "./reauth-banner";
+import { XeroTenantPicker } from "./xero-tenant-picker";
 import { AccessManager } from "@/components/access/access-manager";
 
 export default async function ConnectorDetailPage({
@@ -21,6 +22,7 @@ export default async function ConnectorDetailPage({
     where: { id, organizationId: session.organizationId },
     include: {
       tools: { orderBy: { toolName: "asc" } },
+      oauth: true,
       memberAccess: {
         include: {
           membership: {
@@ -39,7 +41,17 @@ export default async function ConnectorDetailPage({
   });
 
   const isExternalMcp = connector.type === "EXTERNAL_MCP";
+  const isXero = connector.type === "XERO";
   const config = (connector.config ?? {}) as Record<string, any>;
+
+  const xeroOrgs =
+    (connector.oauth?.discoveryState as { xeroOrgs?: { tenantId: string; tenantName: string }[] } | null)
+      ?.xeroOrgs ?? [];
+  const xeroNeedsOrgPick =
+    isXero && connector.status === "PENDING" && xeroOrgs.length > 0;
+  const xeroNeedsReauth =
+    isXero && !xeroNeedsOrgPick &&
+    (connector.status === "ERROR" || connector.status === "PENDING");
 
   const tools = connector.tools.map((t) => ({
     id: t.id,
@@ -95,6 +107,19 @@ export default async function ConnectorDetailPage({
             authMode={config.authMode}
           />
         )}
+
+      {xeroNeedsOrgPick && (
+        <XeroTenantPicker connectorId={connector.id} orgs={xeroOrgs} />
+      )}
+
+      {xeroNeedsReauth && (
+        <ReauthBanner
+          connectorId={connector.id}
+          status={connector.status}
+          authMode="oauth"
+          startPath={`/api/connectors/${connector.id}/xero/start`}
+        />
+      )}
 
       <div className="mt-6 rounded-md border border-border bg-card p-4">
         <h2 className="text-sm font-medium text-muted-foreground">Configuration</h2>
