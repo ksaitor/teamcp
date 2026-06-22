@@ -27,12 +27,14 @@ the MCP SDK, etc.); the catalog stays client-safe.
    export default new MyConnector();
    ```
 
-2. Add the matching `type` to the `ConnectorType` enum in `prisma/schema.prisma`
-   and the accepted-types list in `src/app/api/connectors/route.ts`.
-3. Add a gallery entry in `src/lib/connectors-catalog/entries/<name>.ts`.
+2. Add a gallery entry in `src/lib/connectors-catalog/entries/<name>.ts` with a
+   matching `type`. That entry is the single source of truth for valid types —
+   the create API (`src/app/api/connectors/route.ts`) validates against the
+   catalog, and `Connector.type` is a plain `String` column, so **no Prisma
+   schema or enum change is ever needed** to add a connector.
 
 > Connectors that reuse an existing type — e.g. any hosted MCP server uses
-> `EXTERNAL_MCP` — only need step 3 (a catalog entry); no new directory here.
+> `EXTERNAL_MCP` — only need step 2 (a catalog entry); no new directory here.
 
 The registry runs only inside the MCP gateway (`src/server/*`) under Bun, which
 is why filesystem discovery + dynamic `import()` is used here rather than a

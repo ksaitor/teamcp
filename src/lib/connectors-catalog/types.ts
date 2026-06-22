@@ -1,13 +1,21 @@
 import type { IconType } from "react-icons";
 
+/**
+ * Connector kinds. The string literals are editor hints for the connectors that
+ * ship today; `(string & {})` keeps the union open so a new built-in connector
+ * needs only its directory + a catalog entry — no edit here, and never a schema
+ * change. The create API validates the value against the catalog at runtime.
+ */
 export type ConnectorType =
   | "POSTGRES"
   | "MYSQL"
   | "MONGODB"
   | "STRIPE"
+  | "XERO"
   | "EXTERNAL_MCP"
   | "WEB_REQUEST"
-  | "CUSTOM";
+  | "CUSTOM"
+  | (string & {});
 
 export interface CredentialField {
   label: string;

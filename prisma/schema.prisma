@@ -221,7 +221,11 @@ model Connector {
   organizationId       String
   organization         Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   name                 String
-  type                 ConnectorType
+  // Connector kind, e.g. "POSTGRES" / "EXTERNAL_MCP" / "XERO". Plain string by
+  // design: connectors are auto-discovered (src/connectors/registry.ts) and
+  // listed in the catalog (src/lib/connectors-catalog), so adding one never
+  // touches this schema. Validated against the catalog in the create API.
+  type                 String
   credentialsEncrypted String          @db.Text
   config               Json            @default("{}")
   skipAiFilter         Boolean         @default(false)
@@ -233,16 +237,6 @@ model Connector {
   tools        ConnectorTool[]
   auditLogs    AuditLog[]
   oauth        ConnectorOAuth?
-}
-
-enum ConnectorType {
-  POSTGRES
-  MYSQL
-  MONGODB
-  STRIPE
-  EXTERNAL_MCP
-  WEB_REQUEST
-  CUSTOM
 }
 
 // A per-org LLM provider connection. Powers the AI filter today; chat/agent surfaces later.
