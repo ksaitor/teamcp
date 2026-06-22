@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
 import { extensions } from "@/extensions";
+import { appVersionLabel, appCommitUrl } from "@/lib/version";
 import { SettingsForm } from "./settings-form";
 import { OrgLogoForm } from "./org-logo-form";
 import { DangerZone } from "./danger-zone";
@@ -52,6 +54,24 @@ export default async function SettingsPage() {
         <div className="flex justify-end border-t border-border pt-4">
           <LogoutLink />
         </div>
+
+        {appVersionLabel && (
+          <p className="text-center text-xs text-muted-foreground">
+            TeamRouter version{" "}
+            {appCommitUrl ? (
+              <Link
+                href={appCommitUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-foreground hover:underline"
+              >
+                {appVersionLabel}
+              </Link>
+            ) : (
+              <span className="font-mono text-foreground">{appVersionLabel}</span>
+            )}
+          </p>
+        )}
       </div>
     </div>
   );
