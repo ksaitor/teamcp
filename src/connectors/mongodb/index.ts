@@ -222,3 +222,5 @@ export class MongoDBConnector implements ConnectorInstance {
     }
   }
 }
+
+export default new MongoDBConnector();

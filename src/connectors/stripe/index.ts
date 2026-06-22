@@ -225,3 +225,5 @@ export class StripeConnector implements ConnectorInstance {
     }
   }
 }
+
+export default new StripeConnector();

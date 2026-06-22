@@ -192,3 +192,5 @@ export class PostgresConnector implements ConnectorInstance {
     }
   }
 }
+
+export default new PostgresConnector();

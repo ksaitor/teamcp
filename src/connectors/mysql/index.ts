@@ -201,3 +201,5 @@ export class MySQLConnector implements ConnectorInstance {
     }
   }
 }
+
+export default new MySQLConnector();
