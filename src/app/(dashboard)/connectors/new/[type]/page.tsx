@@ -50,7 +50,7 @@ export default async function NewConnectorConfigPage({
       </div>
 
       {entry.type === "EXTERNAL_MCP" ? (
-        <CustomMcpWizard />
+        <CustomMcpWizard preset={entry.mcpPreset} />
       ) : entry.type === "WEB_REQUEST" ? (
         <WebRequestForm />
       ) : entry.credentialField ? (

@@ -1,6 +1,12 @@
 import type { IconType } from "react-icons";
 import { FiDatabase, FiServer, FiBarChart2, FiGlobe } from "react-icons/fi";
-import { SiMongodb, SiMysql, SiStripe, SiSnowflake } from "react-icons/si";
+import {
+  SiMongodb,
+  SiMysql,
+  SiStripe,
+  SiSnowflake,
+  SiCloudflare,
+} from "react-icons/si";
 
 export type ConnectorType =
   | "POSTGRES"
@@ -19,6 +25,16 @@ export interface CredentialField {
   configKey?: string;
 }
 
+/**
+ * Pre-configured external MCP server. When present on an EXTERNAL_MCP entry, the
+ * custom-MCP wizard skips asking for a URL and connects straight to this server
+ * (auth — usually OAuth — is still auto-detected on connect).
+ */
+export interface McpPreset {
+  serverUrl: string;
+  defaultName: string;
+}
+
 export interface ConnectorCatalogEntry {
   slug: string;
   type: ConnectorType;
@@ -27,6 +43,8 @@ export interface ConnectorCatalogEntry {
   icon: IconType;
   available: boolean;
   credentialField?: CredentialField;
+  /** Set on EXTERNAL_MCP entries that point at a known hosted MCP server. */
+  mcpPreset?: McpPreset;
 }
 
 export const connectorCatalog: ConnectorCatalogEntry[] = [
@@ -42,6 +60,19 @@ export const connectorCatalog: ConnectorCatalogEntry[] = [
       inputType: "url",
       placeholder: "https://mcp-server.example.com",
       configKey: "serverUrl",
+    },
+  },
+  {
+    slug: "cloudflare",
+    type: "EXTERNAL_MCP",
+    label: "Cloudflare",
+    description:
+      "Manage Cloudflare via its hosted MCP server — DNS, Workers, R2, Zero Trust, and 2,500+ API endpoints.",
+    icon: SiCloudflare,
+    available: true,
+    mcpPreset: {
+      serverUrl: "https://mcp.cloudflare.com/mcp",
+      defaultName: "Cloudflare",
     },
   },
   {
