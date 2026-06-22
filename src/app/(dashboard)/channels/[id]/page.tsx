@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
 import { TELEGRAM_DELIVERY_MODE } from "@/channels/telegram";
+import { getBotToken, getMe } from "@/channels/telegram/api";
 import { SLACK_DELIVERY_MODE } from "@/channels/slack";
 import { ChannelDetail } from "./channel-detail";
 
@@ -42,6 +43,18 @@ export default async function ChannelDetailPage({
     },
   });
 
+  // Resolve the Telegram bot's @username via getMe so we can show it and link
+  // straight to the bot in Telegram. Best-effort: a bad/rotated token just
+  // hides the button rather than breaking the page.
+  let botUsername: string | null = null;
+  if (channel.type === "TELEGRAM" && channel.credentialsEncrypted) {
+    try {
+      botUsername = (await getMe(getBotToken(channel))).username ?? null;
+    } catch {
+      botUsername = null;
+    }
+  }
+
   // Webhook URL — best effort. We don't know the public origin server-side, so
   // we render a placeholder and let the client compute it on mount.
   return (
@@ -69,6 +82,7 @@ export default async function ChannelDetailPage({
           defaultLlmProviderId: channel.defaultLlmProviderId,
           webhookSecret: channel.webhookSecret,
           hasCredentials: !!channel.credentialsEncrypted,
+          botUsername,
         }}
         deliveryMode={
           channel.type === "TELEGRAM"

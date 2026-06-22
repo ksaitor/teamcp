@@ -13,6 +13,9 @@ interface Channel {
   defaultLlmProviderId: string | null;
   webhookSecret: string;
   hasCredentials: boolean;
+  // Telegram bots only: the bot's @username (sans @), resolved via getMe.
+  // Null when not a Telegram bot or the token couldn't be resolved.
+  botUsername?: string | null;
 }
 
 interface Identity {
@@ -195,6 +198,23 @@ export function ChannelDetail({
               </button>
             </div>
           </div>
+
+          {channel.type === "TELEGRAM" && channel.botUsername && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md bg-muted px-3 py-2">
+              <div className="text-sm">
+                <span className="text-muted-foreground">Bot username: </span>
+                <span className="font-medium">@{channel.botUsername}</span>
+              </div>
+              <a
+                href={`https://t.me/${channel.botUsername}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Open in Telegram →
+              </a>
+            </div>
+          )}
 
           {deliveryMode === "socket" ? (
             <p className="mt-2 text-xs text-muted-foreground">
