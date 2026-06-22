@@ -1,24 +1,100 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
+import { LogsFilters, type FilterOption } from "./logs-filters";
 
-export default async function LogsPage() {
+function parseDate(value: string | undefined): Date | undefined {
+  if (!value) return undefined;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
+export default async function LogsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    member?: string;
+    connector?: string;
+    tool?: string;
+    from?: string;
+    to?: string;
+  }>;
+}) {
   const session = await requireAdmin();
+  const { member, connector, tool, from, to } = await searchParams;
 
-  const logs = await prisma.auditLog.findMany({
-    where: { organizationId: session.organizationId },
-    orderBy: { timestamp: "desc" },
-    take: 100,
-    include: {
-      membership: {
-        include: { user: { select: { name: true, email: true } } },
+  const fromDate = parseDate(from);
+  const toDate = parseDate(to);
+  // `to` is a calendar day; include the whole day by extending to the next midnight.
+  const toEnd = toDate ? new Date(toDate.getTime() + 24 * 60 * 60 * 1000) : undefined;
+
+  const where: Prisma.AuditLogWhereInput = {
+    organizationId: session.organizationId,
+    ...(member ? { membershipId: member } : {}),
+    ...(connector ? { connectorId: connector } : {}),
+    ...(tool ? { toolName: tool } : {}),
+    ...(fromDate || toEnd
+      ? {
+          timestamp: {
+            ...(fromDate ? { gte: fromDate } : {}),
+            ...(toEnd ? { lt: toEnd } : {}),
+          },
+        }
+      : {}),
+  };
+
+  const [logs, memberships, connectors, toolNames] = await Promise.all([
+    prisma.auditLog.findMany({
+      where,
+      orderBy: { timestamp: "desc" },
+      take: 100,
+      include: {
+        membership: {
+          include: { user: { select: { name: true, email: true } } },
+        },
+        connector: true,
       },
-      connector: true,
-    },
-  });
+    }),
+    prisma.orgMembership.findMany({
+      where: { organizationId: session.organizationId },
+      include: { user: { select: { name: true, email: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.connector.findMany({
+      where: { organizationId: session.organizationId },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+    prisma.auditLog.findMany({
+      where: { organizationId: session.organizationId },
+      distinct: ["toolName"],
+      orderBy: { toolName: "asc" },
+      select: { toolName: true },
+    }),
+  ]);
+
+  const memberOptions: FilterOption[] = memberships.map((m) => ({
+    value: m.id,
+    label: m.user.name || m.user.email,
+  }));
+  const connectorOptions: FilterOption[] = connectors.map((c) => ({
+    value: c.id,
+    label: c.name,
+  }));
+  const toolOptions: FilterOption[] = toolNames.map((t) => ({
+    value: t.toolName,
+    label: t.toolName,
+  }));
 
   return (
     <div>
       <h1 className="text-2xl font-bold">Audit Logs</h1>
+
+      <LogsFilters
+        members={memberOptions}
+        connectors={connectorOptions}
+        tools={toolOptions}
+      />
 
       <div className="mt-6 overflow-x-auto">
         <table className="w-full text-left text-sm">
@@ -68,7 +144,7 @@ export default async function LogsPage() {
             {logs.length === 0 && (
               <tr>
                 <td colSpan={6} className="py-8 text-center text-muted-foreground">
-                  No audit logs yet.
+                  No audit logs match these filters.
                 </td>
               </tr>
             )}
