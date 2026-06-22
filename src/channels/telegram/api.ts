@@ -1,6 +1,7 @@
 import { decrypt } from "@/lib/crypto";
 import type { Channel } from "@prisma/client";
 import type { InboundMessage } from "../interface";
+import { MAX_MESSAGE_LENGTH, chunkMarkdown, htmlToPlainText, markdownToHtml } from "./markdown";
 
 /**
  * Thin wrapper around the Telegram Bot API. Each org brings its own bot token
@@ -10,9 +11,6 @@ import type { InboundMessage } from "../interface";
  */
 
 const API_BASE = "https://api.telegram.org";
-
-// Telegram rejects messages longer than 4096 UTF-16 code units.
-const MAX_MESSAGE_LENGTH = 4096;
 
 export interface TelegramUpdate {
   update_id: number;
@@ -82,6 +80,97 @@ export async function sendMessage(token: string, chatId: number | string, text: 
     const chunk = text.slice(i, i + MAX_MESSAGE_LENGTH);
     await call(token, "sendMessage", { chat_id: chatId, text: chunk });
   }
+}
+
+/**
+ * Send an assistant reply, rendering the Markdown the agent emits as Telegram
+ * HTML so the user sees formatted text (bold, code, links, …) instead of raw
+ * markup. Splits on Markdown boundaries so each message is valid, balanced
+ * HTML, and falls back to plain text if Telegram ever rejects the markup so a
+ * reply is never silently dropped.
+ */
+export async function sendFormattedMessage(
+  token: string,
+  chatId: number | string,
+  markdown: string
+) {
+  const source = markdown.trim() || "(no response)";
+  for (const chunk of chunkMarkdown(source)) {
+    const html = markdownToHtml(chunk);
+    // A single chunk is normally within the limit; hard-split the rare oversized
+    // one (e.g. a huge code block) at line boundaries as a last resort.
+    for (const piece of hardSplit(html, MAX_MESSAGE_LENGTH)) {
+      await sendHtmlPiece(token, chatId, piece);
+    }
+  }
+}
+
+async function sendHtmlPiece(token: string, chatId: number | string, html: string) {
+  try {
+    await call(token, "sendMessage", {
+      chat_id: chatId,
+      text: html,
+      parse_mode: "HTML",
+    });
+  } catch (err) {
+    // Unbalanced/unsupported markup → Telegram 400. Resend as plain text rather
+    // than lose the reply.
+    if (err instanceof TelegramApiError && /can't parse|entities|tag/i.test(err.description)) {
+      await sendMessage(token, chatId, htmlToPlainText(html));
+      return;
+    }
+    throw err;
+  }
+}
+
+/** Split text into <=max pieces, preferring the last newline before the cap. */
+function hardSplit(text: string, max: number): string[] {
+  if (text.length <= max) return [text];
+  const pieces: string[] = [];
+  let rest = text;
+  while (rest.length > max) {
+    const slice = rest.slice(0, max);
+    const nl = slice.lastIndexOf("\n");
+    const cut = nl > max * 0.5 ? nl : max;
+    pieces.push(rest.slice(0, cut));
+    rest = rest.slice(cut).replace(/^\n/, "");
+  }
+  if (rest) pieces.push(rest);
+  return pieces;
+}
+
+/**
+ * Show a status (default "typing…") in the chat. The status auto-clears after
+ * ~5s, so callers re-send it periodically to keep it alive across a long turn.
+ * https://core.telegram.org/bots/api#sendchataction
+ */
+export function sendChatAction(
+  token: string,
+  chatId: number | string,
+  action: string = "typing"
+) {
+  return call(token, "sendChatAction", { chat_id: chatId, action });
+}
+
+/**
+ * Stream a partial assistant message as a live "draft" the user watches being
+ * typed (Bot API 9.3+, opened to all bots in 9.5). Call repeatedly with the
+ * growing text, then commit the turn with `sendMessage` and clear the draft.
+ * It's built for high-frequency updates, so it avoids the 429s the old
+ * "send once, then editMessageText repeatedly" approach risked. Drafts share
+ * the message length cap, so we send only the head while a long reply streams;
+ * the committed `sendMessage` chunks the full text.
+ */
+export function sendMessageDraft(token: string, chatId: number | string, text: string) {
+  return call(token, "sendMessageDraft", {
+    chat_id: chatId,
+    text: text.slice(0, MAX_MESSAGE_LENGTH),
+  });
+}
+
+/** Clear the streaming draft (empty text, Bot API 10.0+) once the real message is committed. */
+export function clearMessageDraft(token: string, chatId: number | string) {
+  return call(token, "sendMessageDraft", { chat_id: chatId, text: "" });
 }
 
 export function setWebhook(token: string, url: string, secretToken: string) {
