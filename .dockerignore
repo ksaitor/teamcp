@@ -1,5 +1,7 @@
 node_modules
 .next
-.git
 .env
 .env.local
+
+# NOTE: .git is intentionally NOT ignored — the build reads `git rev-parse HEAD`
+# to stamp the running version onto /settings (see Dockerfile + src/lib/version).
