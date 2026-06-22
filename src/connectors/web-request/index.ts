@@ -271,3 +271,5 @@ export class WebRequestConnector implements ConnectorInstance {
     }
   }
 }
+
+export default new WebRequestConnector();
