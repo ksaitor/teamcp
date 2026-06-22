@@ -32,7 +32,7 @@ function NavContent({ navItems, email }: { navItems: NavItem[]; email: string })
     <>
       <div className="px-5 py-5 text-center">
         <Link href="/dashboard" className="text-lg font-semibold tracking-tight">
-          TeamRouter
+          teamcp
         </Link>
       </div>
 
@@ -106,7 +106,7 @@ export function DashboardNav({ navItems, email }: { navItems: NavItem[]; email: 
       {/* Mobile top bar */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur-xl md:hidden">
         <Link href="/dashboard" className="text-base font-semibold tracking-tight">
-          TeamRouter
+          teamcp
         </Link>
         <button
           type="button"

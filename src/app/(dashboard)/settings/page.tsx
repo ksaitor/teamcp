@@ -57,7 +57,7 @@ export default async function SettingsPage() {
 
         {appVersionLabel && (
           <p className="text-center text-xs text-muted-foreground">
-            TeamRouter version{" "}
+            TeamCP version{" "}
             {appCommitUrl ? (
               <Link
                 href={appCommitUrl}
