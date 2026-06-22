@@ -6,6 +6,7 @@ import {
   SiStripe,
   SiSnowflake,
   SiCloudflare,
+  SiNotion,
 } from "react-icons/si";
 
 export type ConnectorType =
@@ -73,6 +74,19 @@ export const connectorCatalog: ConnectorCatalogEntry[] = [
     mcpPreset: {
       serverUrl: "https://mcp.cloudflare.com/mcp",
       defaultName: "Cloudflare",
+    },
+  },
+  {
+    slug: "notion",
+    type: "EXTERNAL_MCP",
+    label: "Notion",
+    description:
+      "Connect Notion via its hosted MCP server — search, read, and update pages, databases, and comments.",
+    icon: SiNotion,
+    available: true,
+    mcpPreset: {
+      serverUrl: "https://mcp.notion.com/mcp",
+      defaultName: "Notion",
     },
   },
   {
