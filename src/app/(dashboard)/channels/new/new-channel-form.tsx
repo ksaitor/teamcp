@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { CHANNEL_META } from "@/lib/channel-icons";
 
 type ChannelType = "WEB" | "TELEGRAM" | "SLACK" | "WHATSAPP";
 
@@ -51,9 +52,18 @@ const TYPES: {
   },
 ];
 
-export function NewChannelForm() {
+export function NewChannelForm({
+  existingTypes = [],
+}: {
+  // Channel types that already exist for this org (one-per-type limit).
+  existingTypes?: ChannelType[];
+}) {
   const router = useRouter();
-  const [type, setType] = useState<ChannelType>("WEB");
+  const taken = new Set(existingTypes);
+  // Default to the first type that isn't already taken so the form opens on a
+  // selectable option.
+  const firstAvailable = TYPES.find((t) => !taken.has(t.value))?.value ?? "WEB";
+  const [type, setType] = useState<ChannelType>(firstAvailable);
   const [name, setName] = useState("Internal chat");
   const [credentials, setCredentials] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +73,10 @@ export function NewChannelForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (taken.has(type)) {
+      setError("A channel of this type already exists. Only one per type is allowed.");
+      return;
+    }
     setError(null);
     setLoading(true);
 
@@ -93,38 +107,51 @@ export function NewChannelForm() {
       <div className="rounded-md border border-border bg-card p-4 space-y-3">
         <h2 className="font-semibold">Type</h2>
         <div className="grid gap-2">
-          {TYPES.map((t) => (
-            <label
-              key={t.value}
-              className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 text-sm ${
-                type === t.value
-                  ? "border-ring bg-accent"
-                  : "border-border hover:bg-accent/40"
-              }`}
-            >
-              <input
-                type="radio"
-                name="type"
-                value={t.value}
-                checked={type === t.value}
-                onChange={() => setType(t.value)}
-                className="mt-0.5"
-              />
-              <span className="flex-1">
-                <span className="flex items-center gap-2 font-medium">
-                  {t.label}
-                  {!t.ready && (
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                      coming soon
-                    </span>
-                  )}
+          {TYPES.map((t) => {
+            const Icon = CHANNEL_META[t.value].icon;
+            const isTaken = taken.has(t.value);
+            return (
+              <label
+                key={t.value}
+                className={`flex items-start gap-3 rounded-md border p-3 text-sm ${
+                  isTaken
+                    ? "cursor-not-allowed border-border opacity-60"
+                    : type === t.value
+                      ? "cursor-pointer border-ring bg-accent"
+                      : "cursor-pointer border-border hover:bg-accent/40"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="type"
+                  value={t.value}
+                  checked={type === t.value}
+                  onChange={() => setType(t.value)}
+                  disabled={isTaken}
+                  className="mt-0.5"
+                />
+                <Icon className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+                <span className="flex-1">
+                  <span className="flex items-center gap-2 font-medium">
+                    {t.label}
+                    {isTaken && (
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                        Already added
+                      </span>
+                    )}
+                    {!isTaken && !t.ready && (
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                        coming soon
+                      </span>
+                    )}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    {t.description}
+                  </span>
                 </span>
-                <span className="mt-0.5 block text-xs text-muted-foreground">
-                  {t.description}
-                </span>
-              </span>
-            </label>
-          ))}
+              </label>
+            );
+          })}
         </div>
       </div>
 
@@ -172,7 +199,7 @@ export function NewChannelForm() {
       <div className="flex items-center gap-3">
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || taken.has(type)}
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           {loading ? "Creating…" : "Create channel"}

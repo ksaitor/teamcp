@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
+import { ChannelsTable } from "./channels-table";
 
 export default async function ChannelsPage() {
   const session = await requireAdmin();
@@ -41,60 +42,16 @@ export default async function ChannelsPage() {
         {channels.length === 0 ? (
           <p className="text-sm text-muted-foreground">No channels yet.</p>
         ) : (
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-border text-muted-foreground">
-              <tr>
-                <th className="pb-2 font-medium">Name</th>
-                <th className="pb-2 font-medium">Type</th>
-                <th className="pb-2 font-medium">Status</th>
-                <th className="pb-2 font-medium">Identities</th>
-                <th className="pb-2 font-medium">Conversations</th>
-                <th className="pb-2 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {channels.map((c) => (
-                <tr key={c.id}>
-                  <td className="py-3">
-                    <Link
-                      href={`/channels/${c.id}`}
-                      className="font-medium hover:underline"
-                    >
-                      {c.name}
-                    </Link>
-                  </td>
-                  <td className="py-3 text-muted-foreground">{c.type}</td>
-                  <td className="py-3">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        c.status === "ACTIVE"
-                          ? "bg-success/10 text-success"
-                          : c.status === "ERROR"
-                            ? "bg-destructive/10 text-destructive"
-                            : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {c.status}
-                    </span>
-                  </td>
-                  <td className="py-3 text-muted-foreground">
-                    {c._count.identities}
-                  </td>
-                  <td className="py-3 text-muted-foreground">
-                    {c._count.conversations}
-                  </td>
-                  <td className="py-3">
-                    <Link
-                      href={`/channels/${c.id}`}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      Configure
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <ChannelsTable
+            channels={channels.map((c) => ({
+              id: c.id,
+              name: c.name,
+              type: c.type,
+              status: c.status,
+              identities: c._count.identities,
+              conversations: c._count.conversations,
+            }))}
+          />
         )}
       </div>
     </div>
