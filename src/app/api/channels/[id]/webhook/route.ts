@@ -24,6 +24,22 @@ export async function POST(
     }
 
     const adapter = getChannelAdapter(channel.type);
+
+    // Platform handshakes that must echo a value in the response body (e.g.
+    // Slack's url_verification challenge). Pass a clone so handleInbound can
+    // still read the body.
+    if (adapter.handleWebhookHandshake) {
+      const handshake = await adapter.handleWebhookHandshake(req.clone(), channel);
+      if (handshake) return handshake;
+    }
+
+    // Slack retries deliveries it thinks failed. We process inline and an agent
+    // turn can outlast Slack's 3s ack window, so drop retries to avoid duplicate
+    // replies. Harmless for other channels (header absent).
+    if (req.headers.get("x-slack-retry-num")) {
+      return NextResponse.json({ ok: true });
+    }
+
     const inbound = await adapter.handleInbound(req, channel);
     if (!inbound) return NextResponse.json({ ok: true });
 

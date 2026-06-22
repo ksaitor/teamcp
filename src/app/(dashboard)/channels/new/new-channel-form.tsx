@@ -33,11 +33,11 @@ const TYPES: {
     value: "SLACK",
     label: "Slack app",
     description:
-      "Bring your own Slack app (Events API). Socket Mode is not yet supported.",
-    ready: false,
-    credentialLabel: "Signing secret + bot token (JSON)",
+      "Bring your own Slack app. Linked members chat with it as an AI agent using their permitted tools. Uses Socket Mode — no public URL required.",
+    ready: true,
+    credentialLabel: "Bot token + app token + signing secret (JSON)",
     credentialHelp:
-      'e.g. {"signingSecret":"...","botToken":"xoxb-..."}',
+      'e.g. {"botToken":"xoxb-...","appToken":"xapp-...","signingSecret":"..."}. The app token (xapp-) drives Socket Mode; the signing secret is only needed for webhook delivery. Subscribe to the app_mention and message.im events. We store it encrypted at rest.',
   },
   {
     value: "WHATSAPP",
