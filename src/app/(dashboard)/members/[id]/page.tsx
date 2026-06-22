@@ -4,6 +4,7 @@ import { getConfig } from "@/lib/config";
 import { notFound } from "next/navigation";
 import { MemberControls } from "./member-controls";
 import { MemberEditForm } from "./member-edit-form";
+import { McpEndpoint } from "./mcp-endpoint";
 import { AccessManager } from "@/components/access/access-manager";
 
 export default async function MemberDetailPage({
@@ -49,6 +50,14 @@ export default async function MemberDetailPage({
         }}
       />
 
+      <div className="mt-8 rounded-lg border border-border p-5">
+        <h2 className="text-lg font-semibold">Personal MCP Endpoint</h2>
+        <McpEndpoint endpoint={mcpEndpoint} />
+        <p className="mt-2 text-xs text-muted-foreground">
+          Member must authenticate to use this endpoint.
+        </p>
+      </div>
+
       <div className="mt-8">
         <h2 className="text-lg font-semibold">Connector Access</h2>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -78,14 +87,6 @@ export default async function MemberDetailPage({
               }))}
           />
         </div>
-      </div>
-
-      <div className="mt-8">
-        <h2 className="text-lg font-semibold">MCP Endpoint</h2>
-        <code className="mt-1 block text-sm">{mcpEndpoint}</code>
-        <p className="mt-2 text-xs text-muted-foreground">
-          Member must authenticate to use this endpoint.
-        </p>
       </div>
 
       <div className="mt-10 border-t border-border pt-6">
