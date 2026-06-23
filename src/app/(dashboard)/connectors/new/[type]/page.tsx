@@ -6,7 +6,6 @@ import { getCatalogEntry } from "@/lib/connectors-catalog";
 import { xeroRedirectUri } from "@/connectors/xero/oauth";
 import { ConnectorConfigForm } from "./connector-config-form";
 import { CustomMcpWizard } from "./custom-mcp-wizard";
-import { WebRequestForm } from "./web-request-form";
 import { XeroWizard } from "./xero-wizard";
 
 export default async function NewConnectorConfigPage({
@@ -23,7 +22,7 @@ export default async function NewConnectorConfigPage({
   }
   // A connector is configurable if it's one of the built-in OAuth/MCP flows, or
   // it brings its own co-located form, or it declares a single credential field.
-  const OAUTH_OR_MCP_TYPES = new Set(["EXTERNAL_MCP", "XERO", "WEB_REQUEST"]);
+  const OAUTH_OR_MCP_TYPES = new Set(["EXTERNAL_MCP", "XERO"]);
   const CustomForm = entry.form;
   if (
     !OAUTH_OR_MCP_TYPES.has(entry.type) &&
@@ -35,7 +34,7 @@ export default async function NewConnectorConfigPage({
 
   const Icon = entry.icon;
 
-  const wide = entry.type === "WEB_REQUEST";
+  const wide = entry.wide ?? false;
 
   return (
     <div className={wide ? "max-w-3xl" : "max-w-lg"}>
@@ -61,8 +60,6 @@ export default async function NewConnectorConfigPage({
         <CustomMcpWizard preset={entry.mcpPreset} />
       ) : entry.type === "XERO" ? (
         <XeroWizard redirectUri={xeroRedirectUri()} />
-      ) : entry.type === "WEB_REQUEST" ? (
-        <WebRequestForm />
       ) : CustomForm ? (
         <CustomForm />
       ) : entry.credentialField ? (
