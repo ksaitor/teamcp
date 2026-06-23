@@ -3,6 +3,7 @@ import { getChannelLlmClient } from "@/ai/providers/resolve";
 import { buildToolListForMember } from "@/server/tool-builder";
 import { executeToolForMember } from "@/server/execute";
 import type { AuthenticatedMember } from "@/server/auth";
+import { touchLastActive } from "@/lib/activity";
 import type {
   LlmAgentResponse,
   LlmTool,
@@ -126,6 +127,9 @@ export async function runAgentTurn(
   input: RunAgentTurnInput
 ): Promise<AgentTurnResult> {
   const { member, channel, conversation, userMessage } = input;
+
+  // A real (non-simulated) chat turn counts as member activity.
+  touchLastActive(member.id);
 
   const llm = await getChannelLlmClient(channel);
   if (!llm || typeof llm.client.agentTurn !== "function") {
@@ -304,6 +308,9 @@ export async function runAgentTurnStream(
   onEvent: (e: AgentEvent) => void
 ): Promise<AgentTurnResult> {
   const { member, channel, conversation, userMessage } = input;
+
+  // A real (non-simulated) chat turn counts as member activity.
+  touchLastActive(member.id);
 
   const llm = await getChannelLlmClient(channel);
   if (!llm || typeof llm.client.agentTurn !== "function") {

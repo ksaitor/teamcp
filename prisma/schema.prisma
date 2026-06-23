@@ -123,6 +123,12 @@ model OrgMembership {
   // Auth session config — overrides org default if set
   sessionDurationHours Int?
 
+  // Last time this member did anything: authed/called the MCP gateway, or sent
+  // a chat (LLM) turn through a channel. Denormalized so the members list reads
+  // it in one row fetch; written fire-and-forget + throttled (see
+  // src/lib/activity.ts) so the hot path stays free of extra blocking writes.
+  lastActiveAt DateTime?
+
   // The team member's job title within the organization (e.g. "Marketing Manager").
   jobTitle String?
 
