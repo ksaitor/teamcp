@@ -5,6 +5,7 @@ import { getConfig } from "./src/lib/config";
 import { handleMcpRequest, closeMcpSessions } from "./src/server";
 import { startChannelSupervisor } from "./src/channels/supervisor";
 import { startAuditLogRetention } from "./src/audit/retention";
+import { startBackupScheduler } from "./src/backup/scheduler";
 import { prisma } from "./src/db";
 
 // Validate required env up front so a misconfigured deploy fails at boot with
@@ -36,6 +37,7 @@ await app.prepare();
 // is needed.
 startChannelSupervisor();
 startAuditLogRetention();
+startBackupScheduler();
 
 const server = createServer((req, res) => {
   const path = new URL(req.url || "/", "http://localhost").pathname;

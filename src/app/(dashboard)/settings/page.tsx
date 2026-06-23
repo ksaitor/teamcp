@@ -20,59 +20,55 @@ export default async function SettingsPage() {
   if (!org) return null;
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Settings</h1>
-
-      <div className="mt-6 max-w-xl space-y-6">
-        <div className="rounded-md border border-border bg-card p-4">
-          <h2 className="font-semibold">Organization</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            <strong>{org.name}</strong> ({org.slug})
-          </p>
-          {org.suspendedAt && (
-            <p className="mt-2 inline-block rounded-full bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
-              Suspended
-            </p>
-          )}
-        </div>
-
-        <OrgLogoForm name={org.name} logoUrl={org.logoUrl} />
-
-        <Appearance />
-
-        {org.settings && <SettingsForm settings={org.settings} />}
-
-        {extensions.renderSettingsExtras &&
-          (await extensions.renderSettingsExtras(session.organizationId))}
-
-        <DangerZone
-          orgName={org.name}
-          suspended={Boolean(org.suspendedAt)}
-          isOwner={session.role === "OWNER"}
-        />
-
-        <div className="flex justify-end border-t border-border pt-4">
-          <LogoutLink />
-        </div>
-
-        {appVersionLabel && (
-          <p className="text-center text-xs text-muted-foreground">
-            Teamcp version{" "}
-            {appCommitUrl ? (
-              <Link
-                href={appCommitUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-mono text-foreground hover:underline"
-              >
-                {appVersionLabel}
-              </Link>
-            ) : (
-              <span className="font-mono text-foreground">{appVersionLabel}</span>
-            )}
+    <>
+      <div className="rounded-md border border-border bg-card p-4">
+        <h2 className="font-semibold">Organization</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          <strong>{org.name}</strong> ({org.slug})
+        </p>
+        {org.suspendedAt && (
+          <p className="mt-2 inline-block rounded-full bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
+            Suspended
           </p>
         )}
       </div>
-    </div>
+
+      <OrgLogoForm name={org.name} logoUrl={org.logoUrl} />
+
+      <Appearance />
+
+      {org.settings && <SettingsForm settings={org.settings} />}
+
+      {extensions.renderSettingsExtras &&
+        (await extensions.renderSettingsExtras(session.organizationId))}
+
+      <DangerZone
+        orgName={org.name}
+        suspended={Boolean(org.suspendedAt)}
+        isOwner={session.role === "OWNER"}
+      />
+
+      <div className="flex justify-end border-t border-border pt-4">
+        <LogoutLink />
+      </div>
+
+      {appVersionLabel && (
+        <p className="text-center text-xs text-muted-foreground">
+          Teamcp version{" "}
+          {appCommitUrl ? (
+            <Link
+              href={appCommitUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-foreground hover:underline"
+            >
+              {appVersionLabel}
+            </Link>
+          ) : (
+            <span className="font-mono text-foreground">{appVersionLabel}</span>
+          )}
+        </p>
+      )}
+    </>
   );
 }

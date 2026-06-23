@@ -71,11 +71,13 @@ model Organization {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  memberships  OrgMembership[]
-  connectors   Connector[]
-  llmProviders LlmProvider[]
-  channels     Channel[]
-  settings     OrgSettings?
+  memberships       OrgMembership[]
+  connectors        Connector[]
+  llmProviders      LlmProvider[]
+  channels          Channel[]
+  settings          OrgSettings?
+  backupDestination BackupDestination?
+  backupRuns        BackupRun[]
 }
 
 model OrgSettings {
@@ -541,4 +543,93 @@ enum MessageRole {
   USER
   ASSISTANT
   TOOL
+}
+
+// ─── Backups — config export / S3 backups & restore ────────────────
+
+// A single S3-compatible backup destination per org (AWS S3, Cloudflare R2,
+// MinIO, Backblaze B2, …). Credentials are AES-256-GCM encrypted at rest.
+model BackupDestination {
+  id             String       @id @default(cuid())
+  organizationId String       @unique
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  type BackupDestinationType @default(S3)
+
+  // Non-secret config: { bucket, region, endpoint?, prefix?, forcePathStyle? }.
+  config Json @default("{}")
+
+  // AES-256-GCM blob of { accessKeyId, secretAccessKey }.
+  credentialsEncrypted String @db.Text
+
+  // Automatic backups: OFF disables the scheduler; DAILY/WEEKLY run on the
+  // in-process sweep (see src/backup/scheduler.ts).
+  schedule       BackupSchedule          @default(OFF)
+  retentionCount Int                     @default(7) // keep the last N objects
+  lastBackupAt   DateTime?
+  status         BackupDestinationStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  runs BackupRun[]
+
+  @@index([schedule])
+}
+
+// History of backup attempts (manual download, on-demand S3, or scheduled).
+model BackupRun {
+  id             String        @id @default(cuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  // Null for browser downloads (no stored object).
+  destinationId  String?
+  destination    BackupDestination? @relation(fields: [destinationId], references: [id], onDelete: SetNull)
+
+  trigger   BackupTrigger
+  status    BackupRunStatus @default(PENDING)
+  // INSTANCE_KEY: secrets stay in their at-rest ciphertext (restore needs the
+  // same ENCRYPTION_KEY). PASSPHRASE: whole bundle re-encrypted under a
+  // user passphrase (portable to a different key).
+  mode      BackupMode      @default(INSTANCE_KEY)
+  objectKey String? // S3 key, when stored remotely
+  sizeBytes Int?
+  error     String?         @db.Text
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([organizationId, createdAt])
+}
+
+enum BackupDestinationType {
+  S3
+}
+
+enum BackupSchedule {
+  OFF
+  DAILY
+  WEEKLY
+}
+
+enum BackupDestinationStatus {
+  ACTIVE
+  DISABLED
+  ERROR
+}
+
+enum BackupTrigger {
+  MANUAL
+  SCHEDULED
+}
+
+enum BackupRunStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum BackupMode {
+  INSTANCE_KEY
+  PASSPHRASE
 }

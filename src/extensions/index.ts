@@ -33,6 +33,10 @@ export interface Extensions {
   // Connector policy — same decision shape as seats
   canAddConnector?: (organizationId: string) => Promise<SeatDecision>;
 
+  // S3 backup destinations — gate scheduled/remote backups behind a plan.
+  // Unset (open-core default) means allowed; cloud registers a billing check.
+  canUseS3Backups?: (organizationId: string) => Promise<SeatDecision>;
+
   // UI slots — return null/undefined to render nothing
   renderPublicHome?: () => ReactNode | Promise<ReactNode>;
   renderSettingsExtras?: (organizationId: string) => ReactNode | Promise<ReactNode>;
