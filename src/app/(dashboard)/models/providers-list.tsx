@@ -9,6 +9,7 @@ import {
   getLlmCatalogEntryByType,
   type LlmProviderType,
 } from "@/lib/llm-providers-catalog";
+import { ModelSuggestions } from "./model-suggestions";
 
 interface ProviderItem {
   id: string;
@@ -126,22 +127,29 @@ export function ProvidersList({ items }: { items: ProviderItem[] }) {
               </div>
               <div className="min-w-0 flex-1">
                 {editingId === p.id ? (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <input
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      placeholder="Name"
-                      className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:border-ring focus:outline-none"
-                    />
-                    <input
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="Name"
+                        className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:border-ring focus:outline-none"
+                      />
+                      <input
+                        value={editModel}
+                        onChange={(e) => setEditModel(e.target.value)}
+                        placeholder="Model"
+                        className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:border-ring focus:outline-none"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        {entry?.label ?? p.type}
+                      </p>
+                    </div>
+                    <ModelSuggestions
+                      models={entry?.suggestedModels ?? []}
                       value={editModel}
-                      onChange={(e) => setEditModel(e.target.value)}
-                      placeholder="Model"
-                      className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:border-ring focus:outline-none"
+                      onSelect={setEditModel}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      {entry?.label ?? p.type}
-                    </p>
                   </div>
                 ) : (
                   <>

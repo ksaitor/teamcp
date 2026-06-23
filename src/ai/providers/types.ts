@@ -53,7 +53,12 @@ export type LlmStreamEvent =
 
 export interface LlmClient {
   complete(req: LlmCompletionRequest): Promise<LlmCompletionResponse>;
-  testConnection(): Promise<boolean>;
+  /**
+   * Verify the credentials work. `model` is the provider's configured default —
+   * providers that ping a model endpoint (e.g. Anthropic) should use it so the
+   * test reflects the model the org will actually call.
+   */
+  testConnection(model?: string): Promise<boolean>;
   // Optional: agent-loop turn with tools. Implemented by providers that support
   // native tool calling (Anthropic today); others throw.
   agentTurn?(req: LlmAgentRequest): Promise<LlmAgentResponse>;

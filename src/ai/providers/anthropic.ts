@@ -55,9 +55,11 @@ export class AnthropicClient implements LlmClient {
     return anthropicAgentTurnStream(this.client, req, onEvent);
   }
 
-  async testConnection(): Promise<boolean> {
+  async testConnection(model?: string): Promise<boolean> {
+    // Test against the model the org configured so the result reflects what
+    // they'll actually call; fall back to a current cheap model if none given.
     await this.client.messages.create({
-      model: "claude-3-5-haiku-20241022",
+      model: model || "claude-haiku-4-5",
       max_tokens: 1,
       messages: [{ role: "user", content: "ping" }],
     });
