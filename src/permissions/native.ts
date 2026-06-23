@@ -23,6 +23,8 @@ export function checkNativePermissions(
       return checkMongoPermissions(nativePermissions, toolName, params);
     case "STRIPE":
       return checkStripePermissions(nativePermissions, toolName);
+    case "S3":
+      return checkS3Permissions(nativePermissions, params);
     default:
       return { allowed: true, layer: "native" };
   }
@@ -154,6 +156,28 @@ function checkMongoPermissions(
       return {
         allowed: false,
         reason: `Collection '${params.collection}' is not in the allowed collections list`,
+        layer: "native",
+      };
+    }
+  }
+
+  return { allowed: true, layer: "native" };
+}
+
+function checkS3Permissions(
+  perms: Record<string, any>,
+  params: Record<string, any>
+): PermissionResult {
+  const { allowedBuckets } = perms;
+
+  // When `bucket` is omitted the call falls back to the connector's configured
+  // default bucket, which the admin set explicitly — so only enforce the list
+  // when a bucket is actually named in the call.
+  if (allowedBuckets && allowedBuckets.length > 0 && params.bucket) {
+    if (!allowedBuckets.includes(params.bucket)) {
+      return {
+        allowed: false,
+        reason: `Bucket '${params.bucket}' is not in the allowed buckets list`,
         layer: "native",
       };
     }
