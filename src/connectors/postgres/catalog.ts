@@ -1,5 +1,5 @@
 import { FiDatabase } from "react-icons/fi";
-import { defineConnector } from "../types";
+import { defineConnector } from "@/lib/connectors-catalog/types";
 
 export default defineConnector({
   slug: "postgres",

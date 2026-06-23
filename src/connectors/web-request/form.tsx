@@ -13,7 +13,7 @@ import type {
   ParamType,
   StaticHeader,
   WebRequestConfig,
-} from "@/connectors/web-request/types";
+} from "./types";
 
 const METHODS: HttpMethod[] = ["GET", "POST", "PUT", "PATCH", "DELETE"];
 

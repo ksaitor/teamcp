@@ -2,6 +2,7 @@ import type {
   ConnectorInstance,
   ConnectorConfig,
   DecryptedCredentials,
+  NativePermissionCheck,
   NativePermissionDef,
   ToolResult,
 } from "../interface";
@@ -83,6 +84,53 @@ export class PostgresConnector implements ConnectorInstance {
         default: [],
       },
     ];
+  }
+
+  checkNativePermissions(
+    toolName: string,
+    params: Record<string, any>,
+    perms: Record<string, any>
+  ): NativePermissionCheck {
+    const { allowedSchemas, allowedTables } = perms;
+
+    // For describe_table and query, check table restrictions
+    if (allowedTables && allowedTables.length > 0) {
+      if (toolName === "pg_describe_table" && params.table) {
+        if (!allowedTables.includes(params.table)) {
+          return {
+            allowed: false,
+            reason: `Table '${params.table}' is not in the allowed tables list`,
+          };
+        }
+      }
+
+      // Basic SQL table check — not a full parser, but catches simple cases.
+      // The AI layer handles more nuanced filtering.
+      if ((toolName === "pg_query" || toolName === "pg_execute") && params.sql) {
+        const sql = params.sql.toLowerCase();
+        for (const table of allowedTables) {
+          if (sql.includes(table.toLowerCase())) {
+            return { allowed: true };
+          }
+        }
+      }
+    }
+
+    if (allowedSchemas && allowedSchemas.length > 0) {
+      if (
+        (toolName === "pg_list_tables" || toolName === "pg_describe_table") &&
+        params.schema
+      ) {
+        if (!allowedSchemas.includes(params.schema)) {
+          return {
+            allowed: false,
+            reason: `Schema '${params.schema}' is not in the allowed schemas list`,
+          };
+        }
+      }
+    }
+
+    return { allowed: true };
   }
 
   getOperationType(toolName: string): "read" | "write" {
