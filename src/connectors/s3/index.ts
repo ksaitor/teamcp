@@ -177,7 +177,10 @@ export class S3Connector implements ConnectorInstance {
 
   private client(cfg: S3Config, creds: S3Credentials) {
     // Dynamic import keeps the AWS SDK out of any path the gateway loads eagerly.
-    return import("@aws-sdk/client-s3").then(({ S3Client }) => {
+    // @ts-ignore — @aws-sdk/client-s3 is an optional connector dependency; the
+    // wrapper app bundles this source without installing it, so the module may
+    // be absent at type-check time. turbopackOptional handles the bundler side.
+    return import(/* turbopackOptional: true */ "@aws-sdk/client-s3").then(({ S3Client }) => {
       return new S3Client({
         region: cfg.region,
         ...(cfg.endpoint ? { endpoint: cfg.endpoint } : {}),
@@ -198,14 +201,15 @@ export class S3Connector implements ConnectorInstance {
   ): Promise<ToolResult> {
     const cfg = asConfig(config);
     const creds = parseCreds(credentials);
-    const s3 = await import("@aws-sdk/client-s3");
+    // @ts-ignore — optional connector dependency, may be absent at type-check time
+    const s3 = await import(/* turbopackOptional: true */ "@aws-sdk/client-s3");
     const client = await this.client(cfg, creds);
 
     try {
       switch (toolName) {
         case "s3_list_buckets": {
           const out = await client.send(new s3.ListBucketsCommand({}));
-          const buckets = (out.Buckets ?? []).map((b) => ({
+          const buckets = (out.Buckets ?? []).map((b: any) => ({
             name: b.Name,
             createdAt: b.CreationDate,
           }));
@@ -221,7 +225,7 @@ export class S3Connector implements ConnectorInstance {
               MaxKeys: params.maxKeys || 100,
             })
           );
-          const objects = (out.Contents ?? []).map((o) => ({
+          const objects = (out.Contents ?? []).map((o: any) => ({
             key: o.Key,
             size: o.Size,
             lastModified: o.LastModified,
@@ -296,7 +300,8 @@ export class S3Connector implements ConnectorInstance {
     const cfg = asConfig(config);
     const creds = parseCreds(credentials);
     if (!creds.accessKeyId || !creds.secretAccessKey) return false;
-    const s3 = await import("@aws-sdk/client-s3");
+    // @ts-ignore — optional connector dependency, may be absent at type-check time
+    const s3 = await import(/* turbopackOptional: true */ "@aws-sdk/client-s3");
     const client = await this.client(cfg, creds);
     try {
       // A default bucket may be the only thing these credentials can see, so
