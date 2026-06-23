@@ -21,7 +21,7 @@ export async function POST(
     let ok = false;
     let message: string | undefined;
     try {
-      ok = await getLlmClient(provider).testConnection();
+      ok = await getLlmClient(provider).testConnection(provider.defaultModel);
     } catch (err: any) {
       ok = false;
       message = err.message;

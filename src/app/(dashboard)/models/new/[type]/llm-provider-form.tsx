@@ -3,7 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import type { LlmProviderType } from "@/lib/llm-providers-catalog";
+import type {
+  LlmProviderType,
+  SuggestedModel,
+} from "@/lib/llm-providers-catalog";
+import { ModelSuggestions } from "../../model-suggestions";
 
 export function LlmProviderForm({
   type,
@@ -18,11 +22,12 @@ export function LlmProviderForm({
   defaultBaseUrl: string;
   baseUrlEditable: boolean;
   requiresApiKey: boolean;
-  suggestedModels: string[];
+  suggestedModels: SuggestedModel[];
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [model, setModel] = useState(suggestedModels[0]?.id ?? "");
   const baseUrlRequired = type === "CUSTOM_OPENAI";
   const modelListId = `models-${type}`;
 
@@ -127,8 +132,9 @@ export function LlmProviderForm({
         <input
           name="defaultModel"
           required
+          value={model}
+          onChange={(e) => setModel(e.target.value)}
           list={suggestedModels.length ? modelListId : undefined}
-          defaultValue={suggestedModels[0] || undefined}
           placeholder="model-id"
           autoComplete="off"
           className="mt-1 w-full rounded-md border border-input px-3 py-1.5 text-sm focus:border-ring focus:outline-none"
@@ -136,10 +142,15 @@ export function LlmProviderForm({
         {suggestedModels.length > 0 && (
           <datalist id={modelListId}>
             {suggestedModels.map((m) => (
-              <option key={m} value={m} />
+              <option key={m.id} value={m.id} label={m.label} />
             ))}
           </datalist>
         )}
+        <ModelSuggestions
+          models={suggestedModels}
+          value={model}
+          onSelect={setModel}
+        />
         <p className="mt-1 text-xs text-muted-foreground">
           Pick a suggestion or type any model ID this provider supports.
         </p>

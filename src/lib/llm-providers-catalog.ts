@@ -10,6 +10,21 @@ export type LlmProviderType =
   | "OPENROUTER"
   | "CUSTOM_OPENAI";
 
+/**
+ * A recommended model for a provider. The model field stays free-text — these
+ * are surfaced as one-click suggestions in the admin UI so non-technical owners
+ * don't have to know exact model IDs. Keep each list to the provider's top few
+ * current models, most-capable first (the first entry is the default).
+ */
+export interface SuggestedModel {
+  /** Exact model ID sent to the provider's API. */
+  id: string;
+  /** Friendly name shown on the suggestion chip (defaults to `id`). */
+  label?: string;
+  /** Short role hint, e.g. "Most capable", "Fastest". */
+  note?: string;
+}
+
 export interface LlmProviderCatalogEntry {
   type: LlmProviderType;
   slug: string;
@@ -24,8 +39,8 @@ export interface LlmProviderCatalogEntry {
   /** Whether the base URL field is shown/editable in the form. */
   baseUrlEditable: boolean;
   requiresApiKey: boolean;
-  /** Suggested model IDs — the field stays free-text. */
-  suggestedModels: string[];
+  /** Suggested models — the field stays free-text, these are quick picks. */
+  suggestedModels: SuggestedModel[];
 }
 
 export const llmProviderCatalog: LlmProviderCatalogEntry[] = [
@@ -38,7 +53,13 @@ export const llmProviderCatalog: LlmProviderCatalogEntry[] = [
     defaultBaseUrl: "https://api.openai.com/v1",
     baseUrlEditable: true,
     requiresApiKey: true,
-    suggestedModels: ["gpt-4o", "gpt-4o-mini", "o3-mini"],
+    suggestedModels: [
+      { id: "gpt-4o", label: "GPT-4o", note: "Flagship" },
+      { id: "gpt-4o-mini", label: "GPT-4o mini", note: "Fast & cheap" },
+      { id: "o3", label: "o3", note: "Reasoning" },
+      { id: "o3-mini", label: "o3-mini" },
+      { id: "gpt-4.1", label: "GPT-4.1" },
+    ],
   },
   {
     type: "ANTHROPIC",
@@ -50,8 +71,11 @@ export const llmProviderCatalog: LlmProviderCatalogEntry[] = [
     baseUrlEditable: true,
     requiresApiKey: true,
     suggestedModels: [
-      "claude-sonnet-4-20250514",
-      "claude-3-5-haiku-20241022",
+      { id: "claude-opus-4-8", label: "Opus 4.8", note: "Most capable" },
+      { id: "claude-sonnet-4-6", label: "Sonnet 4.6", note: "Balanced" },
+      { id: "claude-haiku-4-5", label: "Haiku 4.5", note: "Fastest" },
+      { id: "claude-opus-4-7", label: "Opus 4.7" },
+      { id: "claude-opus-4-6", label: "Opus 4.6" },
     ],
   },
   {
@@ -63,7 +87,12 @@ export const llmProviderCatalog: LlmProviderCatalogEntry[] = [
     defaultBaseUrl: "https://api.x.ai/v1",
     baseUrlEditable: true,
     requiresApiKey: true,
-    suggestedModels: ["grok-2-latest", "grok-beta"],
+    suggestedModels: [
+      { id: "grok-4", label: "Grok 4", note: "Latest" },
+      { id: "grok-3", label: "Grok 3" },
+      { id: "grok-3-mini", label: "Grok 3 mini", note: "Fast" },
+      { id: "grok-2-latest", label: "Grok 2" },
+    ],
   },
   {
     type: "KIMI",
@@ -74,7 +103,12 @@ export const llmProviderCatalog: LlmProviderCatalogEntry[] = [
     defaultBaseUrl: "https://api.moonshot.ai/v1",
     baseUrlEditable: true,
     requiresApiKey: true,
-    suggestedModels: ["moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k"],
+    suggestedModels: [
+      { id: "kimi-k2-0905-preview", label: "Kimi K2", note: "Latest" },
+      { id: "moonshot-v1-128k", label: "Moonshot v1 128k", note: "Long context" },
+      { id: "moonshot-v1-32k", label: "Moonshot v1 32k" },
+      { id: "moonshot-v1-8k", label: "Moonshot v1 8k" },
+    ],
   },
   {
     type: "OPENROUTER",
@@ -86,9 +120,10 @@ export const llmProviderCatalog: LlmProviderCatalogEntry[] = [
     baseUrlEditable: true,
     requiresApiKey: true,
     suggestedModels: [
-      "openai/gpt-4o",
-      "anthropic/claude-sonnet-4",
-      "google/gemini-2.0-flash-001",
+      { id: "anthropic/claude-opus-4-8", label: "Claude Opus 4.8", note: "Most capable" },
+      { id: "anthropic/claude-sonnet-4-6", label: "Claude Sonnet 4.6", note: "Balanced" },
+      { id: "openai/gpt-4o", label: "GPT-4o" },
+      { id: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash", note: "Fast" },
     ],
   },
   {
@@ -100,7 +135,7 @@ export const llmProviderCatalog: LlmProviderCatalogEntry[] = [
     defaultBaseUrl: "",
     baseUrlEditable: true,
     requiresApiKey: false,
-    suggestedModels: [],
+    suggestedModels: [], // unknown endpoint — user supplies the model ID
   },
 ];
 
