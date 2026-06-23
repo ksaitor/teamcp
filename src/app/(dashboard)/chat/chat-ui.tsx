@@ -417,7 +417,7 @@ function IdentityPill({
         disabled={disabled || !canSample}
         title={
           canSample
-            ? "Switch which member you are chatting as"
+            ? "Switch which team member you are chatting as"
             : "You are chatting as yourself"
         }
         className={`flex items-center gap-2 rounded-full border py-1 pl-1 pr-2.5 text-sm transition ${
@@ -453,7 +453,7 @@ function IdentityPill({
             />
             {members.length > 0 && (
               <div className="border-t border-border px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                Sample as member
+                Sample as team member
               </div>
             )}
             {members.map((m) => (

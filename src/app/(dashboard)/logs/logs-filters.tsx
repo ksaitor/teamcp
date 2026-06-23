@@ -50,13 +50,13 @@ export function LogsFilters({
   return (
     <div className="mt-4 flex flex-wrap items-end gap-3">
       <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-        Member
+        Team member
         <select
           className={selectClass}
           value={member}
           onChange={(e) => setParam("member", e.target.value)}
         >
-          <option value="">All members</option>
+          <option value="">All team members</option>
           {members.map((m) => (
             <option key={m.value} value={m.value}>
               {m.label}

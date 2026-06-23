@@ -54,14 +54,14 @@ export default async function MemberDetailPage({
         <h2 className="text-lg font-semibold">Personal MCP Endpoint</h2>
         <McpEndpoint endpoint={mcpEndpoint} />
         <p className="mt-2 text-xs text-muted-foreground">
-          Member must authenticate to use this endpoint.
+          Team member must authenticate to use this endpoint.
         </p>
       </div>
 
       <div className="mt-8">
         <h2 className="text-lg font-semibold">Connector Access</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Grant this member access to connectors and tune what they can do.
+          Grant this team member access to connectors and tune what they can do.
         </p>
         <div className="mt-3">
           <AccessManager

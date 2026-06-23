@@ -50,14 +50,14 @@ export function AccessManager({
     router.refresh();
   }
 
-  const addLabel = axis === "members" ? "Add member" : "Add connector";
+  const addLabel = axis === "members" ? "Add team member" : "Add connector";
 
   return (
     <div className="space-y-4">
       {records.length === 0 && candidates.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           {axis === "members"
-            ? "No members to grant access to yet."
+            ? "No team members to grant access to yet."
             : "No connectors configured yet."}
         </p>
       ) : (

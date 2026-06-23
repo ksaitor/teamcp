@@ -33,7 +33,7 @@ export function MembersTable({ members }: { members: MemberRow[] }) {
       <SearchInput
         value={query}
         onChange={setQuery}
-        placeholder="Search members…"
+        placeholder="Search team members…"
         className="max-w-sm"
       />
 
@@ -56,7 +56,7 @@ export function MembersTable({ members }: { members: MemberRow[] }) {
               <tr key={m.id}>
                 <td className="py-3">
                   <Link
-                    href={`/members/${m.id}`}
+                    href={`/team/${m.id}`}
                     className="flex items-center gap-2 font-medium hover:underline"
                   >
                     <Avatar name={m.user.name} email={m.user.email} image={m.user.image} />
@@ -85,7 +85,7 @@ export function MembersTable({ members }: { members: MemberRow[] }) {
                 </td>
                 <td className="py-3">
                   <Link
-                    href={`/members/${m.id}`}
+                    href={`/team/${m.id}`}
                     className="text-muted-foreground hover:text-foreground"
                   >
                     Configure
@@ -97,8 +97,8 @@ export function MembersTable({ members }: { members: MemberRow[] }) {
               <tr>
                 <td colSpan={8} className="py-8 text-center text-muted-foreground">
                   {members.length === 0
-                    ? "No members yet. Add one above."
-                    : `No members match “${query}”.`}
+                    ? "No team members yet. Add one above."
+                    : `No team members match “${query}”.`}
                 </td>
               </tr>
             )}
