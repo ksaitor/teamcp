@@ -71,8 +71,14 @@ Discovery is automatic, so there is no central list to edit:
    `next/dynamic` as shown above.
 
 > Connectors that reuse an existing type — e.g. any hosted MCP server uses
-> `EXTERNAL_MCP` — have no code of their own, so they live as a metadata-only
-> file in `src/lib/connectors-catalog/entries/` instead of a directory here.
+> `EXTERNAL_MCP` — have no code of their own, so their directory holds **only a
+> `catalog.ts`** (no `index.ts`); the registry skips dirs without an `index.ts`
+> and the shared implementation for that `type` handles execution. A hosted MCP
+> preset is therefore just `src/connectors/<name>/catalog.ts` with an
+> `mcpPreset`. The handful of entries with no directory of their own — "coming
+> soon" placeholders, or a second preset for a `type` whose directory is already
+> taken (e.g. the hosted Stripe MCP, since `stripe/` holds the API-key
+> connector) — live in `src/lib/connectors-catalog/entries/` instead.
 
 The registry runs only inside the MCP gateway (`src/server/*`) under Bun, which
 is why filesystem discovery + dynamic `import()` is used there rather than a

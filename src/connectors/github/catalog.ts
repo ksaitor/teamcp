@@ -1,5 +1,5 @@
 import { SiGithub } from "react-icons/si";
-import { defineConnector } from "../types";
+import { defineConnector } from "@/lib/connectors-catalog/types";
 
 export default defineConnector({
   slug: "github",
