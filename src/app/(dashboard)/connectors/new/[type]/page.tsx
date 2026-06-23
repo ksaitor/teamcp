@@ -8,6 +8,7 @@ import { ConnectorConfigForm } from "./connector-config-form";
 import { CustomMcpWizard } from "./custom-mcp-wizard";
 import { WebRequestForm } from "./web-request-form";
 import { XeroWizard } from "./xero-wizard";
+import { S3Form } from "./s3-form";
 
 export default async function NewConnectorConfigPage({
   params,
@@ -24,7 +25,8 @@ export default async function NewConnectorConfigPage({
   const needsCredentialField =
     entry.type !== "EXTERNAL_MCP" &&
     entry.type !== "WEB_REQUEST" &&
-    entry.type !== "XERO";
+    entry.type !== "XERO" &&
+    entry.type !== "S3";
   if (needsCredentialField && !entry.credentialField) {
     notFound();
   }
@@ -59,6 +61,8 @@ export default async function NewConnectorConfigPage({
         <XeroWizard redirectUri={xeroRedirectUri()} />
       ) : entry.type === "WEB_REQUEST" ? (
         <WebRequestForm />
+      ) : entry.type === "S3" ? (
+        <S3Form />
       ) : entry.credentialField ? (
         <ConnectorConfigForm
           type={entry.type}
