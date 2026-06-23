@@ -34,7 +34,7 @@ export async function probeServer(serverUrl: string): Promise<ProbeResult> {
   try {
     const { client, transportKind, close } = await connectMcp({
       serverUrl,
-      clientName: "teamrouter-probe",
+      clientName: "teamcp-probe",
     });
     try {
       const { tools } = await client.listTools();
@@ -63,7 +63,7 @@ function connectOptionsForConnector(connector: {
   const opts: ConnectOptions = {
     serverUrl,
     transport: config.transport,
-    clientName: "teamrouter-discovery",
+    clientName: "teamcp-discovery",
   };
   if (authMode === "token") opts.token = decrypt(connector.credentialsEncrypted);
   if (authMode === "oauth") opts.authProvider = new DbOAuthClientProvider(connector.id);

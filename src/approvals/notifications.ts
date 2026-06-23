@@ -71,7 +71,7 @@ async function sendEmailToAdmins(
 
     await sendEmail({
       to: adminEmails,
-      subject: `[TeamCP] Approval needed: ${payload.memberName} → ${payload.toolName}`,
+      subject: `[Teamcp] Approval needed: ${payload.memberName} → ${payload.toolName}`,
       text: [
         `An action requires your approval.`,
         ``,

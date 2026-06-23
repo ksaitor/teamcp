@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "teammcp",
+      "name": "teamcp",
       "dependencies": {
         "@anthropic-ai/sdk": "^0.100",
         "@auth/prisma-adapter": "^2.11.2",

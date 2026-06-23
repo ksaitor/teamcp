@@ -1,10 +1,10 @@
-# TeamRouter
+# Teamcp
 
 Self-hostable MCP gateway with per-member AI tool access control. Give your team fine-grained access to databases, APIs, and AI tools — enforced through a layered permission engine with optional AI-powered filtering.
 
 ## Deploy
 
-TeamRouter ships as a standard container and also builds cleanly with [Nixpacks](https://nixpacks.com), so it runs on any platform that supports either (Railway, Render, Coolify, Fly, a plain VM, etc.).
+Teamcp ships as a standard container and also builds cleanly with [Nixpacks](https://nixpacks.com), so it runs on any platform that supports either (Railway, Render, Coolify, Fly, a plain VM, etc.).
 
 - **Docker / Docker Compose** — see [Quick Start](#quick-start-docker) below.
 - **Nixpacks** — point your platform at this repo; the build is auto-detected and the app starts via `bin/start.sh`.
@@ -44,11 +44,11 @@ The admin dashboard is available at `http://localhost:3000` and the MCP server a
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | No | Google OAuth |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | No | GitHub OAuth |
 | `SMTP_URL` | No | SMTP connection string for email notifications |
-| `SMTP_FROM` | No | From address for outgoing email (default: `TeamRouter <noreply@teamcp.ai>`) |
+| `SMTP_FROM` | No | From address for outgoing email (default: `Teamcp <noreply@teamcp.ai>`) |
 
 ## Architecture
 
-TeamRouter runs two servers in a single process:
+Teamcp runs two servers in a single process:
 
 - **Port 3000** — Admin dashboard (Next.js) for managing members, connectors, and permissions
 - **Port 3001** — MCP SSE server that team members connect their AI tools to

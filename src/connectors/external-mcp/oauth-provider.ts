@@ -38,7 +38,7 @@ export class DbOAuthClientProvider implements OAuthClientProvider {
 
   get clientMetadata(): OAuthClientMetadata {
     return {
-      client_name: "TeamCP",
+      client_name: "Teamcp",
       redirect_uris: [this.redirectUrl],
       grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],

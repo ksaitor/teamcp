@@ -259,7 +259,7 @@ export function CustomMcpWizard({ preset }: { preset?: McpPreset }) {
         <form onSubmit={startOAuth} className="space-y-4">
           <p className="text-sm text-muted-foreground">
             This server uses OAuth. You&apos;ll be redirected to sign in and authorize
-            TeamCP, then brought back here.
+            Teamcp, then brought back here.
           </p>
 
           <button

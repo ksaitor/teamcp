@@ -11,7 +11,7 @@ function getTransporter() {
 }
 
 function getFrom(): string {
-  return process.env.SMTP_FROM || "TeamCP <noreply@teamcp.ai>";
+  return process.env.SMTP_FROM || "Teamcp <noreply@teamcp.ai>";
 }
 
 interface SendEmailOptions {
@@ -46,7 +46,7 @@ export async function sendEmail(opts: SendEmailOptions): Promise<void> {
 export async function sendVerificationCode(email: string, code: string) {
   await sendEmail({
     to: email,
-    subject: `Your TeamCP verification code: ${code}`,
+    subject: `Your Teamcp verification code: ${code}`,
     text: `Your verification code is: ${code}\n\nThis code expires in 10 minutes.\n\nIf you didn't request this, you can safely ignore this email.`,
     html: `
       <div style="font-family: sans-serif; max-width: 400px; margin: 0 auto; padding: 20px;">

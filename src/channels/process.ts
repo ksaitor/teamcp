@@ -47,7 +47,7 @@ export async function processInboundMessage(
     await adapter.sendReply(
       channel,
       inbound.threadRef,
-      "This account is not linked. Generate a link code in the TeamCP admin and send it here."
+      "This account is not linked. Generate a link code in the Teamcp admin and send it here."
     );
     return;
   }

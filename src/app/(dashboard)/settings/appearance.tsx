@@ -21,7 +21,7 @@ export function Appearance() {
     <div className="rounded-md border border-border bg-card p-4">
       <h2 className="font-semibold">Appearance</h2>
       <p className="mt-1 text-xs text-muted-foreground">
-        Choose how TeamCP looks on this device.
+        Choose how Teamcp looks on this device.
       </p>
       <div className="mt-3 inline-flex rounded-md border border-border p-1">
         {OPTIONS.map(({ value, label, icon: Icon }) => {

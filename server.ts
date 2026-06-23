@@ -47,7 +47,7 @@ const server = createServer((req, res) => {
 
   void handle(req, res);
 }).listen(port, () => {
-  console.log(`TeamRouter listening on :${port}`);
+  console.log(`Teamcp listening on :${port}`);
 });
 
 // Graceful shutdown: stop accepting connections, end live MCP/SSE streams,

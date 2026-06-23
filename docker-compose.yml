@@ -3,9 +3,9 @@ services:
     image: postgres:16
     restart: unless-stopped
     environment:
-      POSTGRES_USER: teamrouter
-      POSTGRES_PASSWORD: teamrouter
-      POSTGRES_DB: teamrouter
+      POSTGRES_USER: teamcp
+      POSTGRES_PASSWORD: teamcp
+      POSTGRES_DB: teamcp
     ports:
       - "5432:5432"
     volumes:
@@ -17,7 +17,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: "postgresql://teamrouter:teamrouter@postgres:5432/teamrouter?schema=public"
+      DATABASE_URL: "postgresql://teamcp:teamcp@postgres:5432/teamcp?schema=public"
       ENCRYPTION_KEY: "${ENCRYPTION_KEY}"
       ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
       APP_URL: "${APP_URL:-http://localhost:3000}"
