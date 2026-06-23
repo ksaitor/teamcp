@@ -4,9 +4,9 @@ import { prisma } from "@/db";
 import { DashboardNav, type NavItem } from "./dashboard-nav";
 
 const navItems: NavItem[] = [
+  { href: "/team", label: "Team", icon: "FiUsers" },
   { href: "/connectors", label: "Connectors", icon: "FiDatabase" },
   { href: "/models", label: "AI Models", icon: "FiCpu" },
-  { href: "/members", label: "Members", icon: "FiUsers" },
   { href: "/channels", label: "Channels", icon: "FiMessageSquare" },
   { href: "/logs", label: "Audit Logs", icon: "FiFileText" },
   { href: "/approvals", label: "Approvals", icon: "FiCheckSquare" },

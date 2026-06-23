@@ -135,7 +135,7 @@ export default async function ConnectorDetailPage({
 
       <div className="mt-6">
         <h2 className="text-lg font-semibold">
-          Member access ({accessRecords.length})
+          Team member access ({accessRecords.length})
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Grant team members access to this connector and tune what they can do.

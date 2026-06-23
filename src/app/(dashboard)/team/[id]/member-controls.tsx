@@ -29,7 +29,7 @@ export function MemberControls({
   async function toggleSuspend() {
     setLoading(true);
     setError("");
-    await fetch(`/api/members/${member.id}`, {
+    await fetch(`/api/team/${member.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ suspend: !isSuspended }),
@@ -41,15 +41,15 @@ export function MemberControls({
   async function deleteMember() {
     setLoading(true);
     setError("");
-    const res = await fetch(`/api/members/${member.id}`, { method: "DELETE" });
+    const res = await fetch(`/api/team/${member.id}`, { method: "DELETE" });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(typeof data.error === "string" ? data.error : "Failed to remove member");
+      setError(typeof data.error === "string" ? data.error : "Failed to remove team member");
       setLoading(false);
       setConfirmingRemove(false);
       return;
     }
-    router.push("/members");
+    router.push("/team");
   }
 
   return (

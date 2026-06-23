@@ -22,8 +22,8 @@ export function DangerZone({
     if (
       !confirm(
         next
-          ? `Suspend "${orgName}"? MCP access for all members will stop until you unsuspend.`
-          : `Unsuspend "${orgName}"? MCP access for active members will resume.`,
+          ? `Suspend "${orgName}"? MCP access for all team members will stop until you unsuspend.`
+          : `Unsuspend "${orgName}"? MCP access for active team members will resume.`,
       )
     )
       return;
@@ -45,7 +45,7 @@ export function DangerZone({
   async function handleDelete() {
     setError(null);
     const typed = prompt(
-      `This permanently deletes "${orgName}" and all of its data (connectors, members, logs). Type the org name to confirm:`,
+      `This permanently deletes "${orgName}" and all of its data (connectors, team members, logs). Type the org name to confirm:`,
     );
     if (typed !== orgName) {
       if (typed !== null) setError("Org name did not match. Aborted.");
@@ -90,7 +90,7 @@ export function DangerZone({
           </p>
           <p className="text-xs text-muted-foreground">
             {suspended
-              ? "MCP gateway access is currently blocked for all members."
+              ? "MCP gateway access is currently blocked for all team members."
               : "Temporarily block all MCP gateway access without deleting any data."}
           </p>
         </div>
@@ -114,7 +114,7 @@ export function DangerZone({
             Delete organization
           </p>
           <p className="text-xs text-muted-foreground">
-            Permanently removes the org and every connector, member, token, and
+            Permanently removes the org and every connector, team member, token, and
             log. Cannot be undone.
           </p>
         </div>

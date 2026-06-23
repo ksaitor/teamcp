@@ -74,7 +74,7 @@ export function OrgLogoForm({ name, logoUrl }: { name: string; logoUrl: string |
       <div>
         <h2 className="font-semibold">Team logo</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Shown to members on the authorization screen when they connect an MCP client.
+          Shown to team members on the authorization screen when they connect an MCP client.
         </p>
       </div>
 

@@ -101,7 +101,7 @@ export default async function LogsPage({
           <thead className="border-b border-border text-muted-foreground">
             <tr>
               <th className="pb-2 font-medium">Time</th>
-              <th className="pb-2 font-medium">Member</th>
+              <th className="pb-2 font-medium">Team member</th>
               <th className="pb-2 font-medium">Connector</th>
               <th className="pb-2 font-medium">Tool</th>
               <th className="pb-2 font-medium">AI Decision</th>
