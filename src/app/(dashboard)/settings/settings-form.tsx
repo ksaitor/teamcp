@@ -105,7 +105,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
       </div>
 
       <div className="rounded-md border border-border bg-card p-4 space-y-4">
-        <h2 className="font-semibold">Member Authentication</h2>
+        <h2 className="font-semibold">Team Member Authentication</h2>
 
         <div>
           <label className="block text-xs font-medium text-muted-foreground">

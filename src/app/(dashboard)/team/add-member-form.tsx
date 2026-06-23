@@ -49,7 +49,7 @@ export function AddMemberForm({ mode = "toggle" }: { mode?: "toggle" | "standalo
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const res = await fetch("/api/members", {
+    const res = await fetch("/api/team", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

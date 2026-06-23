@@ -36,7 +36,7 @@ export default async function ConnectorsPage() {
             <tr>
               <th className="pb-2 font-medium">Name</th>
               <th className="pb-2 font-medium">Status</th>
-              <th className="pb-2 font-medium">Members</th>
+              <th className="pb-2 font-medium">Team members</th>
               <th className="pb-2 font-medium">Actions</th>
             </tr>
           </thead>

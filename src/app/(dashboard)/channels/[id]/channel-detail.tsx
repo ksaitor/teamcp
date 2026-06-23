@@ -148,7 +148,7 @@ export function ChannelDetail({
               <h2 className="font-semibold">Status</h2>
               <p className="mt-1 text-xs text-muted-foreground">
                 {isActive
-                  ? "This channel is enabled and responding to linked members."
+                  ? "This channel is enabled and responding to linked team members."
                   : "Disabled — a kill switch. This channel won't receive or respond to messages until you re-enable it."}
               </p>
             </div>
@@ -340,7 +340,7 @@ export function ChannelDetail({
           <table className="mt-3 w-full text-left text-sm">
             <thead className="border-b border-border text-muted-foreground">
               <tr>
-                <th className="pb-2 font-medium">Member</th>
+                <th className="pb-2 font-medium">Team member</th>
                 <th className="pb-2 font-medium">External id</th>
                 <th className="pb-2 font-medium">Linked</th>
               </tr>
@@ -376,7 +376,7 @@ export function ChannelDetail({
             <thead className="border-b border-border text-muted-foreground">
               <tr>
                 <th className="pb-2 font-medium">Title</th>
-                <th className="pb-2 font-medium">Member</th>
+                <th className="pb-2 font-medium">Team member</th>
                 <th className="pb-2 font-medium">Messages</th>
                 <th className="pb-2 font-medium">Updated</th>
               </tr>

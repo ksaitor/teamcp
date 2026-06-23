@@ -33,7 +33,7 @@ export function MembersTable({ members }: { members: MemberRow[] }) {
       <SearchInput
         value={query}
         onChange={setQuery}
-        placeholder="Search members…"
+        placeholder="Search team members…"
         className="max-w-sm"
       />
 
@@ -97,8 +97,8 @@ export function MembersTable({ members }: { members: MemberRow[] }) {
               <tr>
                 <td colSpan={8} className="py-8 text-center text-muted-foreground">
                   {members.length === 0
-                    ? "No members yet. Add one above."
-                    : `No members match “${query}”.`}
+                    ? "No team members yet. Add one above."
+                    : `No team members match “${query}”.`}
                 </td>
               </tr>
             )}

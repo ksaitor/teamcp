@@ -80,7 +80,7 @@ export function MemberEditForm({ membershipId, initial, sessionRole, isSelf }: P
     if (!isSelf) body.role = role;
     if (image !== initial.image) body.image = image;
 
-    const res = await fetch(`/api/members/${membershipId}`, {
+    const res = await fetch(`/api/team/${membershipId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
