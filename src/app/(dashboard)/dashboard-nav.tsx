@@ -123,7 +123,7 @@ export function DashboardNav({ navItems, email }: { navItems: NavItem[]; email: 
       {open && (
         <div className="fixed inset-0 z-50 flex flex-col bg-background/95 backdrop-blur-2xl duration-200 animate-in fade-in md:hidden">
           <header className="flex items-center justify-between px-4 py-3">
-            <span className="text-base font-semibold tracking-tight">TeamRouter</span>
+            <span className="text-base font-semibold tracking-tight">teamcp</span>
             <button
               type="button"
               aria-label="Close menu"

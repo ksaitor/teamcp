@@ -1,6 +1,8 @@
-# TeamRouter
+# Teamcp
 
-TeamRouter is an open-core **MCP gateway** that gives organizations fine-grained, per-employee access to data sources (databases, SaaS APIs, other MCP servers). Each employee gets a personalized tool list scoped to what the org owner permitted. The canonical product name is **TeamRouter** (renamed from "TeamMCP" — don't reintroduce the old name). The primary user is a slightly-technical business owner, so the admin UI must stay approachable for non-technical people.
+Teamcp is an open-core **MCP gateway** that gives organizations fine-grained, per-employee access to data sources (databases, SaaS APIs, other MCP servers). Each employee gets a personalized tool list scoped to what the org owner permitted. The primary user is a slightly-technical business owner, so the admin UI must stay approachable for non-technical people.
+
+**Naming:** the canonical short name is **Teamcp**; the full name is **Team Context Protocol**; in the logo/wordmark it is styled all-lowercase as **teamcp**. Earlier names were "TeamMCP" then "TeamRouter" — don't reintroduce them. The GitHub repo, package name, and local DB are still called `teamrouter` (infrastructure identifiers, not brand) — leave those as-is.
 
 ## Commands & tooling
 

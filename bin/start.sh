@@ -10,7 +10,7 @@ set -e
 export APP_URL="${APP_URL:-http://localhost:${PORT:-3000}}"
 export MCP_BASE_URL="${MCP_BASE_URL:-$APP_URL}"
 
-echo "Starting TeamRouter..."
+echo "Starting Teamcp..."
 echo "  Server: port ${PORT:-3000} (admin UI + MCP gateway)"
 
 # Sync the database schema before starting (non-fatal: if it fails the app

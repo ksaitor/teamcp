@@ -57,7 +57,7 @@ async function tryConnect(
   opts: ConnectOptions
 ): Promise<ConnectedClient> {
   const client = new Client({
-    name: opts.clientName || "teamrouter",
+    name: opts.clientName || "teamcp",
     version: "1.0.0",
   });
   const transport = buildTransport(kind, opts);

@@ -18,7 +18,7 @@ function consentError(message: string, status = 307) {
 }
 
 // GET /authorize — the OAuth 2.1 authorization endpoint. Validates the request,
-// requires a logged-in TeamCP session (bouncing through /login if needed),
+// requires a logged-in Teamcp session (bouncing through /login if needed),
 // then shows the consent screen.
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;

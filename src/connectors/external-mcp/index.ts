@@ -38,7 +38,7 @@ export class ExternalMcpConnector implements ConnectorInstance {
     const opts: ConnectOptions = {
       serverUrl,
       transport: config.transport,
-      clientName: "teamrouter-proxy",
+      clientName: "teamcp-proxy",
     };
     if (authMode === "token") opts.token = credentials.raw;
     if (authMode === "oauth") {

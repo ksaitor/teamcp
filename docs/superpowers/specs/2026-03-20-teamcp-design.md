@@ -1,8 +1,8 @@
-# TeamRouter (formerly TeamMCP) — Design Specification
+# Teamcp — Design Specification
 
 ## Overview
 
-TeamRouter is an open-source, self-hostable MCP (Model Context Protocol) gateway that gives organizations fine-grained, per-member control over AI tool access. Each team member gets a unique, personalized MCP endpoint URL. Admins configure which data sources, tools, and permissions each member has — enforced by a layered permission engine that combines hard-coded rules with AI-powered filtering.
+Teamcp is an open-source, self-hostable MCP (Model Context Protocol) gateway that gives organizations fine-grained, per-member control over AI tool access. Each team member gets a unique, personalized MCP endpoint URL. Admins configure which data sources, tools, and permissions each member has — enforced by a layered permission engine that combines hard-coded rules with AI-powered filtering.
 
 **License:** BSL (Business Source License) — source-available, open-core model similar to Supabase.
 
@@ -552,7 +552,7 @@ interface Connector {
 ### External MCP Server Proxy
 
 1. Admin adds remote MCP server URL + optional auth
-2. TeamMCP connects via SSE, calls `tools/list` to discover tools
+2. Teamcp connects via SSE, calls `tools/list` to discover tools
 3. Each tool is stored as a `ConnectorTool` record
 4. Admin cherry-picks tools per member via `MemberToolAccess`
 5. At runtime: tool call is proxied to remote server → response is AI-filtered → returned to member
