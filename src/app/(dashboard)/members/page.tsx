@@ -28,6 +28,7 @@ export default async function MembersPage() {
     jobTitle: m.jobTitle,
     user: m.user,
     connectorCount: m._count.connectorAccess,
+    lastActiveAt: m.lastActiveAt,
   }));
 
   return (
