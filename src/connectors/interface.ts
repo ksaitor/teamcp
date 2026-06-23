@@ -21,6 +21,17 @@ export interface ToolResult {
   isError?: boolean;
 }
 
+/**
+ * Result of a connector's native (Layer 2) permission check. The permission
+ * engine attaches the `layer` tag, so connectors only say allow/deny + why —
+ * keeping all of a connector's logic in its own directory with no dependency on
+ * `src/permissions`.
+ */
+export interface NativePermissionCheck {
+  allowed: boolean;
+  reason?: string;
+}
+
 export interface ConnectorInstance {
   type: string;
 
@@ -46,4 +57,17 @@ export interface ConnectorInstance {
 
   /** Classify a tool call as read or write */
   getOperationType(toolName: string, config?: ConnectorConfig): "read" | "write";
+
+  /**
+   * Optional Layer 2 native permission check. Receives the member's saved
+   * native-permission values (the ones described by `getNativePermissions`) and
+   * the incoming call. Omit it to allow everything at this layer. Implementing
+   * it here keeps a connector's enforcement co-located with its definition
+   * instead of living in a central switch.
+   */
+  checkNativePermissions?(
+    toolName: string,
+    params: Record<string, any>,
+    nativePermissions: Record<string, any>
+  ): NativePermissionCheck;
 }

@@ -1,11 +1,17 @@
 # Connector catalog entries
 
-Each file in this directory is **one connector** shown in the "Add a connector"
-gallery. Files here are auto-discovered at build time (`require.context` in
-`../index.ts`) — there is no central list to register in, so adding a connector
-is a single new file and two connectors added in parallel never merge-conflict.
+Each file here is **one metadata-only connector** in the "Add a connector"
+gallery — used for connectors with no code of their own, chiefly hosted MCP
+presets (`EXTERNAL_MCP`). Files are auto-discovered at build time
+(`require.context` in `../index.ts`), so there is no central list to register in.
 
-## Add a connector
+> **Connectors with their own implementation co-locate everything instead.** A
+> full connector (impl + UI form + icon + permissions) lives in one directory
+> under `src/connectors/<name>/`, and its gallery entry is that directory's
+> `catalog.ts` — also auto-discovered. See `src/connectors/README.md`. Only add a
+> file here when the connector has no `src/connectors/<name>/` directory.
+
+## Add a metadata-only entry
 
 Create `entries/<slug>.ts`:
 

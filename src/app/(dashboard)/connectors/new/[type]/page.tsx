@@ -8,7 +8,6 @@ import { ConnectorConfigForm } from "./connector-config-form";
 import { CustomMcpWizard } from "./custom-mcp-wizard";
 import { WebRequestForm } from "./web-request-form";
 import { XeroWizard } from "./xero-wizard";
-import { S3Form } from "./s3-form";
 
 export default async function NewConnectorConfigPage({
   params,
@@ -22,12 +21,15 @@ export default async function NewConnectorConfigPage({
   if (!entry || !entry.available) {
     notFound();
   }
-  const needsCredentialField =
-    entry.type !== "EXTERNAL_MCP" &&
-    entry.type !== "WEB_REQUEST" &&
-    entry.type !== "XERO" &&
-    entry.type !== "S3";
-  if (needsCredentialField && !entry.credentialField) {
+  // A connector is configurable if it's one of the built-in OAuth/MCP flows, or
+  // it brings its own co-located form, or it declares a single credential field.
+  const OAUTH_OR_MCP_TYPES = new Set(["EXTERNAL_MCP", "XERO", "WEB_REQUEST"]);
+  const CustomForm = entry.form;
+  if (
+    !OAUTH_OR_MCP_TYPES.has(entry.type) &&
+    !CustomForm &&
+    !entry.credentialField
+  ) {
     notFound();
   }
 
@@ -61,8 +63,8 @@ export default async function NewConnectorConfigPage({
         <XeroWizard redirectUri={xeroRedirectUri()} />
       ) : entry.type === "WEB_REQUEST" ? (
         <WebRequestForm />
-      ) : entry.type === "S3" ? (
-        <S3Form />
+      ) : CustomForm ? (
+        <CustomForm />
       ) : entry.credentialField ? (
         <ConnectorConfigForm
           type={entry.type}

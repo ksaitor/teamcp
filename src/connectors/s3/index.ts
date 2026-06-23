@@ -2,6 +2,7 @@ import type {
   ConnectorInstance,
   ConnectorConfig,
   DecryptedCredentials,
+  NativePermissionCheck,
   NativePermissionDef,
   ToolResult,
 } from "../interface";
@@ -148,6 +149,30 @@ export class S3Connector implements ConnectorInstance {
     return toolName === "s3_put_object" || toolName === "s3_delete_object"
       ? "write"
       : "read";
+  }
+
+  checkNativePermissions(
+    _toolName: string,
+    params: Record<string, any>,
+    perms: Record<string, any>
+  ): NativePermissionCheck {
+    const allowedBuckets = perms.allowedBuckets;
+    // When `bucket` is omitted the call falls back to the configured default
+    // bucket, which the admin set explicitly — so only enforce the list when a
+    // bucket is actually named in the call.
+    if (
+      Array.isArray(allowedBuckets) &&
+      allowedBuckets.length > 0 &&
+      params.bucket
+    ) {
+      if (!allowedBuckets.includes(params.bucket)) {
+        return {
+          allowed: false,
+          reason: `Bucket '${params.bucket}' is not in the allowed buckets list`,
+        };
+      }
+    }
+    return { allowed: true };
   }
 
   private client(cfg: S3Config, creds: S3Credentials) {
