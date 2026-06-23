@@ -17,7 +17,7 @@ export function AddMemberForm({ mode = "toggle" }: { mode?: "toggle" | "standalo
     setError("");
     setImage(undefined);
     if (mode === "standalone") {
-      router.push("/members");
+      router.push("/team");
       return;
     }
     setOpen(false);

@@ -36,7 +36,7 @@ export default async function DashboardPage() {
       <h1 className="text-2xl font-bold">Dashboard</h1>
 
       <div className="mt-6 grid grid-cols-4 gap-4">
-        <StatCard label="Members" value={memberCount} href="/members" />
+        <StatCard label="Team" value={memberCount} href="/team" />
         <StatCard label="Connectors" value={connectorCount} href="/connectors" />
         <StatCard label="Pending Approvals" value={pendingApprovals} href="/approvals" />
         <StatCard label="Recent Logs" value={recentLogs.length} href="/logs" />

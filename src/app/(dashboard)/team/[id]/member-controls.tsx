@@ -49,7 +49,7 @@ export function MemberControls({
       setConfirmingRemove(false);
       return;
     }
-    router.push("/members");
+    router.push("/team");
   }
 
   return (

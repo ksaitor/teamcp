@@ -56,7 +56,7 @@ export function MembersTable({ members }: { members: MemberRow[] }) {
               <tr key={m.id}>
                 <td className="py-3">
                   <Link
-                    href={`/members/${m.id}`}
+                    href={`/team/${m.id}`}
                     className="flex items-center gap-2 font-medium hover:underline"
                   >
                     <Avatar name={m.user.name} email={m.user.email} image={m.user.image} />
@@ -85,7 +85,7 @@ export function MembersTable({ members }: { members: MemberRow[] }) {
                 </td>
                 <td className="py-3">
                   <Link
-                    href={`/members/${m.id}`}
+                    href={`/team/${m.id}`}
                     className="text-muted-foreground hover:text-foreground"
                   >
                     Configure

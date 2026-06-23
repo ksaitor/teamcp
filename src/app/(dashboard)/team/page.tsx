@@ -17,7 +17,7 @@ export default async function MembersPage() {
   });
 
   if (memberships.length === 0) {
-    redirect("/members/new");
+    redirect("/team/new");
   }
 
   const members: MemberRow[] = memberships.map((m) => ({
@@ -34,9 +34,9 @@ export default async function MembersPage() {
   return (
     <div>
       <div className="flex flex-wrap items-center gap-4">
-        <h1 className="text-2xl font-bold">Members</h1>
+        <h1 className="text-2xl font-bold">Team</h1>
         <Link
-          href="/members/new"
+          href="/team/new"
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           Add member
