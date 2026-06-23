@@ -157,7 +157,8 @@ export class StripeConnector implements ConnectorInstance {
     credentials: DecryptedCredentials
   ): Promise<ToolResult> {
     // Dynamic import
-    const Stripe = (await import("stripe")).default;
+    // @ts-ignore — optional connector dependency, may be absent at type-check time
+    const Stripe = (await import(/* turbopackOptional: true */ "stripe")).default;
     const stripe = new Stripe(credentials.raw);
 
     try {
@@ -245,7 +246,8 @@ export class StripeConnector implements ConnectorInstance {
     credentials: DecryptedCredentials
   ): Promise<boolean> {
     try {
-      const Stripe = (await import("stripe")).default;
+      // @ts-ignore — optional connector dependency, may be absent at type-check time
+      const Stripe = (await import(/* turbopackOptional: true */ "stripe")).default;
       const stripe = new Stripe(credentials.raw);
       await stripe.customers.list({ limit: 1 });
       return true;

@@ -147,7 +147,8 @@ export class MySQLConnector implements ConnectorInstance {
     credentials: DecryptedCredentials
   ): Promise<ToolResult> {
     // Dynamic import to avoid requiring mysql2 when not used
-    const mysql = await import("mysql2/promise");
+    // @ts-ignore — optional connector dependency, may be absent at type-check time
+    const mysql = await import(/* turbopackOptional: true */ "mysql2/promise");
     const connection = await mysql.createConnection(credentials.raw);
     try {
       switch (toolName) {
@@ -240,7 +241,8 @@ export class MySQLConnector implements ConnectorInstance {
     _config: ConnectorConfig,
     credentials: DecryptedCredentials
   ): Promise<boolean> {
-    const mysql = await import("mysql2/promise");
+    // @ts-ignore — optional connector dependency, may be absent at type-check time
+    const mysql = await import(/* turbopackOptional: true */ "mysql2/promise");
     let connection;
     try {
       connection = await mysql.createConnection(credentials.raw);

@@ -130,7 +130,8 @@ export class MongoDBConnector implements ConnectorInstance {
     credentials: DecryptedCredentials
   ): Promise<ToolResult> {
     // Dynamic import to avoid requiring mongodb when not used
-    const { MongoClient } = await import("mongodb");
+    // @ts-ignore — optional connector dependency, may be absent at type-check time
+    const { MongoClient } = await import(/* turbopackOptional: true */ "mongodb");
     const client = new MongoClient(credentials.raw);
 
     try {
@@ -233,7 +234,8 @@ export class MongoDBConnector implements ConnectorInstance {
     _config: ConnectorConfig,
     credentials: DecryptedCredentials
   ): Promise<boolean> {
-    const { MongoClient } = await import("mongodb");
+    // @ts-ignore — optional connector dependency, may be absent at type-check time
+    const { MongoClient } = await import(/* turbopackOptional: true */ "mongodb");
     const client = new MongoClient(credentials.raw);
     try {
       await client.connect();
