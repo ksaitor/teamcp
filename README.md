@@ -44,7 +44,7 @@ The admin dashboard is available at `http://localhost:3000` and the MCP server a
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | No | Google OAuth |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | No | GitHub OAuth |
 | `SMTP_URL` | No | SMTP connection string for email notifications |
-| `SMTP_FROM` | No | From address for outgoing email (default: `TeamRouter <noreply@teamrouter.com>`) |
+| `SMTP_FROM` | No | From address for outgoing email (default: `TeamRouter <noreply@teamcp.ai>`) |
 
 ## Architecture
 
