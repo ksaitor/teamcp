@@ -11,7 +11,7 @@ function getTransporter() {
 }
 
 function getFrom(): string {
-  return process.env.SMTP_FROM || "TeamCP <noreply@teamrouter.com>";
+  return process.env.SMTP_FROM || "TeamCP <noreply@teamcp.ai>";
 }
 
 interface SendEmailOptions {
