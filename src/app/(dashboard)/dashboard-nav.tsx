@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 import {
   FiUsers,
   FiDatabase,
@@ -118,24 +119,72 @@ export function DashboardNav({ navItems, email }: { navItems: NavItem[]; email: 
         </button>
       </header>
 
-      {/* Mobile drawer */}
+      {/* Mobile full-screen menu */}
       {open && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <div
-            className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
-            onClick={() => setOpen(false)}
-          />
-          <aside className="absolute left-0 top-0 flex h-full w-72 max-w-[85vw] flex-col gap-3 overflow-y-auto bg-background p-4 shadow-xl">
+        <div className="fixed inset-0 z-50 flex flex-col bg-background/95 backdrop-blur-2xl duration-200 animate-in fade-in md:hidden">
+          <header className="flex items-center justify-between px-4 py-3">
+            <span className="text-base font-semibold tracking-tight">TeamRouter</span>
             <button
               type="button"
               aria-label="Close menu"
               onClick={() => setOpen(false)}
-              className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             >
               <FiX className="h-5 w-5" />
             </button>
-            <NavContent navItems={navItems} email={email} />
-          </aside>
+          </header>
+
+          <nav className="flex flex-1 flex-col justify-center gap-1 px-6">
+            {navItems.map((item, i) => {
+              const Icon = ICONS[item.icon] ?? FiDatabase;
+              const active =
+                pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  style={{ animationDelay: `${i * 40}ms` }}
+                  className={cn(
+                    "flex items-center gap-4 rounded-2xl px-3 py-3 text-2xl font-semibold tracking-tight transition-colors fill-mode-both animate-in fade-in slide-in-from-bottom-3",
+                    active
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <Icon
+                    className={cn(
+                      "h-6 w-6 shrink-0 transition-colors",
+                      active ? "text-primary" : "text-muted-foreground",
+                    )}
+                  />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <footer className="flex items-center gap-3 border-t border-border/60 px-6 py-5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
+              {(email?.[0] ?? "?").toUpperCase()}
+            </div>
+            <p className="flex-1 truncate text-sm text-muted-foreground">{email}</p>
+            <Link
+              href="/chat"
+              aria-label="Chat"
+              title="Internal chat (for testing)"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              <FiMessageSquare className="h-5 w-5" />
+            </Link>
+            <Link
+              href="/settings"
+              aria-label="Settings"
+              title="Settings"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              <FiSettings className="h-5 w-5" />
+            </Link>
+          </footer>
         </div>
       )}
     </>
