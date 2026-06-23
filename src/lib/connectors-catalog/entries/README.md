@@ -1,15 +1,25 @@
 # Connector catalog entries
 
 Each file here is **one metadata-only connector** in the "Add a connector"
-gallery — used for connectors with no code of their own, chiefly hosted MCP
-presets (`EXTERNAL_MCP`). Files are auto-discovered at build time
-(`require.context` in `../index.ts`), so there is no central list to register in.
+gallery, auto-discovered at build time (`require.context` in `../index.ts`), so
+there is no central list to register in.
 
-> **Connectors with their own implementation co-locate everything instead.** A
-> full connector (impl + UI form + icon + permissions) lives in one directory
-> under `src/connectors/<name>/`, and its gallery entry is that directory's
-> `catalog.ts` — also auto-discovered. See `src/connectors/README.md`. Only add a
-> file here when the connector has no `src/connectors/<name>/` directory.
+> **Almost every connector belongs in `src/connectors/<name>/` instead — including
+> hosted MCP presets.** Everything about an integration co-locates in one
+> directory: a full connector keeps its impl + UI form + icon + permissions
+> there, and a hosted MCP preset (`EXTERNAL_MCP`) is just a directory with a lone
+> `catalog.ts` (no `index.ts`) reusing the shared `external-mcp` implementation.
+> The gallery entry is always that directory's `catalog.ts`, also
+> auto-discovered. See `src/connectors/README.md`.
+
+**Only add a file here when the connector genuinely has no directory of its
+own**, which is rare:
+
+- **"Coming soon" placeholders** (`available: false`) for connectors not built
+  yet — e.g. `google-analytics.ts`, `snowflake.ts`.
+- **A second preset for a `type` whose directory is already taken** — e.g. the
+  hosted Stripe MCP lives here because `src/connectors/stripe/` already holds the
+  legacy API-key connector's `catalog.ts`, and a directory can only have one.
 
 ## Add a metadata-only entry
 

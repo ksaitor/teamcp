@@ -22,13 +22,17 @@ type EntryModule = { default: ConnectorCatalogEntry };
  * or import list to edit, which is what keeps two connectors added in parallel
  * from ever conflicting:
  *
- *  1. `./entries/*.ts` — metadata-only entries, used for hosted MCP presets
- *     (EXTERNAL_MCP) and other connectors with no code of their own.
- *  2. `src/connectors/<name>/catalog.ts` — the gallery entry co-located with a
- *     full connector's implementation, so everything about that integration
- *     (impl, UI form, icon, permissions) lives in one directory. These files
+ *  1. `src/connectors/<name>/catalog.ts` — the gallery entry co-located with a
+ *     connector. For a full connector this sits alongside its `index.ts` impl;
+ *     for a hosted MCP preset (EXTERNAL_MCP) the directory holds only this
+ *     `catalog.ts` and reuses the shared `external-mcp` implementation. Either
+ *     way everything about an integration lives in one directory. These files
  *     must stay client-safe: import only the icon, catalog `types`, and a
  *     `next/dynamic` form ref — never the connector's server-only `index.ts`.
+ *  2. `./entries/*.ts` — metadata-only entries with no `src/connectors/<name>/`
+ *     directory of their own: "coming soon" placeholders and the few cases (a
+ *     second preset for a type that already owns its directory) that can't be
+ *     co-located.
  */
 type RequireContext = {
   keys(): string[];
