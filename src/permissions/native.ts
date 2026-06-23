@@ -1,8 +1,14 @@
+import { getConnector } from "@/connectors/registry";
 import type { PermissionResult } from "./engine";
 
 /**
  * Layer 2: Connector-native permission checks.
- * Validates against connector-specific permission configs.
+ *
+ * A connector enforces its own native rules by implementing
+ * `checkNativePermissions` on its `ConnectorInstance` — that keeps the logic in
+ * the connector's own directory. When a connector implements it we delegate
+ * here; the legacy switch below covers the original connectors that predate that
+ * hook. New connectors should use the instance method, not this switch.
  */
 export function checkNativePermissions(
   connectorType: string,
@@ -14,6 +20,21 @@ export function checkNativePermissions(
     return { allowed: true, layer: "native" };
   }
 
+  let connector;
+  try {
+    connector = getConnector(connectorType);
+  } catch {
+    connector = undefined;
+  }
+  if (connector?.checkNativePermissions) {
+    const result = connector.checkNativePermissions(
+      toolName,
+      params,
+      nativePermissions
+    );
+    return { allowed: result.allowed, reason: result.reason, layer: "native" };
+  }
+
   switch (connectorType) {
     case "POSTGRES":
       return checkPostgresPermissions(nativePermissions, toolName, params);
@@ -23,8 +44,6 @@ export function checkNativePermissions(
       return checkMongoPermissions(nativePermissions, toolName, params);
     case "STRIPE":
       return checkStripePermissions(nativePermissions, toolName);
-    case "S3":
-      return checkS3Permissions(nativePermissions, params);
     default:
       return { allowed: true, layer: "native" };
   }
@@ -156,28 +175,6 @@ function checkMongoPermissions(
       return {
         allowed: false,
         reason: `Collection '${params.collection}' is not in the allowed collections list`,
-        layer: "native",
-      };
-    }
-  }
-
-  return { allowed: true, layer: "native" };
-}
-
-function checkS3Permissions(
-  perms: Record<string, any>,
-  params: Record<string, any>
-): PermissionResult {
-  const { allowedBuckets } = perms;
-
-  // When `bucket` is omitted the call falls back to the connector's configured
-  // default bucket, which the admin set explicitly — so only enforce the list
-  // when a bucket is actually named in the call.
-  if (allowedBuckets && allowedBuckets.length > 0 && params.bucket) {
-    if (!allowedBuckets.includes(params.bucket)) {
-      return {
-        allowed: false,
-        reason: `Bucket '${params.bucket}' is not in the allowed buckets list`,
         layer: "native",
       };
     }
