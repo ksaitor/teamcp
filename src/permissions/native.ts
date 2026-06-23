@@ -1,8 +1,13 @@
+import { getConnector } from "@/connectors/registry";
 import type { PermissionResult } from "./engine";
 
 /**
  * Layer 2: Connector-native permission checks.
- * Validates against connector-specific permission configs.
+ *
+ * Each connector enforces its own native rules by implementing
+ * `checkNativePermissions` on its `ConnectorInstance`, so the logic lives in the
+ * connector's own directory rather than in a central switch here. This layer
+ * just resolves the connector and delegates, tagging the result with the layer.
  */
 export function checkNativePermissions(
   connectorType: string,
@@ -14,180 +19,19 @@ export function checkNativePermissions(
     return { allowed: true, layer: "native" };
   }
 
-  switch (connectorType) {
-    case "POSTGRES":
-      return checkPostgresPermissions(nativePermissions, toolName, params);
-    case "MYSQL":
-      return checkMysqlPermissions(nativePermissions, toolName, params);
-    case "MONGODB":
-      return checkMongoPermissions(nativePermissions, toolName, params);
-    case "STRIPE":
-      return checkStripePermissions(nativePermissions, toolName);
-    default:
-      return { allowed: true, layer: "native" };
+  let connector;
+  try {
+    connector = getConnector(connectorType);
+  } catch {
+    connector = undefined;
   }
-}
-
-function checkPostgresPermissions(
-  perms: Record<string, any>,
-  toolName: string,
-  params: Record<string, any>
-): PermissionResult {
-  const { allowedSchemas, allowedTables } = perms;
-
-  // For describe_table and query, check table restrictions
-  if (allowedTables && allowedTables.length > 0) {
-    if (toolName === "pg_describe_table" && params.table) {
-      if (!allowedTables.includes(params.table)) {
-        return {
-          allowed: false,
-          reason: `Table '${params.table}' is not in the allowed tables list`,
-          layer: "native",
-        };
-      }
-    }
-
-    // Basic SQL table check — not a full parser, but catches simple cases
-    if (
-      (toolName === "pg_query" || toolName === "pg_execute") &&
-      params.sql
-    ) {
-      const sql = params.sql.toLowerCase();
-      for (const table of allowedTables) {
-        // This is a basic check — AI layer handles more nuanced filtering
-        if (sql.includes(table.toLowerCase())) {
-          return { allowed: true, layer: "native" };
-        }
-      }
-      // If SQL doesn't mention any allowed tables, it might be accessing restricted ones
-      // Let it through for now — AI layer will catch detailed violations
-    }
-  }
-
-  // Schema check
-  if (allowedSchemas && allowedSchemas.length > 0) {
-    if (
-      (toolName === "pg_list_tables" || toolName === "pg_describe_table") &&
-      params.schema
-    ) {
-      if (!allowedSchemas.includes(params.schema)) {
-        return {
-          allowed: false,
-          reason: `Schema '${params.schema}' is not in the allowed schemas list`,
-          layer: "native",
-        };
-      }
-    }
-  }
-
-  return { allowed: true, layer: "native" };
-}
-
-function checkMysqlPermissions(
-  perms: Record<string, any>,
-  toolName: string,
-  params: Record<string, any>
-): PermissionResult {
-  const { allowedSchemas, allowedTables } = perms;
-
-  // For describe_table, check table restrictions
-  if (allowedTables && allowedTables.length > 0) {
-    if (toolName === "mysql_describe_table" && params.table) {
-      if (!allowedTables.includes(params.table)) {
-        return {
-          allowed: false,
-          reason: `Table '${params.table}' is not in the allowed tables list`,
-          layer: "native",
-        };
-      }
-    }
-
-    // Basic SQL table check — not a full parser, but catches simple cases
-    if (
-      (toolName === "mysql_query" || toolName === "mysql_execute") &&
-      params.sql
-    ) {
-      const sql = params.sql.toLowerCase();
-      for (const table of allowedTables) {
-        // This is a basic check — AI layer handles more nuanced filtering
-        if (sql.includes(table.toLowerCase())) {
-          return { allowed: true, layer: "native" };
-        }
-      }
-      // If SQL doesn't mention any allowed tables, it might be accessing restricted ones
-      // Let it through for now — AI layer will catch detailed violations
-    }
-  }
-
-  // Schema check
-  if (allowedSchemas && allowedSchemas.length > 0) {
-    if (
-      (toolName === "mysql_list_tables" || toolName === "mysql_describe_table") &&
-      params.schema
-    ) {
-      if (!allowedSchemas.includes(params.schema)) {
-        return {
-          allowed: false,
-          reason: `Schema '${params.schema}' is not in the allowed schemas list`,
-          layer: "native",
-        };
-      }
-    }
-  }
-
-  return { allowed: true, layer: "native" };
-}
-
-function checkMongoPermissions(
-  perms: Record<string, any>,
-  toolName: string,
-  params: Record<string, any>
-): PermissionResult {
-  const { allowedCollections } = perms;
-
-  if (
-    allowedCollections &&
-    allowedCollections.length > 0 &&
-    params.collection
-  ) {
-    if (!allowedCollections.includes(params.collection)) {
-      return {
-        allowed: false,
-        reason: `Collection '${params.collection}' is not in the allowed collections list`,
-        layer: "native",
-      };
-    }
-  }
-
-  return { allowed: true, layer: "native" };
-}
-
-function checkStripePermissions(
-  perms: Record<string, any>,
-  toolName: string
-): PermissionResult {
-  const { scopes } = perms;
-
-  if (scopes && scopes.length > 0) {
-    // Map tool names to required scopes
-    const toolScopeMap: Record<string, string> = {
-      stripe_list_customers: "read:customers",
-      stripe_get_customer: "read:customers",
-      stripe_list_charges: "read:charges",
-      stripe_get_invoice: "read:invoices",
-      stripe_list_subscriptions: "read:subscriptions",
-      stripe_create_refund: "write:refunds",
-      stripe_update_customer: "write:customers",
-    };
-
-    const requiredScope = toolScopeMap[toolName];
-    if (requiredScope && !scopes.includes(requiredScope)) {
-      return {
-        allowed: false,
-        reason: `Missing required scope: ${requiredScope}`,
-        layer: "native",
-      };
-    }
+  if (connector?.checkNativePermissions) {
+    const result = connector.checkNativePermissions(
+      toolName,
+      params,
+      nativePermissions
+    );
+    return { allowed: result.allowed, reason: result.reason, layer: "native" };
   }
 
   return { allowed: true, layer: "native" };

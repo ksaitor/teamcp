@@ -2,6 +2,7 @@ import type {
   ConnectorInstance,
   ConnectorConfig,
   DecryptedCredentials,
+  NativePermissionCheck,
   NativePermissionDef,
   ToolResult,
 } from "../interface";
@@ -113,6 +114,34 @@ export class StripeConnector implements ConnectorInstance {
         ],
       },
     ];
+  }
+
+  checkNativePermissions(
+    toolName: string,
+    _params: Record<string, any>,
+    perms: Record<string, any>
+  ): NativePermissionCheck {
+    const { scopes } = perms;
+
+    if (scopes && scopes.length > 0) {
+      // Map tool names to required scopes
+      const toolScopeMap: Record<string, string> = {
+        stripe_list_customers: "read:customers",
+        stripe_get_customer: "read:customers",
+        stripe_list_charges: "read:charges",
+        stripe_get_invoice: "read:invoices",
+        stripe_list_subscriptions: "read:subscriptions",
+        stripe_create_refund: "write:refunds",
+        stripe_update_customer: "write:customers",
+      };
+
+      const requiredScope = toolScopeMap[toolName];
+      if (requiredScope && !scopes.includes(requiredScope)) {
+        return { allowed: false, reason: `Missing required scope: ${requiredScope}` };
+      }
+    }
+
+    return { allowed: true };
   }
 
   getOperationType(toolName: string): "read" | "write" {

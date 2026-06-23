@@ -25,7 +25,7 @@ This is a **dual-server app**: the Next.js admin UI and the MCP gateway run as s
 | Admin UI (App Router) | `src/app/(auth)` public routes, `src/app/(dashboard)` protected routes, `src/app/api/*` REST mutations |
 | MCP gateway | `src/server/` — `index.ts` (tool-call pipeline), `auth.ts` (MCP token auth) |
 | Access control | `src/permissions/` + `src/ai/filter.ts` + `src/approvals/` |
-| Connectors (pluggable) | `src/connectors/` — implement `interface.ts`, register in `registry.ts` (postgres / mongodb / stripe / external-mcp) |
+| Connectors (pluggable) | `src/connectors/<name>/` — one self-contained dir per integration (`index.ts` impl, `catalog.ts` gallery entry + icon, optional `form.tsx`); auto-discovered, no central list. See `src/connectors/README.md`. |
 | Data | Prisma + PostgreSQL; schema `prisma/schema.prisma`; client singleton `src/db/index.ts` |
 | Auth | NextAuth v5 in `src/auth.ts`; env validated via Zod in `src/lib/config.ts` |
 

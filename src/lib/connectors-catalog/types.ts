@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import type { IconType } from "react-icons";
 
 /**
@@ -52,6 +53,16 @@ export interface ConnectorCatalogEntry {
   credentialField?: CredentialField;
   /** Set on EXTERNAL_MCP entries that point at a known hosted MCP server. */
   mcpPreset?: McpPreset;
+  /**
+   * Custom setup form rendered on the "add connector" page instead of the
+   * generic single-field form. Use `next/dynamic` so the form code stays out of
+   * the gallery bundle, e.g.
+   * `form: dynamic(() => import("./form").then((m) => m.MyForm))`. The component
+   * takes no props and POSTs to `/api/connectors` itself.
+   */
+  form?: ComponentType;
+  /** Render the setup page at a wider max-width (for forms with many fields). */
+  wide?: boolean;
 }
 
 /**
