@@ -2,6 +2,7 @@ import type {
   ConnectorInstance,
   ConnectorConfig,
   DecryptedCredentials,
+  NativePermissionCheck,
   NativePermissionDef,
   ToolResult,
 } from "../interface";
@@ -91,6 +92,29 @@ export class MongoDBConnector implements ConnectorInstance {
         default: [],
       },
     ];
+  }
+
+  checkNativePermissions(
+    _toolName: string,
+    params: Record<string, any>,
+    perms: Record<string, any>
+  ): NativePermissionCheck {
+    const { allowedCollections } = perms;
+
+    if (
+      allowedCollections &&
+      allowedCollections.length > 0 &&
+      params.collection
+    ) {
+      if (!allowedCollections.includes(params.collection)) {
+        return {
+          allowed: false,
+          reason: `Collection '${params.collection}' is not in the allowed collections list`,
+        };
+      }
+    }
+
+    return { allowed: true };
   }
 
   getOperationType(toolName: string): "read" | "write" {

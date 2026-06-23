@@ -61,6 +61,8 @@ export interface ConnectorCatalogEntry {
    * takes no props and POSTs to `/api/connectors` itself.
    */
   form?: ComponentType;
+  /** Render the setup page at a wider max-width (for forms with many fields). */
+  wide?: boolean;
 }
 
 /**
