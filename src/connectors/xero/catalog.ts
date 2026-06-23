@@ -1,5 +1,5 @@
 import { SiXero } from "react-icons/si";
-import { defineConnector } from "../types";
+import { defineConnector } from "@/lib/connectors-catalog/types";
 
 /**
  * Native Xero connector. Uses a dedicated OAuth wizard (not `credentialField`),
