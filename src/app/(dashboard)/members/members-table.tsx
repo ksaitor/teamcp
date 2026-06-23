@@ -12,6 +12,7 @@ export interface MemberRow {
   jobTitle: string | null;
   user: { name: string | null; email: string; image: string | null };
   connectorCount: number;
+  lastActiveAt: Date | null;
 }
 
 export function MembersTable({ members }: { members: MemberRow[] }) {
@@ -46,6 +47,7 @@ export function MembersTable({ members }: { members: MemberRow[] }) {
               <th className="pb-2 font-medium">Role</th>
               <th className="pb-2 font-medium">Status</th>
               <th className="pb-2 font-medium">Connectors</th>
+              <th className="pb-2 font-medium">Last active</th>
               <th className="pb-2 font-medium">Actions</th>
             </tr>
           </thead>
@@ -78,6 +80,9 @@ export function MembersTable({ members }: { members: MemberRow[] }) {
                   <StatusBadge status={m.status} suspendedAt={m.suspendedAt} />
                 </td>
                 <td className="py-3 text-muted-foreground">{m.connectorCount}</td>
+                <td className="py-3 text-muted-foreground">
+                  <LastActive at={m.lastActiveAt} />
+                </td>
                 <td className="py-3">
                   <Link
                     href={`/members/${m.id}`}
@@ -90,7 +95,7 @@ export function MembersTable({ members }: { members: MemberRow[] }) {
             ))}
             {results.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                <td colSpan={8} className="py-8 text-center text-muted-foreground">
                   {members.length === 0
                     ? "No members yet. Add one above."
                     : `No members match “${query}”.`}
@@ -129,6 +134,28 @@ function Avatar({
       {initial}
     </span>
   );
+}
+
+function LastActive({ at }: { at: Date | null }) {
+  if (!at) return <span className="text-muted-foreground">Never</span>;
+  const date = new Date(at);
+  return (
+    <span title={date.toLocaleString()}>{formatRelativeTime(date)}</span>
+  );
+}
+
+// Compact relative time ("just now", "5m ago", "3d ago", or a date for older).
+function formatRelativeTime(date: Date) {
+  const diffMs = Date.now() - date.getTime();
+  const sec = Math.round(diffMs / 1000);
+  if (sec < 60) return "Just now";
+  const min = Math.round(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.round(hr / 24);
+  if (day < 30) return `${day}d ago`;
+  return date.toLocaleDateString();
 }
 
 function StatusBadge({ status, suspendedAt }: { status: string; suspendedAt: Date | null }) {

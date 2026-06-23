@@ -1,4 +1,5 @@
 import { prisma } from "@/db";
+import { touchLastActive } from "@/lib/activity";
 
 export interface AuthenticatedMember {
   id: string; // OrgMembership ID
@@ -45,6 +46,10 @@ export async function authenticateMcpToken(
     where: { id: token.id },
     data: { lastUsedAt: new Date() },
   });
+
+  // Every authenticated MCP request (auth, tool list, tool call, AI filter)
+  // flows through here, so this single touch covers "authed" and "mcp call".
+  touchLastActive(membership.id);
 
   return {
     id: membership.id,
