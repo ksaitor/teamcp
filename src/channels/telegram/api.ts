@@ -43,12 +43,14 @@ export class TelegramApiError extends Error {
 async function call<T>(
   token: string,
   method: string,
-  body?: Record<string, unknown>
+  body?: Record<string, unknown>,
+  signal?: AbortSignal
 ): Promise<T> {
   const res = await fetch(`${API_BASE}/bot${token}/${method}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body ?? {}),
+    signal,
   });
   const data = (await res.json().catch(() => ({}))) as {
     ok: boolean;
@@ -185,12 +187,22 @@ export function deleteWebhook(token: string) {
   return call(token, "deleteWebhook");
 }
 
-export function getUpdates(token: string, offset: number, timeoutSeconds: number) {
-  return call<TelegramUpdate[]>(token, "getUpdates", {
-    offset,
-    timeout: timeoutSeconds,
-    allowed_updates: ["message"],
-  });
+export function getUpdates(
+  token: string,
+  offset: number,
+  timeoutSeconds: number,
+  signal?: AbortSignal
+) {
+  return call<TelegramUpdate[]>(
+    token,
+    "getUpdates",
+    {
+      offset,
+      timeout: timeoutSeconds,
+      allowed_updates: ["message"],
+    },
+    signal
+  );
 }
 
 /**

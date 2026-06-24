@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { ZodError } from "zod";
 import { getConfig } from "./src/lib/config";
 import { handleMcpRequest, closeMcpSessions } from "./src/server";
-import { startChannelSupervisor } from "./src/channels/supervisor";
+import { startChannelSupervisor, stopChannelSupervisor } from "./src/channels/supervisor";
 import { startAuditLogRetention } from "./src/audit/retention";
 import { prisma } from "./src/db";
 
@@ -65,6 +65,10 @@ async function shutdown(signal: string) {
   }, 5000);
   forceExit.unref();
 
+  // Stop channel runners first so Telegram long-polls / Slack sockets close and
+  // the platform releases each bot's single-consumer slot before a redeploy's
+  // new instance connects (prevents Telegram 409 "terminated by other getUpdates").
+  await stopChannelSupervisor();
   await closeMcpSessions();
   await new Promise((resolve) => server.close(resolve));
   await prisma.$disconnect();

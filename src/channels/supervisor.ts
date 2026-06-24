@@ -65,25 +65,58 @@ async function reconcile() {
   }
 }
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+/** Sleep that resolves early if the signal aborts, so shutdown isn't delayed by the tick. */
+function sleep(ms: number, signal?: AbortSignal) {
+  return new Promise<void>((resolve) => {
+    if (signal?.aborted) return resolve();
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
 let started = false;
+let loop: Promise<void> | null = null;
+const shutdownController = new AbortController();
 
 /** Start the reconcile loop. Idempotent — a second call is a no-op. */
 export function startChannelSupervisor(): void {
   if (started) return;
   started = true;
   console.log("[channels] supervisor starting…");
-  void (async () => {
-    for (;;) {
+  loop = (async () => {
+    while (!shutdownController.signal.aborted) {
       try {
         await reconcile();
       } catch (err) {
         console.error("[channels] reconcile error", err);
       }
-      await sleep(RECONCILE_INTERVAL_MS);
+      await sleep(RECONCILE_INTERVAL_MS, shutdownController.signal);
     }
   })();
+}
+
+/**
+ * Stop the reconcile loop and tear down every runner, awaiting each so open
+ * connections (Telegram long-polls, Slack sockets) close before the process
+ * exits. Without this, a redeploy's old instance keeps polling and the new one
+ * races it for the platform's single-consumer slot (e.g. Telegram 409). Safe to
+ * call when the supervisor never started.
+ */
+export async function stopChannelSupervisor(): Promise<void> {
+  if (!started) return;
+  console.log("[channels] supervisor stopping…");
+  shutdownController.abort();
+  await loop?.catch(() => {});
+  await Promise.allSettled(
+    [...runners.values()].map(async (runner) => runner.stop())
+  );
+  runners.clear();
+  started = false;
 }

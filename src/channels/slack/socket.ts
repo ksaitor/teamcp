@@ -18,6 +18,7 @@ const MAX_BACKOFF_MS = 60_000;
 export class SlackSocketRunner implements ChannelRunner {
   private aborted = false;
   private ws: WebSocket | null = null;
+  private loop: Promise<void> | null = null;
   channel: Channel;
 
   constructor(channel: Channel) {
@@ -29,7 +30,8 @@ export class SlackSocketRunner implements ChannelRunner {
     this.channel = channel;
   }
 
-  stop() {
+  /** Close the socket and resolve once the connect loop has fully unwound. */
+  stop(): Promise<void> {
     this.aborted = true;
     try {
       this.ws?.close();
@@ -37,9 +39,15 @@ export class SlackSocketRunner implements ChannelRunner {
       // ignore — already closing/closed
     }
     this.ws = null;
+    return this.loop ?? Promise.resolve();
   }
 
-  async start() {
+  start(): Promise<void> {
+    this.loop = this.run();
+    return this.loop;
+  }
+
+  private async run() {
     console.log(
       `[slack] socket mode starting for channel ${this.channel.id} (${this.channel.name})`
     );

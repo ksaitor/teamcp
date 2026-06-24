@@ -16,6 +16,12 @@ const MAX_BACKOFF_MS = 60_000;
 export class TelegramPoller implements ChannelRunner {
   private aborted = false;
   private offset = 0;
+  // Aborts the in-flight getUpdates long-poll (and any backoff sleep) so a stop
+  // closes the connection at once. Without this, Telegram keeps the consumer
+  // slot until the 50s poll times out, and a redeploy's new instance hits a 409
+  // "terminated by other getUpdates request".
+  private readonly controller = new AbortController();
+  private loop: Promise<void> | null = null;
   channel: Channel;
 
   constructor(channel: Channel) {
@@ -27,11 +33,19 @@ export class TelegramPoller implements ChannelRunner {
     this.channel = channel;
   }
 
-  stop() {
+  /** Abort the in-flight poll and resolve once the loop has fully unwound. */
+  stop(): Promise<void> {
     this.aborted = true;
+    this.controller.abort();
+    return this.loop ?? Promise.resolve();
   }
 
-  async start() {
+  start(): Promise<void> {
+    this.loop = this.run();
+    return this.loop;
+  }
+
+  private async run() {
     // Polling and webhooks are mutually exclusive on Telegram's side.
     try {
       await deleteWebhook(getBotToken(this.channel));
@@ -44,7 +58,12 @@ export class TelegramPoller implements ChannelRunner {
     while (!this.aborted) {
       try {
         const token = getBotToken(this.channel);
-        const updates = await getUpdates(token, this.offset, LONG_POLL_TIMEOUT_S);
+        const updates = await getUpdates(
+          token,
+          this.offset,
+          LONG_POLL_TIMEOUT_S,
+          this.controller.signal
+        );
         backoff = 1000; // reset after a clean poll
         for (const update of updates) {
           this.offset = update.update_id + 1;
@@ -58,9 +77,11 @@ export class TelegramPoller implements ChannelRunner {
           }
         }
       } catch (err) {
+        // stop() aborts the long-poll mid-flight; that's an expected shutdown,
+        // not an error to log or back off on.
         if (this.aborted) break;
         console.error(`[telegram] poll error for channel ${this.channel.id}, backing off ${backoff}ms`, err);
-        await sleep(backoff);
+        await sleep(backoff, this.controller.signal);
         backoff = Math.min(backoff * 2, MAX_BACKOFF_MS);
       }
     }
@@ -68,6 +89,18 @@ export class TelegramPoller implements ChannelRunner {
   }
 }
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+/** Sleep that resolves early if the signal aborts, so a stop isn't delayed by backoff. */
+function sleep(ms: number, signal?: AbortSignal) {
+  return new Promise<void>((resolve) => {
+    if (signal?.aborted) return resolve();
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }

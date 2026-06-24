@@ -27,8 +27,14 @@ export interface InboundMessage {
 export interface ChannelRunner {
   /** Begin pulling messages. Resolves/returns when stopped; errors are handled internally. */
   start(): Promise<void> | void;
-  /** Signal the loop to stop on its next iteration. */
-  stop(): void;
+  /**
+   * Signal the loop to stop and tear down any open connection to the platform.
+   * Implementations should abort in-flight long-polls / close sockets so the
+   * platform releases the single-consumer slot immediately (otherwise a redeploy
+   * races the old instance — e.g. Telegram's 409 "terminated by other getUpdates").
+   * May be async; the supervisor awaits it during shutdown.
+   */
+  stop(): void | Promise<void>;
   /** Swap in a fresh channel snapshot without restarting. */
   update(channel: Channel): void;
 }
