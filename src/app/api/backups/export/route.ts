@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
 import { buildConfigBundle } from "@/backup/bundle";
 import { encodeBackup } from "@/backup/archive";
@@ -20,18 +19,7 @@ export async function POST(req: NextRequest) {
     const bundle = await buildConfigBundle(session.organizationId, {
       plaintextSecrets: Boolean(passphrase),
     });
-    const { data, mode } = encodeBackup(bundle, passphrase);
-
-    await prisma.backupRun.create({
-      data: {
-        organizationId: session.organizationId,
-        trigger: "MANUAL",
-        status: "SUCCESS",
-        mode,
-        sizeBytes: Buffer.byteLength(data),
-        completedAt: new Date(),
-      },
-    });
+    const { data } = encodeBackup(bundle, passphrase);
 
     const filename = `teamcp-backup-${new Date().toISOString().slice(0, 10)}.json`;
     return new NextResponse(data, {
