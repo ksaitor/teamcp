@@ -6,12 +6,24 @@ import { MemberControls } from "./member-controls";
 import { MemberEditForm } from "./member-edit-form";
 import { McpEndpoint } from "./mcp-endpoint";
 import { AccessManager } from "@/components/access/access-manager";
+import { getMemberUsage, type UsageWindow } from "@/lib/usage";
+import { formatCost } from "@/lib/pricing";
 
-function UsageStat({ label, value }: { label: string; value: number }) {
+function UsageCard({ label, usage }: { label: string; usage: UsageWindow }) {
+  const tokens = usage.inputTokens + usage.outputTokens;
   return (
-    <div>
-      <div className="text-2xl font-bold tabular-nums">{value.toLocaleString()}</div>
-      <div className="text-xs text-muted-foreground">{label} tokens</div>
+    <div className="flex-1 rounded-md border border-border p-4">
+      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
+      <div className="mt-1 text-2xl font-bold tabular-nums">
+        {formatCost(usage.costCents)}
+        {usage.hasUnpriced && <span className="text-destructive">*</span>}
+      </div>
+      <div className="mt-1 text-xs text-muted-foreground tabular-nums">
+        {usage.inputTokens.toLocaleString()} in · {usage.outputTokens.toLocaleString()} out
+        {" "}({tokens.toLocaleString()} total)
+      </div>
     </div>
   );
 }
@@ -39,6 +51,8 @@ export default async function MemberDetailPage({
     where: { organizationId: session.organizationId, status: "ACTIVE" },
   });
 
+  const usage = await getMemberUsage(session.organizationId, membership.id);
+
   const config = getConfig();
   const mcpEndpoint = `${config.MCP_BASE_URL}/mcp/${membership.organization.slug}`;
 
@@ -60,18 +74,16 @@ export default async function MemberDetailPage({
       />
 
       <div className="mt-8 rounded-lg border border-border p-5">
-        <h2 className="text-lg font-semibold">LLM token usage</h2>
+        <h2 className="text-lg font-semibold">LLM usage &amp; cost</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Approximate lifetime tokens for this member&apos;s chat turns and AI-filter
-          calls, summed from provider usage metadata.
+          Approximate cost of this member&apos;s chat turns through channels, priced
+          from token counts in provider metadata. {usage.thisMonth.hasUnpriced || usage.sinceStart.hasUnpriced ? (
+            <span className="text-destructive">* includes a model with no configured price (tokens counted, cost not).</span>
+          ) : null}
         </p>
-        <div className="mt-3 flex flex-wrap gap-8">
-          <UsageStat label="Input" value={Number(membership.llmInputTokens)} />
-          <UsageStat label="Output" value={Number(membership.llmOutputTokens)} />
-          <UsageStat
-            label="Total"
-            value={Number(membership.llmInputTokens) + Number(membership.llmOutputTokens)}
-          />
+        <div className="mt-3 flex flex-wrap gap-4">
+          <UsageCard label="This month" usage={usage.thisMonth} />
+          <UsageCard label="Since start" usage={usage.sinceStart} />
         </div>
       </div>
 

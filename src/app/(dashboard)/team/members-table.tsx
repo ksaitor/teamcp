@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { SearchInput } from "@/components/ui/search-input";
+import { formatCost } from "@/lib/pricing";
 
 export interface MemberRow {
   id: string;
@@ -13,7 +14,9 @@ export interface MemberRow {
   user: { name: string | null; email: string; image: string | null };
   connectorCount: number;
   lastActiveAt: Date | null;
-  llmTokens: number;
+  monthCostCents: number;
+  monthTokens: number;
+  monthUnpriced: boolean;
 }
 
 export function MembersTable({ members }: { members: MemberRow[] }) {
@@ -48,7 +51,7 @@ export function MembersTable({ members }: { members: MemberRow[] }) {
               <th className="pb-2 font-medium">Role</th>
               <th className="pb-2 font-medium">Status</th>
               <th className="pb-2 font-medium">Connectors</th>
-              <th className="pb-2 font-medium">Tokens</th>
+              <th className="pb-2 font-medium">LLM cost (mo.)</th>
               <th className="pb-2 font-medium">Last active</th>
               <th className="pb-2 font-medium">Actions</th>
             </tr>
@@ -82,8 +85,21 @@ export function MembersTable({ members }: { members: MemberRow[] }) {
                   <StatusBadge status={m.status} suspendedAt={m.suspendedAt} />
                 </td>
                 <td className="py-3 text-muted-foreground">{m.connectorCount}</td>
-                <td className="py-3 text-muted-foreground" title={`${m.llmTokens.toLocaleString()} tokens`}>
-                  {formatTokens(m.llmTokens)}
+                <td
+                  className="py-3 text-muted-foreground"
+                  title={`${m.monthTokens.toLocaleString()} tokens this month${
+                    m.monthUnpriced ? " · some models unpriced" : ""
+                  }`}
+                >
+                  {m.monthTokens === 0 ? (
+                    "—"
+                  ) : (
+                    <span>
+                      {formatCost(m.monthCostCents)}
+                      {m.monthUnpriced && "*"}{" "}
+                      <span className="text-xs">({formatTokens(m.monthTokens)} tok)</span>
+                    </span>
+                  )}
                 </td>
                 <td className="py-3 text-muted-foreground">
                   <LastActive at={m.lastActiveAt} />

@@ -2,7 +2,6 @@ import { prisma } from "@/db";
 import { getOrgLlmClient } from "./providers/resolve";
 import { buildFilterPrompt } from "./prompts";
 import { getCacheKey, getCachedDecision, setCachedDecision } from "./cache";
-import { recordTokenUsage } from "@/lib/usage";
 import type { AuthenticatedMember } from "@/server/auth";
 import type { ToolResult } from "@/connectors/interface";
 
@@ -107,14 +106,11 @@ export async function aiFilter(input: AiFilterInput): Promise<AiFilterResult> {
       isWriteOperation: input.operationType === "write",
     });
 
-    const { text, usage } = await resolved.client.complete({
+    const { text } = await resolved.client.complete({
       model: resolved.model,
       maxTokens: 2048,
       messages: [{ role: "user", content: prompt }],
     });
-
-    // Attribute the filter's own LLM cost to the member whose request triggered it.
-    recordTokenUsage(input.member.id, usage);
 
     // Parse AI response
     const aiResponse = parseAiResponse(text);

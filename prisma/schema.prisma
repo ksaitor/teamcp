@@ -129,14 +129,6 @@ model OrgMembership {
   // src/lib/activity.ts) so the hot path stays free of extra blocking writes.
   lastActiveAt DateTime?
 
-  // Approximate lifetime LLM token usage attributed to this member, summed from
-  // provider response metadata (we never re-tokenize). Covers chat agent turns
-  // through channels and AI-filter calls. Denormalized like lastActiveAt so the
-  // members list shows usage in one row fetch; incremented fire-and-forget (see
-  // src/lib/usage.ts). BigInt because counts grow unbounded over time.
-  llmInputTokens  BigInt @default(0)
-  llmOutputTokens BigInt @default(0)
-
   // The team member's job title within the organization (e.g. "Marketing Manager").
   jobTitle String?
 
@@ -543,8 +535,11 @@ model Message {
   // Approximate token usage for the model call that produced this turn, read
   // from provider response metadata. Set only on ASSISTANT rows from an agent
   // turn; null for USER/TOOL rows and when the provider returns no usage.
+  // `model` is the model id that was billed, so usage can be priced at read
+  // time (see src/lib/pricing.ts) without re-tokenizing or storing dollars.
   inputTokens  Int?
   outputTokens Int?
+  model        String?
 
   createdAt DateTime @default(now())
 
