@@ -10,8 +10,16 @@ export interface LlmCompletionRequest {
   system?: string;
 }
 
+// Approximate token usage reported by the provider's response metadata.
+// We surface whatever the provider returns and never re-tokenize ourselves.
+export interface LlmTokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
 export interface LlmCompletionResponse {
   text: string;
+  usage?: LlmTokenUsage;
 }
 
 // ─── Tool-use (agent loop) ──────────────────────────────────────────
@@ -45,6 +53,7 @@ export interface LlmAgentResponse {
   text: string;
   toolCalls: LlmToolCall[];
   stopReason: "end_turn" | "tool_use" | "max_tokens" | "other";
+  usage?: LlmTokenUsage;
 }
 
 export type LlmStreamEvent =

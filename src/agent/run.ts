@@ -4,6 +4,7 @@ import { buildToolListForMember } from "@/server/tool-builder";
 import { executeToolForMember } from "@/server/execute";
 import type { AuthenticatedMember } from "@/server/auth";
 import { touchLastActive } from "@/lib/activity";
+import { recordTokenUsage } from "@/lib/usage";
 import type {
   LlmAgentResponse,
   LlmTool,
@@ -168,6 +169,8 @@ export async function runAgentTurn(
 
   let assistantText = "";
   let toolCallCount = 0;
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
 
   for (let iter = 0; iter < MAX_TOOL_ITERATIONS; iter++) {
     const response = await llm.client.agentTurn({
@@ -178,6 +181,8 @@ export async function runAgentTurn(
     });
 
     assistantText = response.text;
+    totalInputTokens += response.usage?.inputTokens ?? 0;
+    totalOutputTokens += response.usage?.outputTokens ?? 0;
 
     await persistMessage(conversation.id, {
       role: "ASSISTANT",
@@ -186,6 +191,8 @@ export async function runAgentTurn(
         response.toolCalls.length > 0
           ? (persistBodies ? response.toolCalls : response.toolCalls.map((c) => ({ id: c.id, name: c.name })))
           : null,
+      inputTokens: response.usage?.inputTokens,
+      outputTokens: response.usage?.outputTokens,
     });
 
     if (response.toolCalls.length === 0 || response.stopReason !== "tool_use") {
@@ -222,6 +229,11 @@ export async function runAgentTurn(
   await prisma.conversation.update({
     where: { id: conversation.id },
     data: { updatedAt: new Date() },
+  });
+
+  recordTokenUsage(member.id, {
+    inputTokens: totalInputTokens,
+    outputTokens: totalOutputTokens,
   });
 
   return { assistantText, toolCalls: toolCallCount };
@@ -348,6 +360,8 @@ export async function runAgentTurnStream(
   const system = buildSystemPrompt(member);
   let assistantText = "";
   let toolCallCount = 0;
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
 
   for (let iter = 0; iter < MAX_TOOL_ITERATIONS; iter++) {
     const response = await runOneTurnWithStream(llm.client, {
@@ -357,6 +371,8 @@ export async function runAgentTurnStream(
       messages,
     }, onEvent);
     assistantText = response.text;
+    totalInputTokens += response.usage?.inputTokens ?? 0;
+    totalOutputTokens += response.usage?.outputTokens ?? 0;
 
     await persistMessage(conversation.id, {
       role: "ASSISTANT",
@@ -365,6 +381,8 @@ export async function runAgentTurnStream(
         response.toolCalls.length > 0
           ? (persistBodies ? response.toolCalls : response.toolCalls.map((c) => ({ id: c.id, name: c.name })))
           : null,
+      inputTokens: response.usage?.inputTokens,
+      outputTokens: response.usage?.outputTokens,
     });
 
     if (response.toolCalls.length === 0 || response.stopReason !== "tool_use") {
@@ -408,6 +426,11 @@ export async function runAgentTurnStream(
   await prisma.conversation.update({
     where: { id: conversation.id },
     data: { updatedAt: new Date() },
+  });
+
+  recordTokenUsage(member.id, {
+    inputTokens: totalInputTokens,
+    outputTokens: totalOutputTokens,
   });
 
   return { assistantText, toolCalls: toolCallCount };
@@ -476,6 +499,8 @@ async function persistMessage(
     content: string | null;
     toolCalls?: unknown;
     toolName?: string;
+    inputTokens?: number;
+    outputTokens?: number;
   }
 ) {
   await prisma.message.create({
@@ -485,6 +510,8 @@ async function persistMessage(
       content: data.content,
       toolCalls: (data.toolCalls as any) ?? null,
       toolName: data.toolName ?? null,
+      inputTokens: data.inputTokens ?? null,
+      outputTokens: data.outputTokens ?? null,
     },
   });
 }

@@ -29,6 +29,9 @@ export default async function MembersPage() {
     user: m.user,
     connectorCount: m._count.connectorAccess,
     lastActiveAt: m.lastActiveAt,
+    // BigInt isn't serializable across the RSC boundary; token counts stay well
+    // within Number's safe integer range, so coerce for the client table.
+    llmTokens: Number(m.llmInputTokens) + Number(m.llmOutputTokens),
   }));
 
   return (

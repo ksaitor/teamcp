@@ -7,6 +7,15 @@ import { MemberEditForm } from "./member-edit-form";
 import { McpEndpoint } from "./mcp-endpoint";
 import { AccessManager } from "@/components/access/access-manager";
 
+function UsageStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <div className="text-2xl font-bold tabular-nums">{value.toLocaleString()}</div>
+      <div className="text-xs text-muted-foreground">{label} tokens</div>
+    </div>
+  );
+}
+
 export default async function MemberDetailPage({
   params,
 }: {
@@ -49,6 +58,22 @@ export default async function MemberDetailPage({
           role: membership.role,
         }}
       />
+
+      <div className="mt-8 rounded-lg border border-border p-5">
+        <h2 className="text-lg font-semibold">LLM token usage</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Approximate lifetime tokens for this member&apos;s chat turns and AI-filter
+          calls, summed from provider usage metadata.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-8">
+          <UsageStat label="Input" value={Number(membership.llmInputTokens)} />
+          <UsageStat label="Output" value={Number(membership.llmOutputTokens)} />
+          <UsageStat
+            label="Total"
+            value={Number(membership.llmInputTokens) + Number(membership.llmOutputTokens)}
+          />
+        </div>
+      </div>
 
       <div className="mt-8 rounded-lg border border-border p-5">
         <h2 className="text-lg font-semibold">Personal MCP Endpoint</h2>
