@@ -5,7 +5,9 @@ import { ConnectorControls } from "./connector-controls";
 import { ToolList } from "./tool-list";
 import { ReauthBanner } from "./reauth-banner";
 import { XeroTenantPicker } from "./xero-tenant-picker";
+import { PostgresPanel } from "./postgres-panel";
 import { AccessManager } from "@/components/access/access-manager";
+import type { PgPermissions } from "@/connectors/postgres/permissions";
 
 export default async function ConnectorDetailPage({
   params,
@@ -59,7 +61,9 @@ export default async function ConnectorDetailPage({
     denials.map((d) => [d.membershipId, d._count._all])
   );
   const isXero = connector.type === "XERO";
+  const isPostgres = connector.type === "POSTGRES";
   const config = (connector.config ?? {}) as Record<string, any>;
+  const crudDefaults = (config.permissions ?? undefined) as PgPermissions | undefined;
 
   const xeroOrgs =
     (connector.oauth?.discoveryState as { xeroOrgs?: { tenantId: string; tenantName: string }[] } | null)
@@ -92,6 +96,8 @@ export default async function ConnectorDetailPage({
     paused: ma.paused,
     aiInstructions: ma.aiInstructions,
     customScript: ma.customScript,
+    nativePermissions: ma.nativePermissions as Record<string, any> | null,
+    crudDefaults: isPostgres ? crudDefaults : undefined,
   }));
 
   const grantedIds = new Set(connector.memberAccess.map((ma) => ma.membershipId));
@@ -131,6 +137,12 @@ export default async function ConnectorDetailPage({
       )}
 
       {isExternalMcp && <ToolList connectorId={connector.id} tools={tools} />}
+
+      {isPostgres && (
+        <div className='mt-6'>
+          <PostgresPanel connectorId={connector.id} config={config} />
+        </div>
+      )}
 
       <div className='mt-6'>
         <AccessManager

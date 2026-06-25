@@ -13,23 +13,24 @@ export function checkNativePermissions(
   connectorType: string,
   nativePermissions: Record<string, any> | null,
   toolName: string,
-  params: Record<string, any>
+  params: Record<string, any>,
+  config?: Record<string, any> | null
 ): PermissionResult {
-  if (!nativePermissions) {
-    return { allowed: true, layer: "native" };
-  }
-
   let connector;
   try {
     connector = getConnector(connectorType);
   } catch {
     connector = undefined;
   }
+  // Always delegate when the connector implements native checks: a member may
+  // have no per-member overrides yet still be subject to connector-wide
+  // defaults that live in `config` (e.g. Postgres CRUD permissions).
   if (connector?.checkNativePermissions) {
     const result = connector.checkNativePermissions(
       toolName,
       params,
-      nativePermissions
+      nativePermissions ?? {},
+      config ?? undefined
     );
     return { allowed: result.allowed, reason: result.reason, layer: "native" };
   }

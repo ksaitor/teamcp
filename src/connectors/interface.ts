@@ -60,14 +60,17 @@ export interface ConnectorInstance {
 
   /**
    * Optional Layer 2 native permission check. Receives the member's saved
-   * native-permission values (the ones described by `getNativePermissions`) and
-   * the incoming call. Omit it to allow everything at this layer. Implementing
-   * it here keeps a connector's enforcement co-located with its definition
-   * instead of living in a central switch.
+   * native-permission values (the ones described by `getNativePermissions`),
+   * the incoming call, and the connector's own config (so connector-wide
+   * defaults can be merged with per-member overrides). Omit it to allow
+   * everything at this layer. Implementing it here keeps a connector's
+   * enforcement co-located with its definition instead of living in a central
+   * switch.
    */
   checkNativePermissions?(
     toolName: string,
     params: Record<string, any>,
-    nativePermissions: Record<string, any>
+    nativePermissions: Record<string, any>,
+    config?: ConnectorConfig
   ): NativePermissionCheck;
 }

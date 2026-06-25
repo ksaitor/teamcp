@@ -7,7 +7,8 @@ import type { PermissionResult } from "./engine";
  */
 export function checkToggles(
   access: MemberConnectorAccess | null,
-  operationType: "read" | "write"
+  operationType: "read" | "write",
+  enforceReadWrite = true
 ): PermissionResult {
   // No access record = no access
   if (!access) {
@@ -27,21 +28,25 @@ export function checkToggles(
     };
   }
 
-  // Check read/write toggles
-  if (operationType === "read" && !access.readAccess) {
-    return {
-      allowed: false,
-      reason: "Read access is disabled for this connector",
-      layer: "toggle",
-    };
-  }
+  // Check read/write toggles. Some connectors (e.g. Postgres) own the
+  // read/write distinction through fine-grained native permissions, so the
+  // engine disables this coarse gate for them — see checkPermissions.
+  if (enforceReadWrite) {
+    if (operationType === "read" && !access.readAccess) {
+      return {
+        allowed: false,
+        reason: "Read access is disabled for this connector",
+        layer: "toggle",
+      };
+    }
 
-  if (operationType === "write" && !access.writeAccess) {
-    return {
-      allowed: false,
-      reason: "Write access is disabled for this connector",
-      layer: "toggle",
-    };
+    if (operationType === "write" && !access.writeAccess) {
+      return {
+        allowed: false,
+        reason: "Write access is disabled for this connector",
+        layer: "toggle",
+      };
+    }
   }
 
   return { allowed: true, layer: "toggle" };

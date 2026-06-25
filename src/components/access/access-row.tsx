@@ -3,6 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import {
+  PG_CRUD_OPS,
+  resolvePgPermission,
+  type PgPermissions,
+} from "@/connectors/postgres/permissions";
+import { TableAccess } from "./table-access";
 
 export interface AccessRecord {
   id: string;
@@ -23,6 +29,10 @@ export interface AccessRecord {
   paused: boolean;
   aiInstructions: string | null;
   customScript: string | null;
+  /** Raw per-member native permission overrides (e.g. Postgres CRUD). */
+  nativePermissions?: Record<string, any> | null;
+  /** Connector-wide CRUD defaults (Postgres), used to show inherited values. */
+  crudDefaults?: PgPermissions;
 }
 
 interface ToolRow {
@@ -53,6 +63,37 @@ export function AccessRow({
   const [toolQuery, setToolQuery] = useState("");
 
   const isMcp = record.connectorType === "EXTERNAL_MCP";
+  const isPostgres = record.connectorType === "POSTGRES";
+
+  // Per-member Postgres CRUD overrides. A checkbox reflects the effective
+  // value (member override → connector default → allowed). Toggling writes an
+  // explicit override into nativePermissions.permissions, preserving any other
+  // native settings (allowed schemas/tables).
+  const memberPerms = (record.nativePermissions?.permissions ?? undefined) as
+    | PgPermissions
+    | undefined;
+  function pgChecked(op: "read" | "insert" | "update" | "delete") {
+    return resolvePgPermission(op, record.crudDefaults, memberPerms);
+  }
+  function setPgOp(
+    op: "read" | "insert" | "update" | "delete",
+    checked: boolean
+  ) {
+    const nextPerms = { ...(memberPerms ?? {}), [op]: checked };
+    const nextNative = {
+      ...(record.nativePermissions ?? {}),
+      permissions: nextPerms,
+    };
+    patchPermission({ nativePermissions: nextNative });
+  }
+
+  function setAllowedTables(next: string[]) {
+    const nextNative = {
+      ...(record.nativePermissions ?? {}),
+      allowedTables: next,
+    };
+    patchPermission({ nativePermissions: nextNative });
+  }
 
   // Member rows carry an email; connector rows do not. Only members get an avatar.
   const showAvatar = record.email != null;
@@ -206,12 +247,12 @@ export function AccessRow({
             </span>
           )}
           {/*
-            Read/Write only gate operations whose connector distinguishes them
-            via getOperationType. EXTERNAL_MCP tools are always classified as
-            "read", so Write is a no-op and Read is redundant with Pause and the
-            per-tool allow/deny list — hide both there to avoid dead controls.
+            Read/Write are the coarse Layer-1 toggles. Hidden for EXTERNAL_MCP
+            (tools are always "read", so they're dead controls) and for Postgres
+            (read/write is governed by the per-member, per-table and default
+            CRUD permissions instead — these toggles do nothing here).
           */}
-          {!isMcp && (
+          {!isMcp && !isPostgres && (
             <>
               <label
                 onClick={(e) => e.stopPropagation()}
@@ -270,6 +311,45 @@ export function AccessRow({
           {error && (
             <div className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">
               {error}
+            </div>
+          )}
+
+          {isPostgres && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">
+                Database operations for this member
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Controls what this member can do, overriding the connector
+                defaults. Per-table rules still apply on top.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-4">
+                {PG_CRUD_OPS.map((op) => (
+                  <label
+                    key={op.key}
+                    className="flex cursor-pointer items-center gap-1.5 text-sm"
+                    title={op.description}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={pgChecked(op.key)}
+                      onChange={(e) => setPgOp(op.key, e.target.checked)}
+                      className="rounded"
+                    />
+                    {op.label}
+                  </label>
+                ))}
+              </div>
+
+              <div className="mt-4">
+                <TableAccess
+                  connectorId={connectorId}
+                  value={
+                    (record.nativePermissions?.allowedTables as string[]) ?? []
+                  }
+                  onChange={setAllowedTables}
+                />
+              </div>
             </div>
           )}
 

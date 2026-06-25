@@ -8,6 +8,16 @@ import type {
 } from "../interface";
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import pg from "pg";
+import {
+  classifyStatement,
+  extractSqlTableRefs,
+  isTableRefAllowed,
+  pgDenialReason,
+  referencedTableKeys,
+  resolvePgPermission,
+  type PgPermissions,
+  type PgSqlCategory,
+} from "./permissions";
 
 export class PostgresConnector implements ConnectorInstance {
   type = "POSTGRES";
@@ -89,29 +99,87 @@ export class PostgresConnector implements ConnectorInstance {
   checkNativePermissions(
     toolName: string,
     params: Record<string, any>,
-    perms: Record<string, any>
+    perms: Record<string, any>,
+    config?: ConnectorConfig
   ): NativePermissionCheck {
     const { allowedSchemas, allowedTables } = perms;
 
-    // For describe_table and query, check table restrictions
-    if (allowedTables && allowedTables.length > 0) {
-      if (toolName === "pg_describe_table" && params.table) {
-        if (!allowedTables.includes(params.table)) {
-          return {
-            allowed: false,
-            reason: `Table '${params.table}' is not in the allowed tables list`,
-          };
+    // CRUD enforcement: classify the operation, then resolve it against the
+    // permission layers (per-table > per-member > connector default > built-in
+    // read-only). The global/member layer is checked first, then any per-table
+    // overrides for tables the statement references.
+    const category = this.operationCategory(toolName, params);
+    const connectorDefaults = config?.permissions as PgPermissions | undefined;
+    const memberOverrides = perms?.permissions as PgPermissions | undefined;
+    const tablePermissions = (config?.tablePermissions ?? {}) as Record<
+      string,
+      PgPermissions
+    >;
+
+    if (!resolvePgPermission(category, connectorDefaults, memberOverrides)) {
+      return { allowed: false, reason: pgDenialReason(category) };
+    }
+
+    // Per-table overrides (connector-wide). Only enforced for tables we can
+    // identify in the call; unrecognized tables fall back to the check above.
+    const configuredTableKeys = Object.keys(tablePermissions);
+    if (configuredTableKeys.length > 0) {
+      for (const key of this.referencedTables(
+        toolName,
+        params,
+        configuredTableKeys
+      )) {
+        if (
+          !resolvePgPermission(
+            category,
+            connectorDefaults,
+            memberOverrides,
+            tablePermissions[key]
+          )
+        ) {
+          return { allowed: false, reason: pgDenialReason(category, key) };
         }
       }
+    }
 
-      // Basic SQL table check — not a full parser, but catches simple cases.
-      // The AI layer handles more nuanced filtering.
-      if ((toolName === "pg_query" || toolName === "pg_execute") && params.sql) {
-        const sql = params.sql.toLowerCase();
-        for (const table of allowedTables) {
-          if (sql.includes(table.toLowerCase())) {
-            return { allowed: true };
-          }
+    // Per-member table access (whitelist): a member may only touch tables
+    // explicitly granted to them, stored on perms.allowedTables as
+    // `schema.table` keys. No grants = no data access at all.
+    const dataTools = [
+      "pg_query",
+      "pg_execute",
+      "pg_describe_table",
+      "pg_list_tables",
+    ];
+    if (dataTools.includes(toolName)) {
+      const grantedTables: string[] = Array.isArray(allowedTables)
+        ? allowedTables
+        : [];
+      if (grantedTables.length === 0) {
+        return {
+          allowed: false,
+          reason: "This member hasn't been granted access to any tables",
+        };
+      }
+
+      // Tables the call targets must all be within the granted set. Listing
+      // (pg_list_tables) targets no specific table, so a member with at least
+      // one grant may browse.
+      let referenced: string[] = [];
+      if (toolName === "pg_describe_table" && params.table) {
+        referenced = [params.table];
+      } else if (
+        (toolName === "pg_query" || toolName === "pg_execute") &&
+        typeof params.sql === "string"
+      ) {
+        referenced = extractSqlTableRefs(params.sql);
+      }
+      for (const ref of referenced) {
+        if (!isTableRefAllowed(ref, grantedTables)) {
+          return {
+            allowed: false,
+            reason: `This member doesn't have access to table '${ref}'`,
+          };
         }
       }
     }
@@ -135,6 +203,45 @@ export class PostgresConnector implements ConnectorInstance {
 
   getOperationType(toolName: string): "read" | "write" {
     return toolName === "pg_execute" ? "write" : "read";
+  }
+
+  /**
+   * Map a tool call to a CRUD category for Layer-2 enforcement. Only
+   * `pg_execute` can be a write; everything else is a read. The actual verb of
+   * a `pg_execute` call comes from parsing its SQL.
+   */
+  private operationCategory(
+    toolName: string,
+    params: Record<string, any>
+  ): PgSqlCategory {
+    if (toolName === "pg_execute" && typeof params?.sql === "string") {
+      return classifyStatement(params.sql);
+    }
+    return "read";
+  }
+
+  /**
+   * Best-effort list of configured table keys a call targets, used to apply
+   * per-table permission overrides. Not a SQL parser — matches table names as
+   * whole identifiers and defers nuanced cases to the AI filter layer.
+   */
+  private referencedTables(
+    toolName: string,
+    params: Record<string, any>,
+    configuredKeys: string[]
+  ): string[] {
+    if (toolName === "pg_describe_table" && params.table) {
+      return configuredKeys.filter(
+        (k) => k === params.table || k.slice(k.indexOf(".") + 1) === params.table
+      );
+    }
+    if (
+      (toolName === "pg_query" || toolName === "pg_execute") &&
+      typeof params?.sql === "string"
+    ) {
+      return referencedTableKeys(params.sql, configuredKeys);
+    }
+    return [];
   }
 
   async executeTool(
@@ -190,8 +297,21 @@ export class PostgresConnector implements ConnectorInstance {
 
         case "pg_list_tables": {
           const schema = params.schema || "public";
+          // Read the catalog directly: information_schema.tables is filtered to
+          // objects with recorded grants and misses role-inherited privileges,
+          // so it can return nothing even when the role can read the tables.
           const result = await client.query(
-            `SELECT table_name, table_type FROM information_schema.tables WHERE table_schema = $1 ORDER BY table_name`,
+            `SELECT c.relname AS table_name,
+                    CASE c.relkind
+                      WHEN 'v' THEN 'VIEW'
+                      WHEN 'm' THEN 'MATERIALIZED VIEW'
+                      WHEN 'f' THEN 'FOREIGN TABLE'
+                      ELSE 'BASE TABLE'
+                    END AS table_type
+             FROM pg_catalog.pg_class c
+             JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+             WHERE n.nspname = $1 AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
+             ORDER BY c.relname`,
             [schema]
           );
           return {

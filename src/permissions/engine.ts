@@ -38,8 +38,15 @@ export async function checkPermissions(
     include: { connector: true },
   });
 
-  // Layer 1: Toggle checks
-  const toggleResult = checkToggles(access, ctx.operationType);
+  // Layer 1: Toggle checks. Postgres governs read/write through native
+  // (Layer 2) CRUD permissions — per-member, per-table and defaults — so the
+  // coarse read/write gate is disabled for it to avoid redundant, confusing
+  // controls. The "no access record" and "paused" checks still apply.
+  const toggleResult = checkToggles(
+    access,
+    ctx.operationType,
+    ctx.connectorType !== "POSTGRES"
+  );
   if (!toggleResult.allowed) return toggleResult;
 
   // For EXTERNAL_MCP, also verify tool-level access
@@ -63,7 +70,8 @@ export async function checkPermissions(
       ctx.connectorType,
       access.nativePermissions as Record<string, any> | null,
       ctx.toolName,
-      ctx.params
+      ctx.params,
+      access.connector.config as Record<string, any> | null
     );
     if (!nativeResult.allowed) return nativeResult;
   }
