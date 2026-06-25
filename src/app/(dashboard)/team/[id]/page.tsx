@@ -30,6 +30,48 @@ export default async function MemberDetailPage({
     where: { organizationId: session.organizationId, status: "ACTIVE" },
   });
 
+  // Accessible tools = enabled tools across the member's connectors, minus their
+  // explicit per-tool denials ("allowed by default, deny specific tools").
+  const connectorIds = membership.connectorAccess.map((ca) => ca.connectorId);
+  const enabledTools = connectorIds.length
+    ? await prisma.connectorTool.groupBy({
+        by: ["connectorId"],
+        where: { enabled: true, connectorId: { in: connectorIds } },
+        _count: { _all: true },
+      })
+    : [];
+  const enabledByConnector = new Map(
+    enabledTools.map((t) => [t.connectorId, t._count._all])
+  );
+  const totalTools = connectorIds.length
+    ? await prisma.connectorTool.groupBy({
+        by: ["connectorId"],
+        where: { connectorId: { in: connectorIds } },
+        _count: { _all: true },
+      })
+    : [];
+  const totalByConnector = new Map(
+    totalTools.map((t) => [t.connectorId, t._count._all])
+  );
+  const denials = await prisma.memberToolAccess.findMany({
+    where: {
+      membershipId: membership.id,
+      allowed: false,
+      connectorTool: { enabled: true },
+    },
+    select: { connectorTool: { select: { connectorId: true } } },
+  });
+  const deniedByConnector = new Map<string, number>();
+  for (const d of denials) {
+    const cid = d.connectorTool.connectorId;
+    deniedByConnector.set(cid, (deniedByConnector.get(cid) ?? 0) + 1);
+  }
+  const toolCount = membership.connectorAccess.reduce((sum, ca) => {
+    const enabled = enabledByConnector.get(ca.connectorId) ?? 0;
+    const denied = deniedByConnector.get(ca.connectorId) ?? 0;
+    return sum + Math.max(0, enabled - denied);
+  }, 0);
+
   const config = getConfig();
   const mcpEndpoint = `${config.MCP_BASE_URL}/mcp/${membership.organization.slug}`;
 
@@ -51,6 +93,17 @@ export default async function MemberDetailPage({
       />
 
       <div className="mt-8 rounded-lg border border-border p-5">
+        <h2 className="text-lg font-semibold">Overview</h2>
+        <dl className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          <Stat label="Connectors" value={String(membership.connectorAccess.length)} />
+          <Stat label="Tools" value={String(toolCount)} />
+          <Stat label="Last active" value={formatDate(membership.lastActiveAt, "Never")} />
+          <Stat label="Created" value={formatDate(membership.createdAt)} />
+          <Stat label="Updated" value={formatDate(membership.updatedAt)} />
+        </dl>
+      </div>
+
+      <div className="mt-8 rounded-lg border border-border p-5">
         <h2 className="text-lg font-semibold">Personal MCP Endpoint</h2>
         <McpEndpoint endpoint={mcpEndpoint} />
         <p className="mt-2 text-xs text-muted-foreground">
@@ -67,15 +120,25 @@ export default async function MemberDetailPage({
           <AccessManager
             axis="connectors"
             fixedMembershipId={membership.id}
-            records={membership.connectorAccess.map((ca) => ({
-              id: ca.connectorId,
-              label: ca.connector.name,
-              connectorType: ca.connector.type,
-              readAccess: ca.readAccess,
-              writeAccess: ca.writeAccess,
-              aiInstructions: ca.aiInstructions,
-              customScript: ca.customScript,
-            }))}
+            records={membership.connectorAccess.map((ca) => {
+              const isMcp = ca.connector.type === "EXTERNAL_MCP";
+              const enabled = enabledByConnector.get(ca.connectorId) ?? 0;
+              const denied = deniedByConnector.get(ca.connectorId) ?? 0;
+              return {
+                id: ca.connectorId,
+                label: ca.connector.name,
+                connectorType: ca.connector.type,
+                readAccess: ca.readAccess,
+                writeAccess: ca.writeAccess,
+                paused: ca.paused,
+                aiInstructions: ca.aiInstructions,
+                customScript: ca.customScript,
+                toolCount: isMcp ? Math.max(0, enabled - denied) : undefined,
+                totalToolCount: isMcp
+                  ? totalByConnector.get(ca.connectorId) ?? 0
+                  : undefined,
+              };
+            })}
             candidates={allConnectors
               .filter(
                 (c) => !membership.connectorAccess.some((ca) => ca.connectorId === c.id)
@@ -110,4 +173,24 @@ export default async function MemberDetailPage({
       </div>
     </div>
   );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="mt-1 text-sm font-medium text-foreground">{value}</dd>
+    </div>
+  );
+}
+
+function formatDate(date: Date | null, fallback = "—"): string {
+  if (!date) return fallback;
+  return new Date(date).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }

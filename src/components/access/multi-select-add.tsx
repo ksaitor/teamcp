@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { FiPlus } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 
 interface Item {
@@ -61,9 +62,10 @@ export function MultiSelectAdd({
     return (
       <button
         onClick={() => setOpen(true)}
-        className="cursor-pointer text-sm font-medium text-primary hover:underline"
+        className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground"
       >
-        + {addLabel}
+        <FiPlus className="h-4 w-4" />
+        {addLabel}
       </button>
     );
   }

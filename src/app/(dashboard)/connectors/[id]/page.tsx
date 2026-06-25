@@ -26,7 +26,7 @@ export default async function ConnectorDetailPage({
       memberAccess: {
         include: {
           membership: {
-            include: { user: { select: { name: true, email: true } } },
+            include: { user: { select: { name: true, email: true, image: true } } },
           },
         },
       },
@@ -37,10 +37,27 @@ export default async function ConnectorDetailPage({
 
   const members = await prisma.orgMembership.findMany({
     where: { organizationId: session.organizationId, status: "ACTIVE" },
-    include: { user: { select: { name: true, email: true } } },
+    include: { user: { select: { name: true, email: true, image: true } } },
   });
 
   const isExternalMcp = connector.type === "EXTERNAL_MCP";
+
+  // Tool access is "allowed by default, deny specific tools", so a member's
+  // tool count is the number of enabled tools minus their explicit denials.
+  const enabledToolCount = connector.tools.filter((t) => t.enabled).length;
+  const denials = isExternalMcp
+    ? await prisma.memberToolAccess.groupBy({
+        by: ["membershipId"],
+        where: {
+          allowed: false,
+          connectorTool: { connectorId: connector.id, enabled: true },
+        },
+        _count: { _all: true },
+      })
+    : [];
+  const deniedByMember = new Map(
+    denials.map((d) => [d.membershipId, d._count._all])
+  );
   const isXero = connector.type === "XERO";
   const config = (connector.config ?? {}) as Record<string, any>;
 
@@ -64,9 +81,15 @@ export default async function ConnectorDetailPage({
     id: ma.membershipId,
     label: ma.membership.user.name || ma.membership.user.email,
     sublabel: ma.membership.jobTitle || ma.membership.role,
+    imageUrl: ma.membership.user.image,
+    email: ma.membership.user.email,
+    toolCount: isExternalMcp
+      ? enabledToolCount - (deniedByMember.get(ma.membershipId) ?? 0)
+      : undefined,
     connectorType: connector.type,
     readAccess: ma.readAccess,
     writeAccess: ma.writeAccess,
+    paused: ma.paused,
     aiInstructions: ma.aiInstructions,
     customScript: ma.customScript,
   }));
@@ -121,6 +144,19 @@ export default async function ConnectorDetailPage({
         />
       )}
 
+      {isExternalMcp && <ToolList connectorId={connector.id} tools={tools} />}
+
+      <div className="mt-6">
+        <AccessManager
+          axis="members"
+          fixedConnectorId={connector.id}
+          records={accessRecords}
+          candidates={candidates}
+          title={`Team member access (${accessRecords.length})`}
+          description="Grant team members access to this connector and tune what they can do."
+        />
+      </div>
+
       <div className="mt-6 rounded-md border border-border bg-card p-4">
         <h2 className="text-sm font-medium text-muted-foreground">Configuration</h2>
         <pre className="mt-2 text-xs text-muted-foreground">
@@ -129,25 +165,6 @@ export default async function ConnectorDetailPage({
         <p className="mt-2 text-xs text-muted-foreground">
           Credentials are encrypted and not displayed.
         </p>
-      </div>
-
-      {isExternalMcp && <ToolList connectorId={connector.id} tools={tools} />}
-
-      <div className="mt-6">
-        <h2 className="text-lg font-semibold">
-          Team member access ({accessRecords.length})
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Grant team members access to this connector and tune what they can do.
-        </p>
-        <div className="mt-3">
-          <AccessManager
-            axis="members"
-            fixedConnectorId={connector.id}
-            records={accessRecords}
-            candidates={candidates}
-          />
-        </div>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { FiRefreshCw, FiChevronDown, FiChevronUp } from "react-icons/fi";
 
 interface ToolRow {
   id: string;
@@ -24,7 +25,7 @@ export function ToolList({
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState(false);
 
-  const COLLAPSED_COUNT = 5;
+  const COLLAPSED_COUNT = 6;
 
   async function toggle(tool: ToolRow) {
     setBusyId(tool.id);
@@ -76,24 +77,36 @@ export function ToolList({
 
   return (
     <div className="mt-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
         <h2 className="shrink-0 text-lg font-semibold">Tools ({tools.length})</h2>
-        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search tools…"
-            className="w-full max-w-xs rounded-md border border-input px-3 py-1.5 text-sm focus:border-ring focus:outline-none"
-          />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search tools…"
+          className="w-full max-w-xs rounded-md border border-input px-3 py-1.5 text-sm focus:border-ring focus:outline-none"
+        />
+        <button
+          onClick={rediscover}
+          disabled={discovering}
+          className="ml-auto flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-input px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground disabled:cursor-default disabled:opacity-50"
+        >
+          <FiRefreshCw className={`h-4 w-4 ${discovering ? "animate-spin" : ""}`} />
+          {discovering ? "Discovering…" : "Re-discover tools"}
+        </button>
+        {!searching && tools.length > COLLAPSED_COUNT && (
           <button
-            onClick={rediscover}
-            disabled={discovering}
-            className="shrink-0 cursor-pointer rounded-md border border-input px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground disabled:cursor-default disabled:opacity-50"
+            onClick={() => setExpanded((v) => !v)}
+            className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-input px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
           >
-            {discovering ? "Discovering…" : "Re-discover tools"}
+            {expanded ? (
+              <FiChevronUp className="h-4 w-4" />
+            ) : (
+              <FiChevronDown className="h-4 w-4" />
+            )}
+            {expanded ? "Show less" : "Show all"}
           </button>
-        </div>
+        )}
       </div>
 
       {error && (
@@ -112,18 +125,22 @@ export function ToolList({
         </p>
       ) : (
         <div className="relative mt-2">
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {display.map((tool) => (
             <div
               key={tool.id}
-              className="flex items-center justify-between gap-3 rounded-md border border-border bg-card px-4 py-3"
+              className="flex items-start justify-between gap-3 rounded-md border border-border bg-card px-4 py-3"
             >
               <div className="min-w-0 flex-1">
                 <code className="block break-words text-sm font-medium">
                   {tool.toolName}
                 </code>
                 {tool.description && (
-                  <p className="mt-0.5 break-words text-xs text-muted-foreground">
+                  <p
+                    className={`mt-0.5 break-words text-xs text-muted-foreground ${
+                      expanded || searching ? "" : "line-clamp-3"
+                    }`}
+                  >
                     {tool.description}
                   </p>
                 )}
@@ -147,17 +164,25 @@ export function ToolList({
           ))}
           </div>
           {collapsed && (
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent to-background" />
+            <button
+              onClick={() => setExpanded(true)}
+              className="absolute inset-x-0 bottom-0 flex h-24 cursor-pointer items-end justify-center bg-gradient-to-b from-transparent to-background pb-1"
+              aria-label={`Show all ${filtered.length} tools`}
+            >
+              <span className="rounded-md border border-input bg-card px-4 py-1.5 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground">
+                Show all tools ({filtered.length})
+              </span>
+            </button>
           )}
         </div>
       )}
 
-      {!searching && filtered.length > COLLAPSED_COUNT && (
+      {!searching && expanded && filtered.length > COLLAPSED_COUNT && (
         <button
-          onClick={() => setExpanded((v) => !v)}
-          className="mt-2 cursor-pointer text-sm font-medium text-primary hover:underline"
+          onClick={() => setExpanded(false)}
+          className="mt-2 w-full cursor-pointer rounded-md border border-input px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
         >
-          {expanded ? "Show less" : `Show all tools (${filtered.length})`}
+          Show less
         </button>
       )}
     </div>

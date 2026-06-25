@@ -88,6 +88,8 @@ async function buildMemberToolEntries(membershipId: string, organizationId: stri
   for (const access of accessRecords) {
     const connector = access.connector
     if (connector.status !== 'ACTIVE') continue
+    // Paused access is suspended: expose none of this connector's tools.
+    if (access.paused) continue
     const slug = slugById.get(connector.id) ?? generateSlug(connector.name) ?? 'connector'
 
     if (connector.type === 'EXTERNAL_MCP') {

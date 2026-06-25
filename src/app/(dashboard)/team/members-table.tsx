@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { FiSettings } from "react-icons/fi";
 import { SearchInput } from "@/components/ui/search-input";
 
 export interface MemberRow {
@@ -12,6 +13,7 @@ export interface MemberRow {
   jobTitle: string | null;
   user: { name: string | null; email: string; image: string | null };
   connectorCount: number;
+  toolCount: number;
   lastActiveAt: Date | null;
 }
 
@@ -47,6 +49,7 @@ export function MembersTable({ members }: { members: MemberRow[] }) {
               <th className="pb-2 font-medium">Role</th>
               <th className="pb-2 font-medium">Status</th>
               <th className="pb-2 font-medium">Connectors</th>
+              <th className="pb-2 font-medium">Tools</th>
               <th className="pb-2 font-medium">Last active</th>
               <th className="pb-2 font-medium">Actions</th>
             </tr>
@@ -80,14 +83,16 @@ export function MembersTable({ members }: { members: MemberRow[] }) {
                   <StatusBadge status={m.status} suspendedAt={m.suspendedAt} />
                 </td>
                 <td className="py-3 text-muted-foreground">{m.connectorCount}</td>
+                <td className="py-3 text-muted-foreground">{m.toolCount}</td>
                 <td className="py-3 text-muted-foreground">
                   <LastActive at={m.lastActiveAt} />
                 </td>
                 <td className="py-3">
                   <Link
                     href={`/team/${m.id}`}
-                    className="text-muted-foreground hover:text-foreground"
+                    className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
                   >
+                    <FiSettings className="h-4 w-4" />
                     Configure
                   </Link>
                 </td>
@@ -95,7 +100,7 @@ export function MembersTable({ members }: { members: MemberRow[] }) {
             ))}
             {results.length === 0 && (
               <tr>
-                <td colSpan={8} className="py-8 text-center text-muted-foreground">
+                <td colSpan={9} className="py-8 text-center text-muted-foreground">
                   {members.length === 0
                     ? "No team members yet. Add one above."
                     : `No team members match “${query}”.`}

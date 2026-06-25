@@ -8,6 +8,7 @@ const upsertPermissionSchema = z.object({
   connectorId: z.string(),
   readAccess: z.boolean().optional(),
   writeAccess: z.boolean().optional(),
+  paused: z.boolean().optional(),
   nativePermissions: z.record(z.string(), z.any()).nullable().optional(),
   customScript: z.string().nullable().optional(),
   aiInstructions: z.string().nullable().optional(),
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
         connectorId: data.connectorId,
         readAccess: data.readAccess ?? true,
         writeAccess: data.writeAccess ?? false,
+        paused: data.paused ?? false,
         nativePermissions: data.nativePermissions ?? undefined,
         customScript: data.customScript ?? undefined,
         aiInstructions: data.aiInstructions ?? undefined,
@@ -55,6 +57,7 @@ export async function POST(req: NextRequest) {
       update: {
         readAccess: data.readAccess,
         writeAccess: data.writeAccess,
+        paused: data.paused,
         nativePermissions: data.nativePermissions ?? undefined,
         customScript: data.customScript,
         aiInstructions: data.aiInstructions,

@@ -147,7 +147,7 @@ export function MemberEditForm({ membershipId, initial, sessionRole, isSelf }: P
           />
         </div>
 
-        <div className="flex-1 space-y-2">
+        <div className="flex-1 space-y-0.5">
           {editingField === "name" ? (
             <input
               autoFocus

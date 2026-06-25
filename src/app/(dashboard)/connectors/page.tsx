@@ -2,6 +2,8 @@ import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { FiSettings, FiBox } from "react-icons/fi";
+import { getCatalogEntryForConnector } from "@/lib/connectors-catalog";
 
 export default async function ConnectorsPage() {
   const session = await requireAdmin();
@@ -41,13 +43,18 @@ export default async function ConnectorsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {connectors.map((c) => (
+            {connectors.map((c) => {
+              const Icon = getCatalogEntryForConnector(c)?.icon ?? FiBox;
+              return (
               <tr key={c.id}>
                 <td className="py-3">
                   <Link
                     href={`/connectors/${c.id}`}
-                    className="font-medium hover:underline"
+                    className="flex items-center gap-2 font-medium hover:underline"
                   >
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-card text-muted-foreground">
+                      <Icon className="h-4 w-4" />
+                    </span>
                     {c.name}
                   </Link>
                 </td>
@@ -68,13 +75,15 @@ export default async function ConnectorsPage() {
                 <td className="py-3">
                   <Link
                     href={`/connectors/${c.id}`}
-                    className="text-muted-foreground hover:text-foreground"
+                    className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
                   >
+                    <FiSettings className="h-4 w-4" />
                     Configure
                   </Link>
                 </td>
               </tr>
-            ))}
+              );
+            })}
             {connectors.length === 0 && (
               <tr>
                 <td colSpan={4} className="py-8 text-center text-muted-foreground">

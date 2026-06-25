@@ -325,6 +325,9 @@ model MemberConnectorAccess {
 
   readAccess        Boolean @default(true)
   writeAccess       Boolean @default(false)
+  // When true, access is temporarily suspended without discarding the
+  // configured read/write toggles, tool denials, scripts, or AI instructions.
+  paused            Boolean @default(false)
   nativePermissions Json?
   customScript      String? @db.Text
   aiInstructions    String? @db.Text

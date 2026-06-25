@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AccessRow, type AccessRecord } from "./access-row";
 import { MultiSelectAdd } from "./multi-select-add";
@@ -21,6 +22,10 @@ interface AccessManagerProps {
   fixedMembershipId?: string;
   records: AccessRecord[];
   candidates: AccessCandidate[];
+  /** Section heading rendered on the same line as the search field. */
+  title?: string;
+  /** Optional description rendered under the heading. */
+  description?: string;
 }
 
 export function AccessManager({
@@ -29,8 +34,11 @@ export function AccessManager({
   fixedMembershipId,
   records,
   candidates,
+  title,
+  description,
 }: AccessManagerProps) {
   const router = useRouter();
+  const [query, setQuery] = useState("");
 
   function resolve(itemId: string): { membershipId: string; connectorId: string } {
     return axis === "members"
@@ -52,8 +60,43 @@ export function AccessManager({
 
   const addLabel = axis === "members" ? "Add team member" : "Add connector";
 
+  const q = query.trim().toLowerCase();
+  const filteredRecords = q
+    ? records.filter(
+        (r) =>
+          r.label.toLowerCase().includes(q) ||
+          (r.sublabel || "").toLowerCase().includes(q)
+      )
+    : records;
+
   return (
     <div className="space-y-4">
+      {(title || records.length > 0) && (
+        <div>
+          <div className="flex flex-wrap items-center gap-3">
+            {title && (
+              <h2 className="shrink-0 text-lg font-semibold">{title}</h2>
+            )}
+            {records.length > 0 && (
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={
+                  axis === "members"
+                    ? "Search team members…"
+                    : "Search connectors…"
+                }
+                className="w-full max-w-xs rounded-md border border-input px-3 py-1.5 text-sm focus:border-ring focus:outline-none"
+              />
+            )}
+          </div>
+          {description && (
+            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+          )}
+        </div>
+      )}
+
       {records.length === 0 && candidates.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           {axis === "members"
@@ -63,19 +106,27 @@ export function AccessManager({
       ) : (
         <>
           {records.length > 0 && (
-            <div className="space-y-2">
-              {records.map((record) => {
-                const { membershipId, connectorId } = resolve(record.id);
-                return (
-                  <AccessRow
-                    key={record.id}
-                    record={record}
-                    membershipId={membershipId}
-                    connectorId={connectorId}
-                  />
-                );
-              })}
-            </div>
+            <>
+              {filteredRecords.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No matches for &ldquo;{query}&rdquo;.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {filteredRecords.map((record) => {
+                    const { membershipId, connectorId } = resolve(record.id);
+                    return (
+                      <AccessRow
+                        key={record.id}
+                        record={record}
+                        membershipId={membershipId}
+                        connectorId={connectorId}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
 
           <MultiSelectAdd

@@ -81,3 +81,29 @@ export function getCatalogEntry(
 ): ConnectorCatalogEntry | undefined {
   return connectorCatalog.find((entry) => entry.slug === slug);
 }
+
+/**
+ * Resolve the catalog entry (and thus the icon) for a saved connector. Several
+ * hosted-MCP connectors share the `EXTERNAL_MCP` type, so we first match the
+ * configured server URL against a known preset; otherwise we fall back to the
+ * first entry declaring that type (the generic "Custom MCP Server" for
+ * EXTERNAL_MCP, since it sorts first).
+ */
+export function getCatalogEntryForConnector(connector: {
+  type: string;
+  config?: unknown;
+}): ConnectorCatalogEntry | undefined {
+  const serverUrl =
+    connector.config && typeof connector.config === "object"
+      ? (connector.config as Record<string, unknown>).serverUrl
+      : undefined;
+
+  if (connector.type === "EXTERNAL_MCP" && typeof serverUrl === "string") {
+    const byUrl = connectorCatalog.find(
+      (entry) => entry.mcpPreset?.serverUrl === serverUrl
+    );
+    if (byUrl) return byUrl;
+  }
+
+  return connectorCatalog.find((entry) => entry.type === connector.type);
+}

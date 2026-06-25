@@ -18,6 +18,15 @@ export function checkToggles(
     };
   }
 
+  // Paused = temporarily suspended; block everything without losing config.
+  if (access.paused) {
+    return {
+      allowed: false,
+      reason: "Access to this connector is paused",
+      layer: "toggle",
+    };
+  }
+
   // Check read/write toggles
   if (operationType === "read" && !access.readAccess) {
     return {
