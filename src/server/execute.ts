@@ -7,8 +7,15 @@ import { createApprovalAndWait } from "@/approvals/queue";
 import { extensions, type ToolCallEvent } from "@/extensions";
 import type { ToolResult } from "@/connectors/interface";
 import type { AuthenticatedMember } from "./auth";
-import { resolveToolCall } from "./tool-builder";
+import { resolveToolCall, buildMemberToolEntries } from "./tool-builder";
 import { routeToolCall } from "./router";
+import {
+  isMetaTool,
+  SEARCH_TOOLS,
+  RUN_TOOL,
+  rankTools,
+  formatSearchResults,
+} from "./tool-gateway";
 
 function emitToolCall(event: ToolCallEvent) {
   if (!extensions.onToolCall) return;
@@ -23,6 +30,58 @@ function emitToolCall(event: ToolCallEvent) {
 }
 
 /**
+ * Handle a tool gateway meta-tool call (`search_tools` / `run_tool`). Returns a
+ * ToolResult when `name` is a meta-tool, or null otherwise so the caller falls
+ * through to normal tool resolution.
+ *
+ * - `search_tools` ranks the member's authorized tools (the full, uncapped set)
+ *   and returns the best matches with their schemas.
+ * - `run_tool` forwards to the normal pipeline so all permission layers apply.
+ */
+export async function handleMetaToolCall(
+  name: string,
+  params: Record<string, any>,
+  member: AuthenticatedMember
+): Promise<ToolResult | null> {
+  if (!isMetaTool(name)) return null;
+
+  if (name === SEARCH_TOOLS) {
+    const query = typeof params?.query === "string" ? params.query : "";
+    const limit =
+      typeof params?.limit === "number" && params.limit > 0
+        ? Math.min(params.limit, 25)
+        : 10;
+    const entries = await buildMemberToolEntries(member.id, member.organizationId);
+    const ranked = rankTools(
+      query,
+      entries.map((e) => ({ tool: e.tool, connectorName: e.connector.name })),
+      limit
+    );
+    return {
+      content: [{ type: "text", text: formatSearchResults(ranked.map((r) => r.tool)) }],
+    };
+  }
+
+  if (name === RUN_TOOL) {
+    const innerName = typeof params?.name === "string" ? params.name : "";
+    if (!innerName) {
+      return {
+        content: [{ type: "text", text: "run_tool requires a 'name' argument." }],
+        isError: true,
+      };
+    }
+    const innerArgs =
+      params?.arguments && typeof params.arguments === "object"
+        ? (params.arguments as Record<string, any>)
+        : {};
+    // Recurse through the full permission/filter/audit pipeline.
+    return executeToolForMember(innerName, innerArgs, member);
+  }
+
+  return null;
+}
+
+/**
  * Run the full tool-call pipeline (permission layers 1-3, execute, AI filter,
  * approval queue, audit log) for a member. Shared between the MCP gateway and
  * the channels agent loop so both surfaces enforce identical authorization.
@@ -32,6 +91,10 @@ export async function executeToolForMember(
   params: Record<string, any>,
   member: AuthenticatedMember
 ): Promise<ToolResult> {
+  // Tool gateway meta-tools short-circuit before normal resolution.
+  const meta = await handleMetaToolCall(namespacedToolName, params, member);
+  if (meta) return meta;
+
   const startTime = Date.now();
 
   try {

@@ -21,11 +21,29 @@ export function ToolList({
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [discovering, setDiscovering] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState(false);
 
   const COLLAPSED_COUNT = 6;
+  const enabledCount = tools.filter((t) => t.enabled).length;
+
+  async function setAll(enabled: boolean) {
+    setBulkBusy(true);
+    setError("");
+    const res = await fetch(`/api/connectors/${connectorId}/tools`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled }),
+    });
+    setBulkBusy(false);
+    if (!res.ok) {
+      setError("Failed to update tools.");
+      return;
+    }
+    router.refresh();
+  }
 
   async function toggle(tool: ToolRow) {
     setBusyId(tool.id);
@@ -78,7 +96,9 @@ export function ToolList({
   return (
     <div className="mt-6">
       <div className="flex items-center gap-3">
-        <h2 className="shrink-0 text-lg font-semibold">Tools ({tools.length})</h2>
+        <h2 className="shrink-0 text-lg font-semibold">
+          Tools ({enabledCount}/{tools.length} enabled)
+        </h2>
         <input
           type="search"
           value={query}
@@ -86,6 +106,24 @@ export function ToolList({
           placeholder="Search tools…"
           className="w-full max-w-xs rounded-md border border-input px-3 py-1.5 text-sm focus:border-ring focus:outline-none"
         />
+        {tools.length > 0 && (
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              onClick={() => setAll(true)}
+              disabled={bulkBusy}
+              className="cursor-pointer rounded-md border border-input px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground disabled:cursor-default disabled:opacity-50"
+            >
+              Enable all
+            </button>
+            <button
+              onClick={() => setAll(false)}
+              disabled={bulkBusy}
+              className="cursor-pointer rounded-md border border-input px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground disabled:cursor-default disabled:opacity-50"
+            >
+              Disable all
+            </button>
+          </div>
+        )}
         <button
           onClick={rediscover}
           disabled={discovering}
@@ -108,6 +146,12 @@ export function ToolList({
           </button>
         )}
       </div>
+
+      <p className="mt-2 text-xs text-muted-foreground">
+        Newly discovered tools start <strong>disabled</strong>. Enable only the
+        ones your team needs — this keeps each member&rsquo;s tool list focused
+        and within model limits.
+      </p>
 
       {error && (
         <div className="mt-3 rounded-md bg-destructive/10 p-3 text-sm text-destructive">

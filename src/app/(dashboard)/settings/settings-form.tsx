@@ -14,6 +14,7 @@ interface Settings {
   notifyWebhookUrl: string | null;
   notifySlackWebhookUrl: string | null;
   channelPersistMessageBodies: boolean;
+  toolGatewayMode: string;
 }
 
 export function SettingsForm({ settings }: { settings: Settings }) {
@@ -41,6 +42,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
         notifyWebhookUrl: formData.get("notifyWebhookUrl") || null,
         notifySlackWebhookUrl: formData.get("notifySlackWebhookUrl") || null,
         channelPersistMessageBodies: formData.get("channelPersistMessageBodies") === "on",
+        toolGatewayMode: formData.get("toolGatewayMode") === "on" ? "on" : "off",
       }),
     });
 
@@ -99,6 +101,29 @@ export function SettingsForm({ settings }: { settings: Settings }) {
             Store chat message bodies
             <span className="block text-xs text-muted-foreground">
               When off, conversation rows still record audit metadata and tool calls, but raw message text is not saved.
+            </span>
+          </span>
+        </label>
+      </div>
+
+      <div className="rounded-md border border-border bg-card p-4 space-y-4">
+        <h2 className="font-semibold">Tool gateway</h2>
+
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="toolGatewayMode"
+            defaultChecked={settings.toolGatewayMode === "on"}
+            className="mt-0.5"
+          />
+          <span>
+            Enable tool gateway (tool search)
+            <span className="block text-xs text-muted-foreground">
+              Instead of exposing every tool directly, the model is given two
+              meta-tools — <code>search_tools</code> and <code>run_tool</code> —
+              to discover and invoke tools on demand. Lets you connect unlimited
+              tools without hitting model limits, on both your channel bots and
+              the MCP endpoint. Leave off to expose tools directly.
             </span>
           </span>
         </label>

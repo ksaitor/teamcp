@@ -73,8 +73,9 @@ function connectOptionsForConnector(connector: {
 /**
  * Connect to a stored connector, list its tools, and upsert them into
  * ConnectorTool. Existing `enabled` flags are preserved; new tools default to
- * enabled. The working transport is persisted back to config to skip future
- * detection.
+ * DISABLED — least-privilege: the owner enables only the tools they need, which
+ * also keeps the advertised tool count down. The working transport is persisted
+ * back to config to skip future detection.
  */
 export async function discoverAndStoreTools(connectorId: string): Promise<Tool[]> {
   const connector = await prisma.connector.findUniqueOrThrow({
@@ -103,7 +104,7 @@ export async function discoverAndStoreTools(connectorId: string): Promise<Tool[]
           toolName: tool.name,
           description: tool.description ?? null,
           inputSchema: (tool.inputSchema as object) ?? undefined,
-          enabled: true,
+          enabled: false,
         },
         update: {
           description: tool.description ?? null,

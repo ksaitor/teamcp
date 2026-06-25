@@ -1,6 +1,7 @@
 import { prisma } from "@/db";
 import { getConnector } from "@/connectors/registry";
 import { generateSlug, base64urlSha256 } from "@/lib/crypto";
+import { META_TOOLS, isGatewayEnabled } from "@/server/tool-gateway";
 import type { Connector } from "@prisma/client";
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 
@@ -50,15 +51,20 @@ function finalizeToolName(connectorSlug: string, toolName: string): string {
   return name.slice(0, MAX_TOOL_NAME - suffix.length) + suffix;
 }
 
-type MemberToolEntry = { tool: Tool; connector: Connector; toolName: string };
+export type MemberToolEntry = { tool: Tool; connector: Connector; toolName: string };
 
 /**
  * Build the personalized tool entries for a member — the single source of truth
  * shared by `tools/list` (maps to MCP Tool objects) and tool-call routing (maps
  * a namespaced name back to its connector + raw tool name). Only includes tools
  * from connectors the member has access to.
+ *
+ * Returns ALL granted tools (no count cap): the MAX_TOOLS cap is applied only
+ * when building the flat advertised list (`buildToolListForMember`), so the
+ * resolver and the gateway search can still reach every tool the member is
+ * permitted to use, even beyond the advertised cap.
  */
-async function buildMemberToolEntries(membershipId: string, organizationId: string): Promise<MemberToolEntry[]> {
+export async function buildMemberToolEntries(membershipId: string, organizationId: string): Promise<MemberToolEntry[]> {
   const accessRecords = await prisma.memberConnectorAccess.findMany({
     where: { membershipId },
     include: {
@@ -164,25 +170,37 @@ async function buildMemberToolEntries(membershipId: string, organizationId: stri
     }
   }
 
-  if (entries.length > MAX_TOOLS) {
-    console.warn(
-      `[tool-builder] member ${membershipId} has ${entries.length} tools; capping to MAX_TOOLS=${MAX_TOOLS} (dropped ${entries.length - MAX_TOOLS}).`
-    )
-    return entries.slice(0, MAX_TOOLS)
-  }
-
   return entries
 }
 
 /**
- * Build a personalized list of MCP tools for a specific member.
+ * Build the personalized list of MCP tools advertised to a member.
+ *
+ * - Gateway mode ON: advertise only the meta-tools; the model discovers and
+ *   invokes the member's real tools on demand (no count limit).
+ * - Gateway mode OFF: advertise the member's tools directly, capped at
+ *   MAX_TOOLS (oldest connector first) so the request can never overflow a
+ *   provider's tool-count limit.
  */
 export async function buildToolListForMember(
   membershipId: string,
   organizationId: string
 ): Promise<Tool[]> {
+  if (await isGatewayEnabled(organizationId)) {
+    return META_TOOLS;
+  }
+
   const entries = await buildMemberToolEntries(membershipId, organizationId);
-  return entries.map((e) => e.tool);
+  const tools = entries.map((e) => e.tool);
+
+  if (tools.length > MAX_TOOLS) {
+    console.warn(
+      `[tool-builder] member ${membershipId} has ${tools.length} tools; capping to MAX_TOOLS=${MAX_TOOLS} (dropped ${tools.length - MAX_TOOLS}). Consider enabling tool gateway mode.`
+    );
+    return tools.slice(0, MAX_TOOLS);
+  }
+
+  return tools;
 }
 
 /**

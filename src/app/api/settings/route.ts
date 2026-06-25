@@ -16,6 +16,7 @@ const updateSettingsSchema = z.object({
   defaultLlmProviderId: z.string().nullable().optional(),
   approvalTimeoutSecs: z.number().int().min(30).max(3600).optional(),
   channelPersistMessageBodies: z.boolean().optional(),
+  toolGatewayMode: z.enum(["off", "on"]).optional(),
 });
 
 export async function PATCH(req: NextRequest) {

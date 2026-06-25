@@ -11,6 +11,7 @@ import { URL } from "url";
 import { authenticateMcpToken, type AuthenticatedMember } from "./auth";
 import { issuer } from "@/lib/oauth/urls";
 import { buildToolListForMember, resolveToolCall } from "./tool-builder";
+import { handleMetaToolCall } from "./execute";
 import { routeToolCall } from "./router";
 import { checkPermissions } from "@/permissions/engine";
 import { aiFilter } from "@/ai/filter";
@@ -217,6 +218,11 @@ function createMcpServerForMember(member: AuthenticatedMember) {
   server.setRequestHandler(CallToolRequestSchema, async (request): Promise<any> => {
     const { name, arguments: params } = request.params;
     const startTime = Date.now();
+
+    // Tool gateway meta-tools (search_tools / run_tool) short-circuit here.
+    // `run_tool` recurses through the same permission/filter/audit pipeline.
+    const meta = await handleMetaToolCall(name, params || {}, member);
+    if (meta) return meta;
 
     try {
       const resolved = await resolveToolCall(member.id, member.organizationId, name);

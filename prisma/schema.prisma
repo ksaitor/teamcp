@@ -105,6 +105,12 @@ model OrgSettings {
   // Channels: when false, Message rows are still written for audit/turn count
   // but `content` and `toolCalls` bodies are stored as null.
   channelPersistMessageBodies Boolean @default(true)
+
+  // Tool gateway: "off" advertises the member's tools directly (default);
+  // "on" advertises only meta-tools (search_tools / run_tool) so the model
+  // discovers and invokes tools on demand. Lets orgs exceed any provider's
+  // tool-count limit without curating, on both channel bots and the MCP endpoint.
+  toolGatewayMode String @default("off")
 }
 
 // Replaces both Admin and Member models
