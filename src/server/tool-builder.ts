@@ -8,6 +8,10 @@ type ConnectorSlugInput = { id: string; name: string; createdAt: Date };
 
 const SEP = "__";
 const MAX_TOOL_NAME = 64;
+// Safety cap on how many tools we ever advertise to a model in one request.
+// OpenAI-compatible APIs reject >128 tools; 128 is also a safe universal floor
+// for external MCP clients (Claude/ChatGPT). Smarter curation comes later.
+const MAX_TOOLS = 128;
 
 /**
  * Map every connector in an org to a unique, human-readable slug derived from
@@ -54,10 +58,7 @@ type MemberToolEntry = { tool: Tool; connector: Connector; toolName: string };
  * a namespaced name back to its connector + raw tool name). Only includes tools
  * from connectors the member has access to.
  */
-async function buildMemberToolEntries(
-  membershipId: string,
-  organizationId: string
-): Promise<MemberToolEntry[]> {
+async function buildMemberToolEntries(membershipId: string, organizationId: string): Promise<MemberToolEntry[]> {
   const accessRecords = await prisma.memberConnectorAccess.findMany({
     where: { membershipId },
     include: {
@@ -65,24 +66,31 @@ async function buildMemberToolEntries(
         include: { tools: true },
       },
     },
-  });
+  })
 
   // Compute slugs over ALL org connectors so numbering stays stable regardless
   // of which connectors this member can access.
   const allConnectors = await prisma.connector.findMany({
     where: { organizationId },
     select: { id: true, name: true, createdAt: true },
-  });
-  const slugById = computeConnectorSlugs(allConnectors);
+  })
+  const slugById = computeConnectorSlugs(allConnectors)
 
-  const entries: MemberToolEntry[] = [];
+  const entries: MemberToolEntry[] = []
+
+  // Oldest connector first, so the tools an org has had longest are kept and a
+  // newly-added connector is what gets dropped when we hit the MAX_TOOLS cap.
+  accessRecords.sort(
+    (a, b) =>
+      a.connector.createdAt.getTime() - b.connector.createdAt.getTime() || a.connector.id.localeCompare(b.connector.id)
+  )
 
   for (const access of accessRecords) {
-    const connector = access.connector;
-    if (connector.status !== "ACTIVE") continue;
-    const slug = slugById.get(connector.id) ?? generateSlug(connector.name) ?? "connector";
+    const connector = access.connector
+    if (connector.status !== 'ACTIVE') continue
+    const slug = slugById.get(connector.id) ?? generateSlug(connector.name) ?? 'connector'
 
-    if (connector.type === "EXTERNAL_MCP") {
+    if (connector.type === 'EXTERNAL_MCP') {
       // For external MCP, use cherry-picked tools from ConnectorTool
       const memberToolAccess = await prisma.memberToolAccess.findMany({
         where: {
@@ -90,11 +98,11 @@ async function buildMemberToolEntries(
           connectorTool: { connectorId: connector.id },
         },
         include: { connectorTool: true },
-      });
+      })
 
       for (const mta of memberToolAccess) {
-        if (!mta.allowed) continue;
-        if (!mta.connectorTool.enabled) continue;
+        if (!mta.allowed) continue
+        if (!mta.connectorTool.enabled) continue
 
         entries.push({
           connector,
@@ -103,17 +111,17 @@ async function buildMemberToolEntries(
             name: finalizeToolName(slug, mta.connectorTool.toolName),
             description: mta.connectorTool.description || undefined,
             inputSchema: (mta.connectorTool.inputSchema as any) || {
-              type: "object",
+              type: 'object',
               properties: {},
             },
           },
-        });
+        })
       }
 
       // If no specific tool access records, check if all tools should be available
       if (memberToolAccess.length === 0) {
         for (const tool of connector.tools) {
-          if (!tool.enabled) continue;
+          if (!tool.enabled) continue
           entries.push({
             connector,
             toolName: tool.toolName,
@@ -121,25 +129,25 @@ async function buildMemberToolEntries(
               name: finalizeToolName(slug, tool.toolName),
               description: tool.description || undefined,
               inputSchema: (tool.inputSchema as any) || {
-                type: "object",
+                type: 'object',
                 properties: {},
               },
             },
-          });
+          })
         }
       }
     } else {
       // Built-in connector — get tools from connector implementation
-      const connectorImpl = getConnector(connector.type);
-      const config = connector.config as Record<string, any>;
-      const connectorTools = connectorImpl.listTools(config);
+      const connectorImpl = getConnector(connector.type)
+      const config = connector.config as Record<string, any>
+      const connectorTools = connectorImpl.listTools(config)
 
       for (const tool of connectorTools) {
-        const opType = connectorImpl.getOperationType(tool.name, config);
+        const opType = connectorImpl.getOperationType(tool.name, config)
 
         // Filter based on read/write access
-        if (opType === "read" && !access.readAccess) continue;
-        if (opType === "write" && !access.writeAccess) continue;
+        if (opType === 'read' && !access.readAccess) continue
+        if (opType === 'write' && !access.writeAccess) continue
 
         entries.push({
           connector,
@@ -147,14 +155,21 @@ async function buildMemberToolEntries(
           tool: {
             ...tool,
             name: finalizeToolName(slug, tool.name),
-            description: `[${connector.name}] ${tool.description || ""}`,
+            description: `[${connector.name}] ${tool.description || ''}`,
           },
-        });
+        })
       }
     }
   }
 
-  return entries;
+  if (entries.length > MAX_TOOLS) {
+    console.warn(
+      `[tool-builder] member ${membershipId} has ${entries.length} tools; capping to MAX_TOOLS=${MAX_TOOLS} (dropped ${entries.length - MAX_TOOLS}).`
+    )
+    return entries.slice(0, MAX_TOOLS)
+  }
+
+  return entries
 }
 
 /**
