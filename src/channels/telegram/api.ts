@@ -162,17 +162,27 @@ export function sendChatAction(
  * "send once, then editMessageText repeatedly" approach risked. Drafts share
  * the message length cap, so we send only the head while a long reply streams;
  * the committed `sendMessage` chunks the full text.
+ *
+ * `draftId` must be a non-zero integer and stay stable across the updates of a
+ * single streaming turn — Telegram animates successive changes to the same
+ * draft id, and a zero/omitted id is rejected with `RANDOM_ID_INVALID`.
  */
-export function sendMessageDraft(token: string, chatId: number | string, text: string) {
+export function sendMessageDraft(
+  token: string,
+  chatId: number | string,
+  draftId: number,
+  text: string
+) {
   return call(token, "sendMessageDraft", {
     chat_id: chatId,
+    draft_id: draftId,
     text: text.slice(0, MAX_MESSAGE_LENGTH),
   });
 }
 
 /** Clear the streaming draft (empty text, Bot API 10.0+) once the real message is committed. */
-export function clearMessageDraft(token: string, chatId: number | string) {
-  return call(token, "sendMessageDraft", { chat_id: chatId, text: "" });
+export function clearMessageDraft(token: string, chatId: number | string, draftId: number) {
+  return call(token, "sendMessageDraft", { chat_id: chatId, draft_id: draftId, text: "" });
 }
 
 export function setWebhook(token: string, url: string, secretToken: string) {

@@ -13,9 +13,15 @@ const TYPING_REFRESH_MS = 4000;
 // Coalesce token deltas into at most one draft update per interval.
 const DRAFT_THROTTLE_MS = 700;
 
+// Telegram requires a non-zero draft id that's stable across a turn's updates
+// (it animates changes to the same id). A process-wide counter seeded from the
+// clock keeps every concurrent stream's id unique without colliding on 0.
+let nextDraftId = Date.now();
+
 export class TelegramReplyStream implements ReplyStream {
   private text = "";
   private sentDraft = "";
+  private readonly draftId = nextDraftId++;
   private draftTimer: ReturnType<typeof setTimeout> | null = null;
   private typingTimer: ReturnType<typeof setInterval> | null = null;
   private finished = false;
@@ -57,7 +63,7 @@ export class TelegramReplyStream implements ReplyStream {
     // Clearing is best-effort: a failed clear leaves a stale draft, never a
     // missing reply.
     await sendFormattedMessage(this.token, this.chatId, assistantText);
-    await clearMessageDraft(this.token, this.chatId).catch((err) =>
+    await clearMessageDraft(this.token, this.chatId, this.draftId).catch((err) =>
       console.error("[telegram] clearMessageDraft failed", err)
     );
   }
@@ -83,7 +89,7 @@ export class TelegramReplyStream implements ReplyStream {
     if (!next || next === this.sentDraft) return;
     this.sentDraft = next;
     try {
-      await sendMessageDraft(this.token, this.chatId, next);
+      await sendMessageDraft(this.token, this.chatId, this.draftId, next);
     } catch (err) {
       console.error("[telegram] sendMessageDraft failed", err);
     }
