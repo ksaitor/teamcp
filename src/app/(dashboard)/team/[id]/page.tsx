@@ -6,27 +6,8 @@ import { MemberControls } from "./member-controls";
 import { MemberEditForm } from "./member-edit-form";
 import { McpEndpoint } from "./mcp-endpoint";
 import { AccessManager } from "@/components/access/access-manager";
-import { getMemberUsage, type UsageWindow } from "@/lib/usage";
+import { getMemberUsage } from "@/lib/usage";
 import { formatCost } from "@/lib/pricing";
-
-function UsageCard({ label, usage }: { label: string; usage: UsageWindow }) {
-  const tokens = usage.inputTokens + usage.outputTokens;
-  return (
-    <div className="flex-1 rounded-md border border-border p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </div>
-      <div className="mt-1 text-2xl font-bold tabular-nums">
-        {formatCost(usage.costCents)}
-        {usage.hasUnpriced && <span className="text-destructive">*</span>}
-      </div>
-      <div className="mt-1 text-xs text-muted-foreground tabular-nums">
-        {usage.inputTokens.toLocaleString()} in · {usage.outputTokens.toLocaleString()} out
-        {" "}({tokens.toLocaleString()} total)
-      </div>
-    </div>
-  );
-}
 
 export default async function MemberDetailPage({
   params,
@@ -110,6 +91,14 @@ export default async function MemberDetailPage({
           { label: "Created", value: formatDate(membership.createdAt) },
           { label: "Connectors", value: String(membership.connectorAccess.length) },
           { label: "Tools", value: String(toolCount) },
+          {
+            label: "LLM cost (mo.)",
+            value: formatCost(usage.thisMonth.costCents) + (usage.thisMonth.hasUnpriced ? "*" : ""),
+          },
+          {
+            label: "LLM cost (total)",
+            value: formatCost(usage.sinceStart.costCents) + (usage.sinceStart.hasUnpriced ? "*" : ""),
+          },
         ]}
         initial={{
           name: membership.user.name || "",
@@ -121,20 +110,6 @@ export default async function MemberDetailPage({
           role: membership.role,
         }}
       />
-
-      <div className="mt-8 rounded-lg border border-border p-5">
-        <h2 className="text-lg font-semibold">LLM usage &amp; cost</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Approximate cost of this member&apos;s chat turns through channels, priced
-          from token counts in provider metadata. {usage.thisMonth.hasUnpriced || usage.sinceStart.hasUnpriced ? (
-            <span className="text-destructive">* includes a model with no configured price (tokens counted, cost not).</span>
-          ) : null}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-4">
-          <UsageCard label="This month" usage={usage.thisMonth} />
-          <UsageCard label="Since start" usage={usage.sinceStart} />
-        </div>
-      </div>
 
       <div className="mt-8 rounded-lg border border-border p-5">
         <h2 className="text-lg font-semibold">Personal MCP Endpoint</h2>

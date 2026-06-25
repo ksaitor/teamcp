@@ -244,15 +244,24 @@ export function MemberEditForm({ membershipId, initial, stats, sessionRole, isSe
         </div>
 
         {stats.length > 0 && (
-          <dl className="ml-auto hidden shrink-0 grid-cols-3 gap-x-6 gap-y-2 text-right sm:grid">
-            {stats.map((s, i) => (
-              <div key={s.label} className={i === 3 ? "col-start-2" : undefined}>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  {s.label}
-                </dt>
-                <dd className="mt-0.5 text-sm font-medium text-foreground">{s.value}</dd>
-              </div>
-            ))}
+          // Two right-aligned rows: the date stats (Last active / Updated /
+          // Created) always on the first line, everything else on the second.
+          <dl className="ml-auto hidden shrink-0 flex-col gap-y-2 text-right sm:flex">
+            {[stats.slice(0, 3), stats.slice(3)].map(
+              (row, r) =>
+                row.length > 0 && (
+                  <div key={r} className="flex justify-end gap-x-5">
+                    {row.map((s) => (
+                      <div key={s.label}>
+                        <dt className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">
+                          {s.label}
+                        </dt>
+                        <dd className="text-xs text-muted-foreground">{s.value}</dd>
+                      </div>
+                    ))}
+                  </div>
+                )
+            )}
           </dl>
         )}
       </div>
