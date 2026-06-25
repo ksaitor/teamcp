@@ -4,6 +4,7 @@ import { randomInt } from "crypto";
 import { prisma } from "@/db";
 import { sendVerificationCode } from "@/lib/email";
 import { isRateLimited, clientIp } from "@/lib/rate-limit";
+import { assertUserMayBeProvisioned } from "@/lib/provisioning";
 
 const schema = z.object({
   email: z.string().email(),
@@ -21,6 +22,9 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       );
     }
+
+    // Single-org tenancy gate (OSS default): don't email codes to strangers.
+    await assertUserMayBeProvisioned(email);
 
     // Rate limit: max 1 code per email per 60 seconds
     const recentToken = await prisma.verificationToken.findFirst({
@@ -62,7 +66,7 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json(
       { error: error.message || "Failed to send code" },
-      { status: 500 }
+      { status: error.statusCode || 500 }
     );
   }
 }

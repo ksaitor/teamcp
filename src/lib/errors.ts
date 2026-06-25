@@ -50,3 +50,25 @@ export class PermissionDeniedError extends AppError {
     this.name = "PermissionDeniedError";
   }
 }
+
+// Raised when single-org tenancy (the OSS default) blocks a second organization
+// from being created. The proprietary build's canCreateOrganization hook bypasses
+// this.
+export class OrgCreationLockedError extends AppError {
+  constructor(message: string = "This deployment is already set up.") {
+    super(message, 403, "ORG_CREATION_LOCKED");
+    this.name = "OrgCreationLockedError";
+  }
+}
+
+// Raised when single-org tenancy (the OSS default) blocks a stranger from
+// self-provisioning an account. The proprietary build's canProvisionUser hook
+// bypasses this.
+export class ProvisioningLockedError extends AppError {
+  constructor(
+    message: string = "This deployment is invite-only. Ask your admin for an invite."
+  ) {
+    super(message, 403, "PROVISIONING_LOCKED");
+    this.name = "ProvisioningLockedError";
+  }
+}

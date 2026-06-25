@@ -3,6 +3,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/db";
 import { isRateLimited, clientIp } from "@/lib/rate-limit";
+import { assertUserMayBeProvisioned } from "@/lib/provisioning";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -21,6 +22,10 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       );
     }
+
+    // Single-org tenancy gate (OSS default): only the bootstrap admin or a
+    // pre-invited email may create an account.
+    await assertUserMayBeProvisioned(email);
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
@@ -48,7 +53,7 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json(
       { error: error.message || "Registration failed" },
-      { status: 500 }
+      { status: error.statusCode || 500 }
     );
   }
 }

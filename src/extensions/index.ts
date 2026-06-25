@@ -33,6 +33,18 @@ export interface Extensions {
   // Connector policy — same decision shape as seats
   canAddConnector?: (organizationId: string) => Promise<SeatDecision>;
 
+  // Tenancy policy. These hooks INVERT the usual "unregistered = permissive"
+  // default: when left unregistered, OSS core enforces single-org tenancy
+  // (one organization, invite-only sign-up). The proprietary build registers
+  // them — each returning { allowed: true } — to restore multi-tenancy.
+  //
+  // canCreateOrganization gates organization creation; unregistered => only the
+  // first organization may ever be created.
+  canCreateOrganization?: (userId: string) => Promise<SeatDecision>;
+  // canProvisionUser gates creation of a brand-new user account; unregistered
+  // => only the bootstrap admin (no org yet) or a pre-invited email may sign up.
+  canProvisionUser?: (email: string) => Promise<SeatDecision>;
+
   // UI slots — return null/undefined to render nothing
   renderPublicHome?: () => ReactNode | Promise<ReactNode>;
   renderSettingsExtras?: (organizationId: string) => ReactNode | Promise<ReactNode>;

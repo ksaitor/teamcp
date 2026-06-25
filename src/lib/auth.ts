@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/db";
 import { AuthError } from "./errors";
+import { assertOrgMayBeCreated } from "./provisioning";
 import { generateSlug } from "./crypto";
 
 interface SessionData {
@@ -65,6 +66,9 @@ export async function signupWithOrg(data: {
   userId: string;
   orgName: string;
 }) {
+  // Single-org tenancy gate (OSS default): only the first org may be created.
+  await assertOrgMayBeCreated(data.userId);
+
   const slug = generateSlug(data.orgName);
 
   const existing = await prisma.organization.findUnique({ where: { slug } });

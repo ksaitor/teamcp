@@ -35,7 +35,11 @@ function LoginFormInner({ providers }: { providers: OAuthProviders }) {
   const [code, setCode] = useState("");
   const [state, setState] = useState<AuthState>("idle");
   const [loading, setLoading] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(
+    searchParams.get("error") === "invite_only"
+      ? "This deployment is invite-only. Ask your admin for an invite."
+      : ""
+  );
   const [message, setMessage] = useState("");
 
   const hasOAuth = providers.google || providers.github;

@@ -11,7 +11,13 @@ export type OAuthProviders = {
   github: boolean;
 };
 
-export default function SignupForm({ providers }: { providers: OAuthProviders }) {
+export default function SignupForm({
+  providers,
+  orgCreationOpen,
+}: {
+  providers: OAuthProviders;
+  orgCreationOpen: boolean;
+}) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -38,6 +44,16 @@ export default function SignupForm({ providers }: { providers: OAuthProviders })
       })
       .catch(() => setCheckingAuth(false));
   }, []);
+
+  // An already-member user (e.g. an invited teammate who just signed in) has no
+  // org to create — send them straight to the dashboard.
+  const hasMembership = !!session?.user?.memberships?.length;
+  useEffect(() => {
+    if (hasMembership) {
+      setRedirecting(true);
+      router.push("/dashboard");
+    }
+  }, [hasMembership, router]);
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
@@ -338,6 +354,37 @@ export default function SignupForm({ providers }: { providers: OAuthProviders })
               Log in
             </Link>
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Signed in but already a member — redirecting to the dashboard (effect above).
+  if (hasMembership) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-sm text-muted-foreground">Redirecting…</p>
+      </div>
+    );
+  }
+
+  // Signed in, no membership, and org creation is locked (single-org tenancy):
+  // this account wasn't invited, so there's nothing to set up.
+  if (!orgCreationOpen) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="w-full max-w-sm space-y-6 text-center">
+          <h1 className="text-2xl font-bold">This deployment is already set up</h1>
+          <p className="text-sm text-muted-foreground">
+            Signed in as {session.user.email}. Access is invite-only — ask your
+            admin to invite you to the organization.
+          </p>
+          <Link
+            href="/login"
+            className="inline-block text-sm font-medium text-foreground hover:underline"
+          >
+            Back to log in
+          </Link>
         </div>
       </div>
     );

@@ -3,6 +3,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import { prisma } from "@/db";
+import { assertUserMayBeProvisioned } from "@/lib/provisioning";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // Self-hosted behind a custom Node server (server.ts), so trust the host
@@ -46,6 +47,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async signIn({ user }) {
       if (!user.email) return false;
+
+      // Single-org tenancy gate (OSS default): block strangers BEFORE the adapter
+      // creates a User/Account row. Existing and pre-invited users pass through.
+      try {
+        await assertUserMayBeProvisioned(user.email);
+      } catch {
+        return "/login?error=invite_only";
+      }
 
       // For returning users, activate any new INVITED memberships
       if (user.id) {

@@ -4,6 +4,7 @@ import { prisma } from "@/db";
 import { randomUUID } from "crypto";
 import { cookies } from "next/headers";
 import { isRateLimited, clientIp } from "@/lib/rate-limit";
+import { assertUserMayBeProvisioned } from "@/lib/provisioning";
 
 const schema = z.object({
   email: z.string().email(),
@@ -24,6 +25,9 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       );
     }
+
+    // Single-org tenancy gate (OSS default): block strangers before provisioning.
+    await assertUserMayBeProvisioned(email);
 
     // Look up the active token for this email (send-code keeps at most one)
     const token = await prisma.verificationToken.findFirst({
@@ -125,7 +129,7 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json(
       { error: error.message || "Verification failed" },
-      { status: 500 }
+      { status: error.statusCode || 500 }
     );
   }
 }
