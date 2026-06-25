@@ -11,6 +11,7 @@ import pg from "pg";
 import {
   classifyStatement,
   extractSqlTableRefs,
+  isSystemTableRef,
   isTableRefAllowed,
   pgDenialReason,
   referencedTableKeys,
@@ -21,57 +22,47 @@ import {
 
 export class PostgresConnector implements ConnectorInstance {
   type = "POSTGRES";
+  // Read/write is governed by native CRUD + per-table + per-member permissions,
+  // not the coarse Layer-1 toggles.
+  nativeReadWrite = true;
 
   listTools(_config: ConnectorConfig): Tool[] {
     return [
       {
         name: "pg_query",
-        description: "Execute a read-only SQL query against the PostgreSQL database",
+        description:
+          "Run a read-only SQL query. Use this for ALL reads \u2014 SELECT, " +
+          "aggregations, joins, CTEs, EXPLAIN \u2014 and to inspect the database " +
+          "by querying information_schema or pg_catalog (list tables, describe " +
+          "columns, find foreign keys/indexes, row counts). Runs inside a " +
+          "READ ONLY transaction.",
         inputSchema: {
           type: "object" as const,
           properties: {
-            sql: { type: "string", description: "SQL query to execute (SELECT only)" },
+            sql: {
+              type: "string",
+              description:
+                "Read-only SQL: SELECT/WITH/EXPLAIN, or information_schema / " +
+                "pg_catalog introspection.",
+            },
           },
           required: ["sql"],
         },
       },
       {
         name: "pg_execute",
-        description: "Execute a write SQL statement (INSERT, UPDATE, DELETE, CREATE, ALTER, DROP)",
+        description:
+          "Execute a write SQL statement: INSERT, UPDATE, DELETE, or DDL " +
+          "(CREATE/ALTER/DROP). Subject to the connector and member permissions.",
         inputSchema: {
           type: "object" as const,
           properties: {
-            sql: { type: "string", description: "SQL statement to execute" },
+            sql: {
+              type: "string",
+              description: "SQL statement: INSERT / UPDATE / DELETE / DDL.",
+            },
           },
           required: ["sql"],
-        },
-      },
-      {
-        name: "pg_list_tables",
-        description: "List all tables in the database",
-        inputSchema: {
-          type: "object" as const,
-          properties: {
-            schema: {
-              type: "string",
-              description: "Schema name (default: public)",
-            },
-          },
-        },
-      },
-      {
-        name: "pg_describe_table",
-        description: "Get the schema/columns of a specific table",
-        inputSchema: {
-          type: "object" as const,
-          properties: {
-            table: { type: "string", description: "Table name" },
-            schema: {
-              type: "string",
-              description: "Schema name (default: public)",
-            },
-          },
-          required: ["table"],
         },
       },
     ];
@@ -102,7 +93,7 @@ export class PostgresConnector implements ConnectorInstance {
     perms: Record<string, any>,
     config?: ConnectorConfig
   ): NativePermissionCheck {
-    const { allowedSchemas, allowedTables } = perms;
+    const { allowedTables } = perms;
 
     // CRUD enforcement: classify the operation, then resolve it against the
     // permission layers (per-table > per-member > connector default > built-in
@@ -145,12 +136,7 @@ export class PostgresConnector implements ConnectorInstance {
     // Per-member table access (whitelist): a member may only touch tables
     // explicitly granted to them, stored on perms.allowedTables as
     // `schema.table` keys. No grants = no data access at all.
-    const dataTools = [
-      "pg_query",
-      "pg_execute",
-      "pg_describe_table",
-      "pg_list_tables",
-    ];
+    const dataTools = ["pg_query", "pg_execute"];
     if (dataTools.includes(toolName)) {
       const grantedTables: string[] = Array.isArray(allowedTables)
         ? allowedTables
@@ -162,37 +148,18 @@ export class PostgresConnector implements ConnectorInstance {
         };
       }
 
-      // Tables the call targets must all be within the granted set. Listing
-      // (pg_list_tables) targets no specific table, so a member with at least
-      // one grant may browse.
-      let referenced: string[] = [];
-      if (toolName === "pg_describe_table" && params.table) {
-        referenced = [params.table];
-      } else if (
-        (toolName === "pg_query" || toolName === "pg_execute") &&
+      // Every user table the SQL touches must be within the granted set.
+      // System catalog / information_schema references are exempt so the
+      // member can still introspect database structure via pg_query.
+      const referenced =
         typeof params.sql === "string"
-      ) {
-        referenced = extractSqlTableRefs(params.sql);
-      }
+          ? extractSqlTableRefs(params.sql).filter((r) => !isSystemTableRef(r))
+          : [];
       for (const ref of referenced) {
         if (!isTableRefAllowed(ref, grantedTables)) {
           return {
             allowed: false,
             reason: `This member doesn't have access to table '${ref}'`,
-          };
-        }
-      }
-    }
-
-    if (allowedSchemas && allowedSchemas.length > 0) {
-      if (
-        (toolName === "pg_list_tables" || toolName === "pg_describe_table") &&
-        params.schema
-      ) {
-        if (!allowedSchemas.includes(params.schema)) {
-          return {
-            allowed: false,
-            reason: `Schema '${params.schema}' is not in the allowed schemas list`,
           };
         }
       }
@@ -230,11 +197,6 @@ export class PostgresConnector implements ConnectorInstance {
     params: Record<string, any>,
     configuredKeys: string[]
   ): string[] {
-    if (toolName === "pg_describe_table" && params.table) {
-      return configuredKeys.filter(
-        (k) => k === params.table || k.slice(k.indexOf(".") + 1) === params.table
-      );
-    }
     if (
       (toolName === "pg_query" || toolName === "pg_execute") &&
       typeof params?.sql === "string"
@@ -292,44 +254,6 @@ export class PostgresConnector implements ConnectorInstance {
                 ),
               },
             ],
-          };
-        }
-
-        case "pg_list_tables": {
-          const schema = params.schema || "public";
-          // Read the catalog directly: information_schema.tables is filtered to
-          // objects with recorded grants and misses role-inherited privileges,
-          // so it can return nothing even when the role can read the tables.
-          const result = await client.query(
-            `SELECT c.relname AS table_name,
-                    CASE c.relkind
-                      WHEN 'v' THEN 'VIEW'
-                      WHEN 'm' THEN 'MATERIALIZED VIEW'
-                      WHEN 'f' THEN 'FOREIGN TABLE'
-                      ELSE 'BASE TABLE'
-                    END AS table_type
-             FROM pg_catalog.pg_class c
-             JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-             WHERE n.nspname = $1 AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
-             ORDER BY c.relname`,
-            [schema]
-          );
-          return {
-            content: [{ type: "text", text: JSON.stringify(result.rows, null, 2) }],
-          };
-        }
-
-        case "pg_describe_table": {
-          const schema = params.schema || "public";
-          const result = await client.query(
-            `SELECT column_name, data_type, is_nullable, column_default
-             FROM information_schema.columns
-             WHERE table_schema = $1 AND table_name = $2
-             ORDER BY ordinal_position`,
-            [schema, params.table]
-          );
-          return {
-            content: [{ type: "text", text: JSON.stringify(result.rows, null, 2) }],
           };
         }
 

@@ -199,3 +199,18 @@ export function isTableRefAllowed(ref: string, allowedKeys: string[]): boolean {
     return k === r || kBare === rBare;
   });
 }
+
+/**
+ * Whether a table reference points at the system catalog or information_schema.
+ * These are metadata (not user data), so they're exempt from the per-member
+ * table whitelist — a member can always introspect structure via pg_query.
+ */
+export function isSystemTableRef(ref: string): boolean {
+  const r = ref.toLowerCase().replace(/"/g, "");
+  const schema = r.includes(".") ? r.slice(0, r.indexOf(".")) : "";
+  const bare = r.includes(".") ? r.slice(r.indexOf(".") + 1) : r;
+  if (schema === "information_schema" || schema.startsWith("pg_")) return true;
+  // Unqualified catalog tables (pg_class, pg_tables, pg_stat_*, …).
+  if (bare.startsWith("pg_")) return true;
+  return false;
+}

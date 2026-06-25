@@ -35,6 +35,14 @@ export interface NativePermissionCheck {
 export interface ConnectorInstance {
   type: string;
 
+  /**
+   * When true, the connector governs read vs write itself (e.g. via native
+   * CRUD permissions), so the engine's coarse Layer-1 read/write gate is
+   * disabled for it and ALL of its tools are advertised regardless of the
+   * member's readAccess/writeAccess flags — call-time native checks decide.
+   */
+  nativeReadWrite?: boolean;
+
   /** Return MCP tools this connector exposes */
   listTools(config: ConnectorConfig): Tool[];
 

@@ -84,12 +84,20 @@ export async function buildMemberToolEntries(membershipId: string, organizationI
 
   const entries: MemberToolEntry[] = []
 
-  // Oldest connector first, so the tools an org has had longest are kept and a
-  // newly-added connector is what gets dropped when we hit the MAX_TOOLS cap.
-  accessRecords.sort(
-    (a, b) =>
-      a.connector.createdAt.getTime() - b.connector.createdAt.getTime() || a.connector.id.localeCompare(b.connector.id)
-  )
+  // Built-in connectors first (a database exposes only a couple of tools but
+  // they're high-value), then external MCP connectors oldest-first. This keeps
+  // the MAX_TOOLS cap from silently dropping a database's tools behind a large
+  // external-MCP catalog (e.g. Ahrefs).
+  const isExternal = (t: string) => t === 'EXTERNAL_MCP'
+  accessRecords.sort((a, b) => {
+    const ax = isExternal(a.connector.type) ? 1 : 0
+    const bx = isExternal(b.connector.type) ? 1 : 0
+    if (ax !== bx) return ax - bx
+    return (
+      a.connector.createdAt.getTime() - b.connector.createdAt.getTime() ||
+      a.connector.id.localeCompare(b.connector.id)
+    )
+  })
 
   for (const access of accessRecords) {
     const connector = access.connector
@@ -151,11 +159,14 @@ export async function buildMemberToolEntries(membershipId: string, organizationI
       const connectorTools = connectorImpl.listTools(config)
 
       for (const tool of connectorTools) {
-        const opType = connectorImpl.getOperationType(tool.name, config)
-
-        // Filter based on read/write access
-        if (opType === 'read' && !access.readAccess) continue
-        if (opType === 'write' && !access.writeAccess) continue
+        // Connectors that govern read/write natively (e.g. Postgres) advertise
+        // every tool; the read/write distinction is enforced at call time by
+        // their native permission checks, not by the coarse access toggles.
+        if (!connectorImpl.nativeReadWrite) {
+          const opType = connectorImpl.getOperationType(tool.name, config)
+          if (opType === 'read' && !access.readAccess) continue
+          if (opType === 'write' && !access.writeAccess) continue
+        }
 
         entries.push({
           connector,

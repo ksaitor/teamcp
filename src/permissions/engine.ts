@@ -2,6 +2,7 @@ import { prisma } from "@/db";
 import { checkToggles } from "./toggles";
 import { checkNativePermissions } from "./native";
 import { runCustomScript } from "./scripts";
+import { getConnector } from "@/connectors/registry";
 import type { AuthenticatedMember } from "@/server/auth";
 
 export interface PermissionContext {
@@ -38,15 +39,17 @@ export async function checkPermissions(
     include: { connector: true },
   });
 
-  // Layer 1: Toggle checks. Postgres governs read/write through native
-  // (Layer 2) CRUD permissions — per-member, per-table and defaults — so the
-  // coarse read/write gate is disabled for it to avoid redundant, confusing
-  // controls. The "no access record" and "paused" checks still apply.
-  const toggleResult = checkToggles(
-    access,
-    ctx.operationType,
-    ctx.connectorType !== "POSTGRES"
-  );
+  // Layer 1: Toggle checks. Connectors that govern read/write natively (e.g.
+  // Postgres, via per-member / per-table / default CRUD permissions) disable
+  // the coarse read/write gate to avoid redundant, confusing controls. The
+  // "no access record" and "paused" checks still apply.
+  let nativeReadWrite = false;
+  try {
+    nativeReadWrite = !!getConnector(ctx.connectorType)?.nativeReadWrite;
+  } catch {
+    nativeReadWrite = false;
+  }
+  const toggleResult = checkToggles(access, ctx.operationType, !nativeReadWrite);
   if (!toggleResult.allowed) return toggleResult;
 
   // For EXTERNAL_MCP, also verify tool-level access
