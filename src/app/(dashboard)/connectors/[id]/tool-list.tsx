@@ -124,18 +124,10 @@ export function ToolList({
             </button>
           </div>
         )}
-        <button
-          onClick={rediscover}
-          disabled={discovering}
-          className="ml-auto flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-input px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground disabled:cursor-default disabled:opacity-50"
-        >
-          <FiRefreshCw className={`h-4 w-4 ${discovering ? "animate-spin" : ""}`} />
-          {discovering ? "Discovering…" : "Re-discover tools"}
-        </button>
         {!searching && tools.length > COLLAPSED_COUNT && (
           <button
             onClick={() => setExpanded((v) => !v)}
-            className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-input px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+            className="ml-auto flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-input px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
           >
             {expanded ? (
               <FiChevronUp className="h-4 w-4" />
@@ -145,6 +137,16 @@ export function ToolList({
             {expanded ? "Show less" : "Show all"}
           </button>
         )}
+        <button
+          onClick={rediscover}
+          disabled={discovering}
+          className={`flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-input px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground disabled:cursor-default disabled:opacity-50${
+            searching || tools.length <= COLLAPSED_COUNT ? " ml-auto" : ""
+          }`}
+        >
+          <FiRefreshCw className={`h-4 w-4 ${discovering ? "animate-spin" : ""}`} />
+          {discovering ? "Discovering…" : "Re-discover tools"}
+        </button>
       </div>
 
       <p className="mt-2 text-xs text-muted-foreground">
