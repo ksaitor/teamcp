@@ -107,50 +107,36 @@ export async function buildMemberToolEntries(membershipId: string, organizationI
     const slug = slugById.get(connector.id) ?? generateSlug(connector.name) ?? 'connector'
 
     if (connector.type === 'EXTERNAL_MCP') {
-      // For external MCP, use cherry-picked tools from ConnectorTool
-      const memberToolAccess = await prisma.memberToolAccess.findMany({
+      // For external MCP, advertise every enabled ConnectorTool by default and
+      // hide only those a member has been explicitly denied. Absence of an
+      // override row means "allowed" — matching the admin grant UI — so newly
+      // enabled tools surface immediately without needing a per-member row.
+      const overrides = await prisma.memberToolAccess.findMany({
         where: {
           membershipId,
           connectorTool: { connectorId: connector.id },
         },
-        include: { connectorTool: true },
+        select: { allowed: true, connectorTool: { select: { toolName: true } } },
       })
+      const denied = new Set(
+        overrides.filter((o) => !o.allowed).map((o) => o.connectorTool.toolName)
+      )
 
-      for (const mta of memberToolAccess) {
-        if (!mta.allowed) continue
-        if (!mta.connectorTool.enabled) continue
-
+      for (const tool of connector.tools) {
+        if (!tool.enabled) continue
+        if (denied.has(tool.toolName)) continue
         entries.push({
           connector,
-          toolName: mta.connectorTool.toolName,
+          toolName: tool.toolName,
           tool: {
-            name: finalizeToolName(slug, mta.connectorTool.toolName),
-            description: mta.connectorTool.description || undefined,
-            inputSchema: (mta.connectorTool.inputSchema as any) || {
+            name: finalizeToolName(slug, tool.toolName),
+            description: tool.description || undefined,
+            inputSchema: (tool.inputSchema as any) || {
               type: 'object',
               properties: {},
             },
           },
         })
-      }
-
-      // If no specific tool access records, check if all tools should be available
-      if (memberToolAccess.length === 0) {
-        for (const tool of connector.tools) {
-          if (!tool.enabled) continue
-          entries.push({
-            connector,
-            toolName: tool.toolName,
-            tool: {
-              name: finalizeToolName(slug, tool.toolName),
-              description: tool.description || undefined,
-              inputSchema: (tool.inputSchema as any) || {
-                type: 'object',
-                properties: {},
-              },
-            },
-          })
-        }
       }
     } else {
       // Built-in connector — get tools from connector implementation
