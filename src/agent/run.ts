@@ -186,6 +186,9 @@ export async function runAgentTurn(
         response.toolCalls.length > 0
           ? (persistBodies ? response.toolCalls : response.toolCalls.map((c) => ({ id: c.id, name: c.name })))
           : null,
+      inputTokens: response.usage?.inputTokens,
+      outputTokens: response.usage?.outputTokens,
+      model: response.usage ? llm.model : undefined,
     });
 
     if (response.toolCalls.length === 0 || response.stopReason !== "tool_use") {
@@ -365,6 +368,9 @@ export async function runAgentTurnStream(
         response.toolCalls.length > 0
           ? (persistBodies ? response.toolCalls : response.toolCalls.map((c) => ({ id: c.id, name: c.name })))
           : null,
+      inputTokens: response.usage?.inputTokens,
+      outputTokens: response.usage?.outputTokens,
+      model: response.usage ? llm.model : undefined,
     });
 
     if (response.toolCalls.length === 0 || response.stopReason !== "tool_use") {
@@ -476,6 +482,9 @@ async function persistMessage(
     content: string | null;
     toolCalls?: unknown;
     toolName?: string;
+    inputTokens?: number;
+    outputTokens?: number;
+    model?: string;
   }
 ) {
   await prisma.message.create({
@@ -485,6 +494,9 @@ async function persistMessage(
       content: data.content,
       toolCalls: (data.toolCalls as any) ?? null,
       toolName: data.toolName ?? null,
+      inputTokens: data.inputTokens ?? null,
+      outputTokens: data.outputTokens ?? null,
+      model: data.model ?? null,
     },
   });
 }

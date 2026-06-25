@@ -67,7 +67,7 @@ export class OpenAiCompatibleClient implements LlmClient {
     if (typeof text !== "string") {
       throw new Error("LLM response missing choices[0].message.content");
     }
-    return { text };
+    return { text, usage: openAiUsage(data?.usage) };
   }
 
   async agentTurn(req: LlmAgentRequest): Promise<LlmAgentResponse> {
@@ -129,6 +129,7 @@ export class OpenAiCompatibleClient implements LlmClient {
       text,
       toolCalls,
       stopReason: mapStopReason(choice?.finish_reason, toolCalls.length > 0),
+      usage: openAiUsage(data?.usage),
     };
   }
 
@@ -157,6 +158,9 @@ export class OpenAiCompatibleClient implements LlmClient {
         max_tokens: req.maxTokens ?? 4096,
         messages,
         stream: true,
+        // Ask for a trailing usage chunk (OpenAI/most compatibles support this);
+        // providers that ignore it simply leave usage undefined.
+        stream_options: { include_usage: true },
         ...(tools.length > 0 ? { tools, tool_choice: "auto" } : {}),
       }),
     });
@@ -168,6 +172,7 @@ export class OpenAiCompatibleClient implements LlmClient {
 
     let text = "";
     let finishReason: string | null = null;
+    let usage: { inputTokens: number; outputTokens: number } | undefined;
     type PartialToolCall = {
       id: string;
       name: string;
@@ -199,6 +204,10 @@ export class OpenAiCompatibleClient implements LlmClient {
         } catch {
           continue;
         }
+        // The trailing usage chunk carries `usage` with an empty choices array,
+        // so read it before the choice guard below.
+        if (chunk?.usage) usage = openAiUsage(chunk.usage);
+
         const choice = chunk?.choices?.[0];
         if (!choice) continue;
         if (choice.finish_reason) finishReason = choice.finish_reason;
@@ -247,6 +256,7 @@ export class OpenAiCompatibleClient implements LlmClient {
       text,
       toolCalls,
       stopReason: mapStopReason(finishReason, toolCalls.length > 0),
+      usage,
     };
   }
 
@@ -295,6 +305,17 @@ function toOpenAiMessages(
     }
   }
   return out;
+}
+
+// Normalize an OpenAI-style usage block to our shape.
+function openAiUsage(
+  usage: any
+): { inputTokens: number; outputTokens: number } | undefined {
+  if (!usage) return undefined;
+  return {
+    inputTokens: usage.prompt_tokens ?? 0,
+    outputTokens: usage.completion_tokens ?? 0,
+  };
 }
 
 function mapStopReason(
