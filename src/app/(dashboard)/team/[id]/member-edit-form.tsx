@@ -24,11 +24,12 @@ interface Props {
     permissionInstructions: string | null;
     role: Role;
   };
+  stats: { label: string; value: string }[];
   sessionRole: Role;
   isSelf: boolean;
 }
 
-export function MemberEditForm({ membershipId, initial, sessionRole, isSelf }: Props) {
+export function MemberEditForm({ membershipId, initial, stats, sessionRole, isSelf }: Props) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -65,6 +66,14 @@ export function MemberEditForm({ membershipId, initial, sessionRole, isSelf }: P
   }
 
   const wantsOwnershipTransfer = !isSelf && role === "OWNER" && initial.role !== "OWNER";
+
+  const isDirty =
+    name !== initial.name ||
+    jobTitle !== (initial.jobTitle ?? "") ||
+    responsibilities !== (initial.responsibilities ?? "") ||
+    permissionInstructions !== (initial.permissionInstructions ?? "") ||
+    image !== initial.image ||
+    (!isSelf && role !== initial.role);
 
   async function save() {
     setError("");
@@ -118,7 +127,7 @@ export function MemberEditForm({ membershipId, initial, sessionRole, isSelf }: P
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-      <div className="flex items-start gap-4">
+      <div className="flex items-center gap-4">
         <div className="relative">
           <button
             type="button"
@@ -147,7 +156,7 @@ export function MemberEditForm({ membershipId, initial, sessionRole, isSelf }: P
           />
         </div>
 
-        <div className="flex-1 space-y-0.5">
+        <div className="min-w-0 flex-1">
           {editingField === "name" ? (
             <input
               autoFocus
@@ -162,13 +171,13 @@ export function MemberEditForm({ membershipId, initial, sessionRole, isSelf }: P
                 }
               }}
               placeholder="Name"
-              className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-2xl font-bold focus:border-ring focus:outline-none"
+              className="w-full rounded-md border border-input bg-background px-3 py-0.5 text-2xl font-bold focus:border-ring focus:outline-none"
             />
           ) : (
             <div
               onDoubleClick={() => setEditingField("name")}
               title="Double-click to edit"
-              className="cursor-text rounded-md border border-transparent px-3 py-1.5 text-2xl font-bold hover:bg-accent"
+              className="cursor-text rounded-md border border-transparent px-3 py-0.5 text-2xl font-bold hover:bg-accent"
             >
               {name || <span className="text-muted-foreground">Name</span>}
             </div>
@@ -188,13 +197,13 @@ export function MemberEditForm({ membershipId, initial, sessionRole, isSelf }: P
                 }
               }}
               placeholder="Job title (e.g. Marketing Manager)"
-              className="w-full rounded-md border border-input px-3 py-1.5 text-sm focus:border-ring focus:outline-none"
+              className="w-full rounded-md border border-input px-3 py-0.5 text-sm focus:border-ring focus:outline-none"
             />
           ) : (
             <div
               onDoubleClick={() => setEditingField("jobTitle")}
               title="Double-click to edit"
-              className="cursor-text rounded-md border border-transparent px-3 py-1.5 text-sm hover:bg-accent"
+              className="cursor-text rounded-md border border-transparent px-3 py-0.5 text-sm hover:bg-accent"
             >
               {jobTitle || (
                 <span className="text-muted-foreground">Job title (e.g. Marketing Manager)</span>
@@ -233,6 +242,19 @@ export function MemberEditForm({ membershipId, initial, sessionRole, isSelf }: P
             </div>
           )}
         </div>
+
+        {stats.length > 0 && (
+          <dl className="ml-auto hidden shrink-0 grid-cols-3 gap-x-6 gap-y-2 text-right sm:grid">
+            {stats.map((s, i) => (
+              <div key={s.label} className={i === 3 ? "col-start-2" : undefined}>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  {s.label}
+                </dt>
+                <dd className="mt-0.5 text-sm font-medium text-foreground">{s.value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
       </div>
 
       <div>
@@ -337,17 +359,19 @@ export function MemberEditForm({ membershipId, initial, sessionRole, isSelf }: P
         </div>
       )}
 
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={loading || confirmingTransfer}
-          className="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-        >
-          {loading ? "Saving…" : "Save"}
-        </button>
-        {error && <span className="text-sm text-destructive">{error}</span>}
-        {success && !error && <span className="text-sm text-success">{success}</span>}
-      </div>
+      {(isDirty || loading) && (
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={loading || confirmingTransfer}
+            className="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            {loading ? "Saving…" : "Save"}
+          </button>
+          {error && <span className="text-sm text-destructive">{error}</span>}
+          {success && !error && <span className="text-sm text-success">{success}</span>}
+        </div>
+      )}
     </form>
   );
 }

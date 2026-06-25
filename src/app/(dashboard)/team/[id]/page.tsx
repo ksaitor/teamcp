@@ -81,6 +81,13 @@ export default async function MemberDetailPage({
         membershipId={membership.id}
         sessionRole={session.role as "OWNER" | "ADMIN" | "MEMBER"}
         isSelf={membership.id === session.membershipId}
+        stats={[
+          { label: "Last active", value: formatDate(membership.lastActiveAt, "Never") },
+          { label: "Updated", value: formatDate(membership.updatedAt) },
+          { label: "Created", value: formatDate(membership.createdAt) },
+          { label: "Connectors", value: String(membership.connectorAccess.length) },
+          { label: "Tools", value: String(toolCount) },
+        ]}
         initial={{
           name: membership.user.name || "",
           email: membership.user.email,
@@ -93,17 +100,6 @@ export default async function MemberDetailPage({
       />
 
       <div className="mt-8 rounded-lg border border-border p-5">
-        <h2 className="text-lg font-semibold">Overview</h2>
-        <dl className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          <Stat label="Connectors" value={String(membership.connectorAccess.length)} />
-          <Stat label="Tools" value={String(toolCount)} />
-          <Stat label="Last active" value={formatDate(membership.lastActiveAt, "Never")} />
-          <Stat label="Created" value={formatDate(membership.createdAt)} />
-          <Stat label="Updated" value={formatDate(membership.updatedAt)} />
-        </dl>
-      </div>
-
-      <div className="mt-8 rounded-lg border border-border p-5">
         <h2 className="text-lg font-semibold">Personal MCP Endpoint</h2>
         <McpEndpoint endpoint={mcpEndpoint} />
         <p className="mt-2 text-xs text-muted-foreground">
@@ -112,14 +108,11 @@ export default async function MemberDetailPage({
       </div>
 
       <div className="mt-8">
-        <h2 className="text-lg font-semibold">Connector Access</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Grant this team member access to connectors and tune what they can do.
-        </p>
-        <div className="mt-3">
-          <AccessManager
+        <AccessManager
             axis="connectors"
             fixedMembershipId={membership.id}
+            title="Connector Access"
+            description="Grant this team member access to connectors and tune what they can do."
             records={membership.connectorAccess.map((ca) => {
               const isMcp = ca.connector.type === "EXTERNAL_MCP";
               const enabled = enabledByConnector.get(ca.connectorId) ?? 0;
@@ -149,7 +142,6 @@ export default async function MemberDetailPage({
                 connectorType: c.type,
               }))}
           />
-        </div>
       </div>
 
       <div className="mt-10 border-t border-border pt-6">
@@ -171,17 +163,6 @@ export default async function MemberDetailPage({
           />
         </div>
       </div>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </dt>
-      <dd className="mt-1 text-sm font-medium text-foreground">{value}</dd>
     </div>
   );
 }
