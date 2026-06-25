@@ -41,7 +41,7 @@ export class AnthropicClient implements LlmClient {
     if (!block || block.type !== "text") {
       throw new Error("Anthropic returned a non-text response");
     }
-    return { text: block.text };
+    return { text: block.text, usage: anthropicUsage(response.usage) };
   }
 
   async agentTurn(req: LlmAgentRequest): Promise<LlmAgentResponse> {
@@ -99,7 +99,7 @@ export async function anthropicAgentTurn(
   }
 
   const stopReason = mapStopReason(response.stop_reason);
-  return { text, toolCalls, stopReason };
+  return { text, toolCalls, stopReason, usage: anthropicUsage(response.usage) };
 }
 
 export async function anthropicAgentTurnStream(
@@ -122,13 +122,26 @@ export async function anthropicAgentTurnStream(
 
   let text = "";
   let stopReason: LlmAgentResponse["stopReason"] = "other";
+  let inputTokens = 0;
+  let outputTokens = 0;
   type PartialBlock =
     | { kind: "text"; text: string }
     | { kind: "tool_use"; id: string; name: string; jsonBuf: string };
   const blocks: PartialBlock[] = [];
 
   for await (const event of stream) {
-    if (event.type === "content_block_start") {
+    if (event.type === "message_start") {
+      // Initial usage: input_tokens is final here; output_tokens accrues via
+      // message_delta below.
+      const usage = (event as any).message?.usage;
+      if (usage) {
+        inputTokens =
+          (usage.input_tokens ?? 0) +
+          (usage.cache_creation_input_tokens ?? 0) +
+          (usage.cache_read_input_tokens ?? 0);
+        outputTokens = usage.output_tokens ?? 0;
+      }
+    } else if (event.type === "content_block_start") {
       const block: any = (event as any).content_block;
       if (block?.type === "text") {
         blocks[event.index] = { kind: "text", text: block.text ?? "" };
@@ -157,6 +170,9 @@ export async function anthropicAgentTurnStream(
     } else if (event.type === "message_delta") {
       const reason = (event as any).delta?.stop_reason as string | null;
       if (reason) stopReason = mapStopReason(reason);
+      // Cumulative output token count for the message so far.
+      const usageOut = (event as any).usage?.output_tokens;
+      if (typeof usageOut === "number") outputTokens = usageOut;
     }
   }
 
@@ -177,7 +193,22 @@ export async function anthropicAgentTurnStream(
     }
   }
 
-  return { text, toolCalls, stopReason };
+  return {
+    text,
+    toolCalls,
+    stopReason,
+    usage: { inputTokens, outputTokens },
+  };
+}
+
+// Normalize Anthropic's usage block to our shape. Cache tokens count as input.
+function anthropicUsage(usage: any): { inputTokens: number; outputTokens: number } | undefined {
+  if (!usage) return undefined;
+  const input =
+    (usage.input_tokens ?? 0) +
+    (usage.cache_creation_input_tokens ?? 0) +
+    (usage.cache_read_input_tokens ?? 0);
+  return { inputTokens: input, outputTokens: usage.output_tokens ?? 0 };
 }
 
 function toAnthropicMessages(messages: LlmTurnMessage[]) {

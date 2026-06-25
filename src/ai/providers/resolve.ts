@@ -48,7 +48,18 @@ export async function getOrgLlmClient(
         if (!block || block.type !== "text") {
           throw new Error("Anthropic returned a non-text response");
         }
-        return { text: block.text };
+        return {
+          text: block.text,
+          usage: response.usage
+            ? {
+                inputTokens:
+                  (response.usage.input_tokens ?? 0) +
+                  (response.usage.cache_creation_input_tokens ?? 0) +
+                  (response.usage.cache_read_input_tokens ?? 0),
+                outputTokens: response.usage.output_tokens ?? 0,
+              }
+            : undefined,
+        };
       },
       async agentTurn(req) {
         return anthropicAgentTurn(anthropic, req);

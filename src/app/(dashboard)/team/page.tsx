@@ -2,34 +2,46 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
+import { getOrgUsage } from "@/lib/usage";
 import { MembersTable, type MemberRow } from "./members-table";
 
 export default async function MembersPage() {
   const session = await requireAdmin();
 
-  const memberships = await prisma.orgMembership.findMany({
-    where: { organizationId: session.organizationId },
-    orderBy: { createdAt: "desc" },
-    include: {
-      user: { select: { name: true, email: true, image: true } },
-      _count: { select: { connectorAccess: true, auditLogs: true } },
-    },
-  });
+  const [memberships, usage] = await Promise.all([
+    prisma.orgMembership.findMany({
+      where: { organizationId: session.organizationId },
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: { select: { name: true, email: true, image: true } },
+        _count: { select: { connectorAccess: true, auditLogs: true } },
+      },
+    }),
+    getOrgUsage(session.organizationId),
+  ]);
 
   if (memberships.length === 0) {
     redirect("/team/new");
   }
 
-  const members: MemberRow[] = memberships.map((m) => ({
-    id: m.id,
-    role: m.role,
-    status: m.status,
-    suspendedAt: m.suspendedAt,
-    jobTitle: m.jobTitle,
-    user: m.user,
-    connectorCount: m._count.connectorAccess,
-    lastActiveAt: m.lastActiveAt,
-  }));
+  const members: MemberRow[] = memberships.map((m) => {
+    const u = usage.get(m.id);
+    return {
+      id: m.id,
+      role: m.role,
+      status: m.status,
+      suspendedAt: m.suspendedAt,
+      jobTitle: m.jobTitle,
+      user: m.user,
+      connectorCount: m._count.connectorAccess,
+      lastActiveAt: m.lastActiveAt,
+      // This-month usage drives the list column; the member page shows both
+      // windows. Plain numbers — safely under Number's integer range.
+      monthCostCents: u?.thisMonth.costCents ?? 0,
+      monthTokens: (u?.thisMonth.inputTokens ?? 0) + (u?.thisMonth.outputTokens ?? 0),
+      monthUnpriced: u?.thisMonth.hasUnpriced ?? false,
+    };
+  });
 
   return (
     <div>

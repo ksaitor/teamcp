@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { SearchInput } from "@/components/ui/search-input";
+import { formatCost } from "@/lib/pricing";
 
 export interface MemberRow {
   id: string;
@@ -13,6 +14,9 @@ export interface MemberRow {
   user: { name: string | null; email: string; image: string | null };
   connectorCount: number;
   lastActiveAt: Date | null;
+  monthCostCents: number;
+  monthTokens: number;
+  monthUnpriced: boolean;
 }
 
 export function MembersTable({ members }: { members: MemberRow[] }) {
@@ -47,6 +51,7 @@ export function MembersTable({ members }: { members: MemberRow[] }) {
               <th className="pb-2 font-medium">Role</th>
               <th className="pb-2 font-medium">Status</th>
               <th className="pb-2 font-medium">Connectors</th>
+              <th className="pb-2 font-medium">LLM cost (mo.)</th>
               <th className="pb-2 font-medium">Last active</th>
               <th className="pb-2 font-medium">Actions</th>
             </tr>
@@ -80,6 +85,22 @@ export function MembersTable({ members }: { members: MemberRow[] }) {
                   <StatusBadge status={m.status} suspendedAt={m.suspendedAt} />
                 </td>
                 <td className="py-3 text-muted-foreground">{m.connectorCount}</td>
+                <td
+                  className="py-3 text-muted-foreground"
+                  title={`${m.monthTokens.toLocaleString()} tokens this month${
+                    m.monthUnpriced ? " · some models unpriced" : ""
+                  }`}
+                >
+                  {m.monthTokens === 0 ? (
+                    "—"
+                  ) : (
+                    <span>
+                      {formatCost(m.monthCostCents)}
+                      {m.monthUnpriced && "*"}{" "}
+                      <span className="text-xs">({formatTokens(m.monthTokens)} tok)</span>
+                    </span>
+                  )}
+                </td>
                 <td className="py-3 text-muted-foreground">
                   <LastActive at={m.lastActiveAt} />
                 </td>
@@ -95,7 +116,7 @@ export function MembersTable({ members }: { members: MemberRow[] }) {
             ))}
             {results.length === 0 && (
               <tr>
-                <td colSpan={8} className="py-8 text-center text-muted-foreground">
+                <td colSpan={9} className="py-8 text-center text-muted-foreground">
                   {members.length === 0
                     ? "No team members yet. Add one above."
                     : `No team members match “${query}”.`}
@@ -134,6 +155,14 @@ function Avatar({
       {initial}
     </span>
   );
+}
+
+// Compact token count ("—", "850", "12.3K", "4.1M").
+function formatTokens(n: number) {
+  if (!n) return "—";
+  if (n < 1000) return String(n);
+  if (n < 1_000_000) return `${(n / 1000).toFixed(1)}K`;
+  return `${(n / 1_000_000).toFixed(1)}M`;
 }
 
 function LastActive({ at }: { at: Date | null }) {

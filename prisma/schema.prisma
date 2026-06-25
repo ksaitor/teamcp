@@ -532,6 +532,15 @@ model Message {
   toolCalls Json?
   toolName  String?
 
+  // Approximate token usage for the model call that produced this turn, read
+  // from provider response metadata. Set only on ASSISTANT rows from an agent
+  // turn; null for USER/TOOL rows and when the provider returns no usage.
+  // `model` is the model id that was billed, so usage can be priced at read
+  // time (see src/lib/pricing.ts) without re-tokenizing or storing dollars.
+  inputTokens  Int?
+  outputTokens Int?
+  model        String?
+
   createdAt DateTime @default(now())
 
   @@index([conversationId, createdAt])
