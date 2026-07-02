@@ -26,7 +26,7 @@ jobs:
           path-to-document: "https://github.com/ksaitor/teamcp/blob/main/CLA.md"
           branch: "main"
           allowlist: "ksaitor,bot*,dependabot[bot]"
-          custom-notsigned-comment: >
+          custom-notsigned-prcomment: >
             Thank you for your contribution to Teamcp! Before we can merge this,
             we ask you to sign our [Contributor License Agreement](https://github.com/ksaitor/teamcp/blob/main/CLA.md).
             You keep ownership of your code — the CLA grants us the license needed
