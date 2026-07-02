@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import type {
-  LlmProviderType,
-  SuggestedModel,
+import {
+  sortModelsByToolCalls,
+  type LlmProviderType,
+  type SuggestedModel,
 } from "@/lib/llm-providers-catalog";
 import { ModelSuggestions } from "../../model-suggestions";
 
@@ -27,7 +28,8 @@ export function LlmProviderForm({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [model, setModel] = useState(suggestedModels[0]?.id ?? "");
+  const orderedModels = sortModelsByToolCalls(suggestedModels);
+  const [model, setModel] = useState(orderedModels[0]?.id ?? "");
   const baseUrlRequired = type === "CUSTOM_OPENAI";
   const modelListId = `models-${type}`;
 
@@ -139,9 +141,9 @@ export function LlmProviderForm({
           autoComplete="off"
           className="mt-1 w-full rounded-md border border-input px-3 py-1.5 text-sm focus:border-ring focus:outline-none"
         />
-        {suggestedModels.length > 0 && (
+        {orderedModels.length > 0 && (
           <datalist id={modelListId}>
-            {suggestedModels.map((m) => (
+            {orderedModels.map((m) => (
               <option key={m.id} value={m.id} label={m.label} />
             ))}
           </datalist>
@@ -153,6 +155,8 @@ export function LlmProviderForm({
         />
         <p className="mt-1 text-xs text-muted-foreground">
           Pick a suggestion or type any model ID this provider supports.
+          Models marked with a wrench support tool calls, which Teamcp needs
+          to use your connected tools.
         </p>
       </div>
 
