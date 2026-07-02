@@ -72,4 +72,22 @@ bun run mcp:dev     # MCP server on :3001
 
 ## License
 
-BSL — see [LICENSE](LICENSE) for details.
+Teamcp is [Fair Source](https://fair.io) software, licensed under the
+[Fair Core License, Version 1.0, ALv2 Future License](LICENSE.md) (FCL-1.0-ALv2).
+
+You can self-host, read, modify, and redistribute Teamcp for any purpose that
+doesn't compete with our commercial offering. Paid features are gated by
+license keys, which must not be circumvented. Each version automatically
+converts to the Apache License 2.0 two years after its release.
+
+Copyright © 2026 [Ksaitor Media Pte. Ltd.](https://teamcp.ai)
+
+## Contributing
+
+Contributions are welcome! By submitting a pull request you agree to the
+[Contributor License Agreement](CLA.md) — you keep ownership of your code and
+grant us the license needed to keep the project sustainable.
+
+---
+
+Created by [Raman Shalupau](https://github.com/ksaitor)

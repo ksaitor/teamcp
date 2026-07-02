@@ -2,6 +2,8 @@
   "name": "teamcp",
   "version": "0.1.0",
   "private": true,
+  "license": "SEE LICENSE IN LICENSE.md",
+  "author": "Ksaitor Media Pte. Ltd.",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "prisma generate && next build",
