@@ -23,5 +23,5 @@ export const appVersionLabel: string | null = appVersion
 /** GitHub commit URL when the version is a commit SHA, else null. */
 export const appCommitUrl: string | null =
   appVersion && isCommitSha(appVersion)
-    ? `https://github.com/ksaitor/teamrouter/commit/${appVersion}`
+    ? `https://github.com/ksaitor/teamcp/commit/${appVersion}`
     : null;
