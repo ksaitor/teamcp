@@ -2,6 +2,20 @@
 
 Self-hostable MCP gateway with per-member AI tool access control. Give your team fine-grained access to databases, APIs, and AI tools — enforced through a layered permission engine with optional AI-powered filtering.
 
+## Screenshots
+
+Connect data sources from the connector gallery — official hosted MCP servers, databases, or any custom MCP server:
+
+![Connector gallery with Ahrefs, Airtable, Atlassian, GitHub, Linear, and more](docs/screenshots/connector-gallery.png)
+
+Control which tools each connector exposes and which team members can use them:
+
+![Sentry connector page showing enabled tools and per-member access](docs/screenshots/connector-sentry.png)
+
+For databases, set default and per-table read/insert/update/delete permissions:
+
+![PostgreSQL connector with default and per-table permissions](docs/screenshots/database-permissions.png)
+
 ## Deploy
 
 Teamcp ships as a standard container and also builds cleanly with [Nixpacks](https://nixpacks.com), so it runs on any platform that supports either (Railway, Render, Coolify, Fly, a plain VM, etc.).
