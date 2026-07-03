@@ -24,7 +24,9 @@ jobs:
         with:
           path-to-signatures: ".github/cla-signatures.json"
           path-to-document: "https://github.com/ksaitor/teamcp/blob/main/CLA.md"
-          branch: "main"
+          # Signatures can't live on main: it's protected, so the action's
+          # commit gets rejected. It creates this branch on first signature.
+          branch: "cla-signatures"
           allowlist: "ksaitor,bot*,dependabot[bot]"
           custom-notsigned-prcomment: >
             Thank you for your contribution to Teamcp! Before we can merge this,

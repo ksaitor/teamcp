@@ -23,6 +23,26 @@ export interface SuggestedModel {
   label?: string;
   /** Short role hint, e.g. "Most capable", "Fastest". */
   note?: string;
+  /**
+   * Whether the model supports tool/function calling. Teamcp exposes MCP
+   * tools through an agent loop, so tool-capable models are suggested first;
+   * models with `false` are listed last with a "No tool calls" warning.
+   * Leave unset when unknown.
+   */
+  supportsToolCalls?: boolean;
+}
+
+/**
+ * Orders suggestions for display: models that support tool calls first,
+ * unknown next, models that can't call tools last. Stable within each group
+ * so each provider's "most capable first" ordering is preserved.
+ */
+export function sortModelsByToolCalls(
+  models: SuggestedModel[]
+): SuggestedModel[] {
+  const rank = (m: SuggestedModel) =>
+    m.supportsToolCalls === true ? 0 : m.supportsToolCalls === false ? 2 : 1;
+  return [...models].sort((a, b) => rank(a) - rank(b));
 }
 
 export interface LlmProviderCatalogEntry {
@@ -54,11 +74,11 @@ export const llmProviderCatalog: LlmProviderCatalogEntry[] = [
     baseUrlEditable: true,
     requiresApiKey: true,
     suggestedModels: [
-      { id: "gpt-4o", label: "GPT-4o", note: "Flagship" },
-      { id: "gpt-4o-mini", label: "GPT-4o mini", note: "Fast & cheap" },
-      { id: "o3", label: "o3", note: "Reasoning" },
-      { id: "o3-mini", label: "o3-mini" },
-      { id: "gpt-4.1", label: "GPT-4.1" },
+      { id: "gpt-4o", label: "GPT-4o", note: "Flagship", supportsToolCalls: true },
+      { id: "gpt-4o-mini", label: "GPT-4o mini", note: "Fast & cheap", supportsToolCalls: true },
+      { id: "o3", label: "o3", note: "Reasoning", supportsToolCalls: true },
+      { id: "o3-mini", label: "o3-mini", supportsToolCalls: true },
+      { id: "gpt-4.1", label: "GPT-4.1", supportsToolCalls: true },
     ],
   },
   {
@@ -71,11 +91,11 @@ export const llmProviderCatalog: LlmProviderCatalogEntry[] = [
     baseUrlEditable: true,
     requiresApiKey: true,
     suggestedModels: [
-      { id: "claude-opus-4-8", label: "Opus 4.8", note: "Most capable" },
-      { id: "claude-sonnet-4-6", label: "Sonnet 4.6", note: "Balanced" },
-      { id: "claude-haiku-4-5", label: "Haiku 4.5", note: "Fastest" },
-      { id: "claude-opus-4-7", label: "Opus 4.7" },
-      { id: "claude-opus-4-6", label: "Opus 4.6" },
+      { id: "claude-opus-4-8", label: "Opus 4.8", note: "Most capable", supportsToolCalls: true },
+      { id: "claude-sonnet-4-6", label: "Sonnet 4.6", note: "Balanced", supportsToolCalls: true },
+      { id: "claude-haiku-4-5", label: "Haiku 4.5", note: "Fastest", supportsToolCalls: true },
+      { id: "claude-opus-4-7", label: "Opus 4.7", supportsToolCalls: true },
+      { id: "claude-opus-4-6", label: "Opus 4.6", supportsToolCalls: true },
     ],
   },
   {
@@ -88,10 +108,10 @@ export const llmProviderCatalog: LlmProviderCatalogEntry[] = [
     baseUrlEditable: true,
     requiresApiKey: true,
     suggestedModels: [
-      { id: "grok-4", label: "Grok 4", note: "Latest" },
-      { id: "grok-3", label: "Grok 3" },
-      { id: "grok-3-mini", label: "Grok 3 mini", note: "Fast" },
-      { id: "grok-2-latest", label: "Grok 2" },
+      { id: "grok-4", label: "Grok 4", note: "Latest", supportsToolCalls: true },
+      { id: "grok-3", label: "Grok 3", supportsToolCalls: true },
+      { id: "grok-3-mini", label: "Grok 3 mini", note: "Fast", supportsToolCalls: true },
+      { id: "grok-2-latest", label: "Grok 2", supportsToolCalls: true },
     ],
   },
   {
@@ -104,10 +124,10 @@ export const llmProviderCatalog: LlmProviderCatalogEntry[] = [
     baseUrlEditable: true,
     requiresApiKey: true,
     suggestedModels: [
-      { id: "kimi-k2-0905-preview", label: "Kimi K2", note: "Latest" },
-      { id: "moonshot-v1-128k", label: "Moonshot v1 128k", note: "Long context" },
-      { id: "moonshot-v1-32k", label: "Moonshot v1 32k" },
-      { id: "moonshot-v1-8k", label: "Moonshot v1 8k" },
+      { id: "kimi-k2-0905-preview", label: "Kimi K2", note: "Latest", supportsToolCalls: true },
+      { id: "moonshot-v1-128k", label: "Moonshot v1 128k", note: "Long context", supportsToolCalls: true },
+      { id: "moonshot-v1-32k", label: "Moonshot v1 32k", supportsToolCalls: true },
+      { id: "moonshot-v1-8k", label: "Moonshot v1 8k", supportsToolCalls: true },
     ],
   },
   {
@@ -120,10 +140,10 @@ export const llmProviderCatalog: LlmProviderCatalogEntry[] = [
     baseUrlEditable: true,
     requiresApiKey: true,
     suggestedModels: [
-      { id: "anthropic/claude-opus-4-8", label: "Claude Opus 4.8", note: "Most capable" },
-      { id: "anthropic/claude-sonnet-4-6", label: "Claude Sonnet 4.6", note: "Balanced" },
-      { id: "openai/gpt-4o", label: "GPT-4o" },
-      { id: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash", note: "Fast" },
+      { id: "anthropic/claude-opus-4-8", label: "Claude Opus 4.8", note: "Most capable", supportsToolCalls: true },
+      { id: "anthropic/claude-sonnet-4-6", label: "Claude Sonnet 4.6", note: "Balanced", supportsToolCalls: true },
+      { id: "openai/gpt-4o", label: "GPT-4o", supportsToolCalls: true },
+      { id: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash", note: "Fast", supportsToolCalls: true },
     ],
   },
   {
