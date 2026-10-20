@@ -74,11 +74,9 @@ export const llmProviderCatalog: LlmProviderCatalogEntry[] = [
     baseUrlEditable: true,
     requiresApiKey: true,
     suggestedModels: [
-      { id: "gpt-4o", label: "GPT-4o", note: "Flagship", supportsToolCalls: true },
-      { id: "gpt-4o-mini", label: "GPT-4o mini", note: "Fast & cheap", supportsToolCalls: true },
-      { id: "o3", label: "o3", note: "Reasoning", supportsToolCalls: true },
-      { id: "o3-mini", label: "o3-mini", supportsToolCalls: true },
-      { id: "gpt-4.1", label: "GPT-4.1", supportsToolCalls: true },
+      { id: "gpt-6-luna", label: "GPT-6 Luna", note: "Flagship", supportsToolCalls: true },
+      { id: "gpt-5.6-luna", label: "GPT-5.6 Luna", note: "Fast & cheap", supportsToolCalls: true },
+      { id: "gpt-6-sol", label: "GPT-6 Sol", note: "Reasoning", supportsToolCalls: true },
     ],
   },
   {
@@ -142,7 +140,8 @@ export const llmProviderCatalog: LlmProviderCatalogEntry[] = [
     suggestedModels: [
       { id: "anthropic/claude-opus-4-8", label: "Claude Opus 4.8", note: "Most capable", supportsToolCalls: true },
       { id: "anthropic/claude-sonnet-4-6", label: "Claude Sonnet 4.6", note: "Balanced", supportsToolCalls: true },
-      { id: "openai/gpt-4o", label: "GPT-4o", supportsToolCalls: true },
+      { id: "openai/gpt-6-luna", label: "GPT-6 Luna", supportsToolCalls: true },
+      { id: "openai/gpt-5.6-luna", label: "GPT-5.6 Luna", note: "Fast & cheap", supportsToolCalls: true },
       { id: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash", note: "Fast", supportsToolCalls: true },
     ],
   },

@@ -35,6 +35,10 @@ const PRICES: Record<string, ModelPrice> = {
   "claude-sonnet-4": { input: 3, output: 15 },
   "claude-haiku-4-5": { input: 1, output: 5 },
   // ── OpenAI ─────────────────────────────────────────────────
+  "gpt-6-luna": { input: 0.1, output: 0.5 },
+  "gpt-6-sol": { input: 2, output: 10 },
+  "gpt-5.6-luna": { input: 0.2, output: 1.2 },
+  // Retained for historical usage rows that still store the retired ids.
   "gpt-4o": { input: 2.5, output: 10 },
   "gpt-4o-mini": { input: 0.15, output: 0.6 },
   "gpt-4.1": { input: 2, output: 8 },
