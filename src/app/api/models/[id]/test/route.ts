@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/db";
 import { requireAdmin } from "@/lib/auth";
+import { resolveRetiredModel } from "@/lib/retired-models";
 import { getLlmClient } from "@/ai/providers";
 
 export async function POST(
@@ -21,7 +22,9 @@ export async function POST(
     let ok = false;
     let message: string | undefined;
     try {
-      ok = await getLlmClient(provider).testConnection(provider.defaultModel);
+      ok = await getLlmClient(provider).testConnection(
+        resolveRetiredModel(provider.defaultModel)
+      );
     } catch (err: any) {
       ok = false;
       message = err.message;

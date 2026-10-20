@@ -9,6 +9,10 @@ import {
   getLlmCatalogEntryByType,
   type LlmProviderType,
 } from "@/lib/llm-providers-catalog";
+import {
+  getRetiredModelReplacement,
+  isRetiredModel,
+} from "@/lib/retired-models";
 import { ModelSuggestions } from "./model-suggestions";
 
 interface ProviderItem {
@@ -150,6 +154,13 @@ export function ProvidersList({ items }: { items: ProviderItem[] }) {
                       value={editModel}
                       onSelect={setEditModel}
                     />
+                    {isRetiredModel(editModel) && (
+                      <p className="text-xs text-warning">
+                        Retiring Jan 14, 2027 — pick a suggestion above, or
+                        calls will use{" "}
+                        {getRetiredModelReplacement(editModel)}.
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <>
@@ -169,6 +180,13 @@ export function ProvidersList({ items }: { items: ProviderItem[] }) {
                     <p className="text-sm text-muted-foreground">
                       {entry?.label ?? p.type} · {p.defaultModel}
                     </p>
+                    {isRetiredModel(p.defaultModel) && (
+                      <p className="mt-1 text-xs text-warning">
+                        Retiring Jan 14, 2027 — calls use{" "}
+                        {getRetiredModelReplacement(p.defaultModel)}. Edit to
+                        update the saved model.
+                      </p>
+                    )}
                     {testResult[p.id] && (
                       <p className="mt-1 text-xs text-muted-foreground">
                         {testResult[p.id]}

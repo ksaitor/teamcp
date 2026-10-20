@@ -1,4 +1,5 @@
 import { prisma } from "@/db";
+import { resolveRetiredModel } from "@/lib/retired-models";
 import { getAnthropicClient } from "../client";
 import type { LlmClient } from "./types";
 import { getLlmClient } from "./index";
@@ -26,13 +27,18 @@ export async function getOrgLlmClient(
       },
     });
     if (provider) {
-      return { client: getLlmClient(provider), model: provider.defaultModel };
+      return {
+        client: getLlmClient(provider),
+        model: resolveRetiredModel(provider.defaultModel),
+      };
     }
   }
 
   if (process.env.ANTHROPIC_API_KEY) {
     const anthropic = getAnthropicClient();
-    const model = settings?.aiModel || "claude-sonnet-4-20250514";
+    const model = resolveRetiredModel(
+      settings?.aiModel || "claude-sonnet-4-20250514"
+    );
     const client: LlmClient = {
       async complete(req) {
         const response = await anthropic.messages.create({
@@ -97,7 +103,9 @@ export async function getChannelLlmClient(channel: {
     if (provider) {
       return {
         client: getLlmClient(provider),
-        model: channel.modelOverride || provider.defaultModel,
+        model: resolveRetiredModel(
+          channel.modelOverride || provider.defaultModel
+        ),
       };
     }
   }
@@ -107,6 +115,8 @@ export async function getChannelLlmClient(channel: {
 
   return {
     client: orgClient.client,
-    model: channel.modelOverride || orgClient.model,
+    model: channel.modelOverride
+      ? resolveRetiredModel(channel.modelOverride)
+      : orgClient.model,
   };
 }
